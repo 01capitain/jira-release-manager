@@ -34,25 +34,23 @@
               "icon": "lucide-file",
               "title": "Graphite"
             }
-          }
-        ],
-        "currentTab": 1
-      },
-      {
-        "id": "c1205a2c2af101dc",
-        "type": "tabs",
-        "children": [
+          },
           {
-            "id": "7893391d7d8def0b",
+            "id": "ede43f44b082574b",
             "type": "leaf",
             "state": {
-              "type": "graph",
-              "state": {},
-              "icon": "lucide-git-fork",
-              "title": "Graph view"
+              "type": "markdown",
+              "state": {
+                "file": "Project Overview.md",
+                "mode": "preview",
+                "source": true
+              },
+              "icon": "lucide-file",
+              "title": "Project Overview"
             }
           }
-        ]
+        ],
+        "currentTab": 2
       }
     ],
     "direction": "vertical"
@@ -125,7 +123,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "tech stack/Graphite.md",
+                "file": "guides/Add an environment variable.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -135,7 +133,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Backlinks for Graphite"
+              "title": "Backlinks for Add an environment variable"
             }
           },
           {
@@ -144,12 +142,12 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "tech stack/Graphite.md",
+                "file": "guides/Add an environment variable.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "Outgoing links from Graphite"
+              "title": "Outgoing links from Add an environment variable"
             }
           },
           {
@@ -173,13 +171,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "tech stack/Graphite.md",
+                "file": "guides/Add an environment variable.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Outline of Graphite"
+              "title": "Outline of Add an environment variable"
             }
           }
         ]
@@ -200,10 +198,12 @@
       "bases:Create new base": false
     }
   },
-  "active": "df06ee3e5273f9db",
+  "active": "ede43f44b082574b",
   "lastOpenFiles": [
-    "Welcome.md",
+    "guides/Add an environment variable.md",
     "tech stack/Graphite.md",
+    "guides",
+    "Welcome.md",
     "tech stack/Code Rabbit.md",
     "Project Overview.md",
     "tech stack"
