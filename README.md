@@ -46,7 +46,8 @@ To learn more about the [T3 Stack](https://create.t3.gg/), take a look at the fo
 
 ### First Steps
 
-https://create.t3.gg/en/usage/first-steps
+[First steps](https://create.t3.gg/en/usage/first-steps): Find how to set up discord OAuth. _Caviat:_ The OAuth callback is set up to redirect to localhost:3000
+If that port is changed you need to also update the webhook within the [Discord setup](https://discord.com/developers/applications/1411074365621145772/oauth2).
 
 You can check out the [create-t3-app GitHub repository](https://github.com/t3-oss/create-t3-app) — your feedback and contributions are welcome!
 
