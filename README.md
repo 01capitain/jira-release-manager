@@ -18,7 +18,9 @@ To learn more about the [T3 Stack](https://create.t3.gg/), take a look at the fo
 
 ### Database
 
-postgres database, running in docker container.
+PostgreSQL 17.5, running in docker container.
+
+Set up with the ./start-database.sh
 
 ### ORM
 
