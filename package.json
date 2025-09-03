@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "next build",
-    "check": "next lint && tsc --noEmit",
+    "check": "next lint && pnpm run lint:db-schema && tsc --noEmit",
     "db:generate": "prisma migrate dev",
     "db:migrate": "prisma migrate deploy",
     "db:push": "prisma db push",
@@ -16,9 +16,11 @@
     "postinstall": "prisma generate",
     "lint": "next lint",
     "lint:fix": "next lint --fix",
+    "lint:db-schema": "node scripts/disallow-boolean-fields.mjs",
     "preview": "next build && next start",
     "start": "next start",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:db-schema": "node test/scripts/test-lint-db-schema.mjs"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.7.2",
