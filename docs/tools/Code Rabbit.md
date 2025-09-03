@@ -1,6 +1,20 @@
 We are introducing Code Rabbit to Github.
 The goal is to review the code changes in the repository.
-On the one hand this will increase the quality of the code base, on the other hand it will showcase whether CodeRabbit might be suitable for a broader use within a corporate environment.
+On the one hand this will increase the quality of the code base, on the other hand it will showcase whether CodeRabbit might be suitable for a broader use within a corporate environment.!
+
+## Features
+
+![[Code Rabbit - pricing.png]]
+
+The free tier allows to summarize PR summaries and gives a Review in the IDE. I installed the VSCode extension to have it available.
+
+We connected the github repository to have it in action.
+
+## Github Badge
+
+To add a badge to make available how many reviews have been made I copied the following code into the README.MD.
+
+> ![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/01capitain/jira-release-manager?utm_source=oss&utm_medium=github&utm_campaign=01capitain%2Fjira-release-manager&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)
 
 # Pro licence evaluation
 
@@ -11,6 +25,10 @@ The test time goes from September 3rd (today) until september 17th and these are
 ## [Dashboard](https://app.coderabbit.ai/dashboard)
 
 To be used.
+
+## VSCode extension
+
+Not used, also included in base tier (with the functions the tier provides)
 
 ## First Pull request
 
@@ -120,18 +138,24 @@ Provided tips for the usage of Code Rabbit. In this case it let me know how to i
 4/5 stars even so not related to operational merge review process.
 
 ### Actionable comments
+
 Makes a list of comments about the changes
 
 #### Outside diff range comments (2)
+
 Found typos in the readme (that was not within the MR) and suggested fixes. Both were applied by C+P into the code.
 
 #### Nitpick comments (12)
+
 Made comments about better formating of the readme (ignored), about splitting test fails (follow up issue created to fix it) to harden the linter rule
 Also it pointed out good practices, which I really liked.
 Suggested to improve the error message in the tests to show what schema was tested (approved).
+
 - Suggested a -json flag to make the output machine readable (follow up issue created)
 - Suggested to add the new commands to the main "check" command - approved
+
 #### Refactor suggestion
+
 Suggested to refactor the regex that are used to identify the findings. Provided a directly commitable change (which i used) or an prompt to use for an AI agent.
 When you want to merge the commit directly it warns you that this code is AI generated. Very nice.
 5/5 - super helpful and directly actionable.

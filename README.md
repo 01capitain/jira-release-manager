@@ -6,6 +6,14 @@ To learn more about the [T3 Stack](https://create.t3.gg/), take a look at the fo
 - [Documentation](https://create.t3.gg/)
 - [Learn the T3 Stack](https://create.t3.gg/en/faq#what-learning-resources-are-currently-available) — Check out these awesome tutorials
 
+## Tools
+
+### Code Rabbit
+
+We use the free tier of Code Rabbit to have a first code review on pull requests:
+
+![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/01capitain/jira-release-manager?utm_source=oss&utm_medium=github&utm_campaign=01capitain%2Fjira-release-manager&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)
+
 ## Tech Stack
 
 ### Language
