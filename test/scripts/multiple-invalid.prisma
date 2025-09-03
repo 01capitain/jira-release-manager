@@ -1,0 +1,12 @@
+// Multiple boolean fields should be detected
+model User {
+  id        Int      @id @default(autoincrement())
+  isActive  Boolean  @default(true)
+  isAdmin   Boolean?
+  flags     Boolean[] // array of booleans
+}
+
+model Post {
+  id        Int     @id @default(autoincrement())
+  published Boolean  @default(false)
+}
