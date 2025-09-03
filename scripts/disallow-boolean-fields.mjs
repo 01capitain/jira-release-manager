@@ -6,7 +6,7 @@ const schemaPath = filePath ? path.resolve(process.cwd(), filePath) : path.resol
 
 fs.readFile(schemaPath, 'utf8', (err, data) => {
   if (err) {
-    console.error(`Error reading schema file: ${err}`);
+    console.error(`Error reading schema file "${schemaPath}": ${err.message}`);
     process.exit(1);
   }
 

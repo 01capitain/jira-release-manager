@@ -22,18 +22,40 @@ As I activated CodeRabbit, I got 14 days of trial of the pro version that is usu
 For the features see the general Code Rabbit document.
 The test time goes from September 3rd (today) until september 17th and these are my findings:
 
+## [Configuration](https://app.coderabbit.ai/settings/)
+
+The configuration is very detailed.
+Each feature cof the walkthrough can be activated or deactivated.
+[Language tools](https://docs.coderabbit.ai/tools/) were added (check for grammar), different linter and ast-grep can be activated.
+If we have a dedicated CI step for linting I would deactivate this part, otherwise it is very helpful.
+It also covers **Semgrep (security vulnerabilities and code quality issued)**
+
+### Linter
+
+[Prisma Lint](https://docs.coderabbit.ai/tools/prisma-lint)
+It used the same [prisma linter](https://github.com/loop-payments/prisma-lint/blob/main/RULES.md#forbid-field) (without the custom rule)
+
 ## [Dashboard](https://app.coderabbit.ai/dashboard)
 
 To be used.
+
+## [Issue creation](https://docs.coderabbit.ai/guides/issue-creation)
 
 ## VSCode extension
 
 Not used, also included in base tier (with the functions the tier provides)
 
+> The free CodeRabbit VSCode extension brings core review features to VSCode, Cursor, Windsurf, and compatible editors. Review and polish changes locally before creating PRs.
+
 ## First Pull request
 
 As soon as the pull request was set as ready, code rabbit started to review it and leave their remarks:
 [Pull Request #5](https://github.com/01capitain/jira-release-manager/pull/5)
+
+It can also be confugred that the review starts on drafts as well. I activated this option in the configuration.
+
+The features that are applied for a pull request can be comnfigured in the [Dashboard](https://app.coderabbit.ai/settings/organization?tab=review). [Documentation about the configuration](https://docs.coderabbit.ai/guides/configuration-overview)
+![[Code Rabbit - pull request configuration.png]]
 
 ### Walthrough
 
@@ -114,7 +136,7 @@ Tests pass, I stash the carrot back. 🥕🐇
 
 ### Recent review details
 
-Lists information on how Code Rabbit was run, Review profile is CHILL, Plan is Pro and the knowledge base confioguration (which is none).
+Lists information on how Code Rabbit was run, Review profile is CHILL (I changed it to Assertive in the configuration afterwards), Plan is Pro and the knowledge base confioguration (which is none).
 MCP integration is disabled, Jira integration is disabled, Linear integration is disabled.
 
 ### Generate unit tests
@@ -130,6 +152,9 @@ I chose option 1 and will report back on the quality of unit tests. Before runni
 
 Gets the option to generate docstrings which then take a while. I don't know what this is and will be eager to see ;-)
 Update: coderabbitai message: "Caution, No docstrings were generated." Maybe with the next MR.
+
+According to their [Documentation](https://docs.coderabbit.ai/overview/introduction): "Docstrings
+Write clear documentation for functions and complex logic automatically."
 
 ### Tips
 

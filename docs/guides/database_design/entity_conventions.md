@@ -20,3 +20,12 @@ Boolean fields (e.g., `isActive`, `isDeleted`) should be avoided. Instead of a b
 *   Instead of `is_active`, use a `status` field that can hold values like `active`, `inactive`, `archived`, etc.
 
 This approach provides more context and flexibility for future requirements.
+
+```prisma
+enum Status { ACTIVE INACTIVE ARCHIVED }
+model User {
+  id        String  @id @default(cuid())
+  status    Status  @default(ACTIVE)
+  deletedAt DateTime?
+}
+```

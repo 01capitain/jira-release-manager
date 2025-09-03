@@ -26,9 +26,9 @@ We use the free tier of Code Rabbit to have a first code review on pull requests
 
 ### Database
 
-PostgreSQL 17.5, running in docker container.
+PostgreSQL 17.5, running in a Docker container.
 
-Set up with the ./start-database.sh
+Set up with `./start-database.sh`.
 
 ### ORM
 
@@ -42,7 +42,7 @@ Eslint + [Prettier](https://prettier.io/)
 
 [tRPC](https://trpc.io)
 
-No idea yet what category this falls into, I want to experiment with it and find good ressources for learning.
+No idea yet what category this falls into, I want to experiment with it and find good resources for learning..
 
 ### Authorization
 
@@ -50,7 +50,7 @@ No idea yet what category this falls into, I want to experiment with it and find
 
 #### Discord oAuth
 
-Find how to set up discord OAuth in the [First steps on t3.gg](https://create.t3.gg/en/usage/first-steps). _Caviat:_ The OAuth callback is set up to redirect to localhost:3000
+Find how to set up discord OAuth in the [First steps on t3.gg](https://create.t3.gg/en/usage/first-steps). _Caveat:_ The OAuth callback is set up to redirect to localhost:3000
 If that port is changed you need to also update the webhook within the [Discord setup](https://discord.com/developers/applications/1411074365621145772/oauth2).
 
 ## How do I deploy this?
