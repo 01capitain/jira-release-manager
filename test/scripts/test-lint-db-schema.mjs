@@ -1,4 +1,4 @@
-import { exec } from 'child_process';
+ import { execFile } from 'child_process';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -13,8 +13,9 @@ const ignoredSchemaPath = path.resolve(__dirname, 'ignored.prisma');
 
 const runTest = (schemaPath, expectFailure) => {
   return new Promise((resolve, reject) => {
-    exec(`node ${scriptPath} ${schemaPath}`, (error, stdout, stderr) => {
-      const success = expectFailure ? error !== null : error === null;
+    execFile(process.execPath, [scriptPath, schemaPath], (error, stdout, stderr) => {
+      const exitCode = error ? error.code ?? 1 : 0;
+      const success = expectFailure ? exitCode === 1 : exitCode === 0;
       if (success) {
         const message = expectFailure
           ? `✅ Test passed: Boolean value was caught as expected in ${path.basename(schemaPath)}`
@@ -23,7 +24,7 @@ const runTest = (schemaPath, expectFailure) => {
         resolve();
       } else {
         console.error(`❌ Test failed for ${path.basename(schemaPath)}`);
-        console.error(`Expected ${expectFailure ? 'failure' : 'success'}, but got the opposite.`);
+        console.error(`Expected ${expectFailure ? 'exit code 1' : 'exit code 0'}, but got ${exitCode}.`);
         console.error('STDOUT:', stdout);
         console.error('STDERR:', stderr);
         reject();
