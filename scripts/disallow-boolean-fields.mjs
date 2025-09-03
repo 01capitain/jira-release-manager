@@ -10,12 +10,16 @@ fs.readFile(schemaPath, 'utf8', (err, data) => {
     process.exit(1);
   }
 
-  const lines = data.split('\n');
-  const booleanRegex = /\s+Boolean\b/;
-  const ignoreRegex = /prisma-lint-ignore-next-line/;
+  const lines = data.split(/\r?\n/);
+  const booleanRegex = /^\s*[A-Za-z_][A-Za-z0-9_]*\s+Boolean\b/;
+  const ignoreRegex = /^\s*\/\/\s*prisma-lint-ignore-next-line\b/;
   let errorFound = false;
 
   lines.forEach((line, index) => {
+    if (/^\s*\/\//.test(line)) {
+      return;
+    }
+
     if (booleanRegex.test(line)) {
       const previousLine = index > 0 ? lines[index - 1] : '';
       if (!ignoreRegex.test(previousLine)) {
