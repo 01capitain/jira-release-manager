@@ -1,0 +1,10 @@
+// Boolean occurrences inside comments should not trigger failures
+// model Foo { flag Boolean }
+/// Another style: Boolean
+/* Multi-line
+Boolean
+*/
+model Bar {
+  id Int @id @default(autoincrement())
+  name String
+}
