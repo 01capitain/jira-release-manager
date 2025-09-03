@@ -16,6 +16,118 @@ datasource db {
     extensions = [pg_uuidv7]
 }
 
+enum Status {
+    ACTIVE
+    INACTIVE
+    ARCHIVED
+}
+
+/// erDiagram
+///     ReleaseComponent {
+///         string repository
+///         string displayName
+///         string releaseNamePattern
+///     }
+///
+///     JiraRelease {
+///         string name
+///         timestamptz syncedAt
+///     }
+///
+///     ReleaseVersion {
+///         string name
+///     }
+///
+///     ComponentVersion {
+///         int component_id FK
+///         int release_id FK nullable
+///         int version_id FK
+///     }
+///
+///     BuiltVersion {
+///         int release_id FK nullable
+///         int version_id FK
+///     }
+///
+///     ReleaseComponent ||--o{ ComponentVersion : "has"
+///     ReleaseVersion ||--o{ ComponentVersion : "used in"
+///     JiraRelease ||--o{ ComponentVersion : "linked to"
+///
+///     ReleaseVersion ||--o{ BuiltVersion : "built as"
+///     JiraRelease ||--o{ BuiltVersion : "linked to"
+model ReleaseComponent {
+    id                 String             @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+    repository         String             @unique
+    displayName        String
+    releaseNamePattern String
+    componentVersions  ComponentVersion[]
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    status    Status   @default(ACTIVE)
+    deletedAt DateTime?
+}
+
+model JiraRelease {
+    id                String             @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+    name              String             @unique
+    syncedAt          DateTime
+    componentVersions ComponentVersion[]
+    builtVersions     BuiltVersion[]
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    status    Status   @default(ACTIVE)
+    deletedAt DateTime?
+}
+
+model ReleaseVersion {
+    id                String             @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+    name              String             @unique
+    componentVersions ComponentVersion[]
+    builtVersions     BuiltVersion[]
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    status    Status   @default(ACTIVE)
+    deletedAt DateTime?
+}
+
+model ComponentVersion {
+    id          String           @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+    component   ReleaseComponent @relation(fields: [componentId], references: [id])
+    componentId String           @db.Uuid
+    release     JiraRelease?     @relation(fields: [releaseId], references: [id])
+    releaseId   String?          @db.Uuid
+    version     ReleaseVersion   @relation(fields: [versionId], references: [id])
+    versionId   String           @db.Uuid
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    status    Status   @default(ACTIVE)
+    deletedAt DateTime?
+
+    @@index([componentId])
+    @@index([releaseId])
+    @@index([versionId])
+}
+
+model BuiltVersion {
+    id        String         @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+    release   JiraRelease?   @relation(fields: [releaseId], references: [id])
+    releaseId String?        @db.Uuid
+    version   ReleaseVersion @relation(fields: [versionId], references: [id])
+    versionId String         @db.Uuid
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    status    Status   @default(ACTIVE)
+    deletedAt DateTime?
+
+    @@index([releaseId])
+    @@index([versionId])
+}
+
 model Post {
     id        String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
     name      String
