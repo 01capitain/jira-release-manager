@@ -6,10 +6,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const scriptPath = path.resolve(process.cwd(), 'scripts', 'disallow-boolean-fields.mjs');
-const invalidSchemaPath = path.resolve(__dirname, 'invalid.prisma');
-const validSchemaPath = path.resolve(__dirname, 'valid.prisma');
+const invalidSchemaPath = path.resolve(__dirname, 'disallow-boolean-fields/invalid.test-prisma');
+const validSchemaPath = path.resolve(__dirname, 'disallow-boolean-fields/valid.test-prisma');
 
-const ignoredSchemaPath = path.resolve(__dirname, 'ignored.prisma');
+const ignoredSchemaPath = path.resolve(__dirname, 'disallow-boolean-fields/ignored.test-prisma');
 
 const runTest = (schemaPath, expectFailure) => {
   return new Promise((resolve, reject) => {
@@ -83,24 +83,24 @@ const runTestWithOutput = (schemaPath, expectFailure, { expectStdoutIncludes = [
 
 async function runExtendedSuite() {
   // Nonexistent file: should fail
-  await runTestWithOutput(path.resolve(__dirname, "nonexistent_DOES_NOT_EXIST.prisma"), true);
+  await runTestWithOutput(path.resolve(__dirname, "disallow-boolean-fields/nonexistent_DOES_NOT_EXIST.test-prisma"), true);
 
   // Multiple invalids: should fail and ideally list multiple hits
-  await runTestWithOutput(path.resolve(__dirname, "multiple-invalid.prisma"), true, {
+  await runTestWithOutput(path.resolve(__dirname, "disallow-boolean-fields/multiple-invalid.test-prisma"), true, {
     expectStderrIncludes: ["Boolean", "isActive", "isAdmin", "flags", "published"]
   });
 
   // Commented occurrences only: should pass with empty stdout/stderr
-  await runTestWithOutput(path.resolve(__dirname, "commented-only.prisma"), false);
+  await runTestWithOutput(path.resolve(__dirname, "disallow-boolean-fields/commented-only.test-prisma"), false);
 
   // Empty schema: should pass
-  await runTestWithOutput(path.resolve(__dirname, "empty.prisma"), false);
+  await runTestWithOutput(path.resolve(__dirname, "disallow-boolean-fields/empty.test-prisma"), false);
 
   // Benign "Boolean" in strings/enums/model names: should pass
-  await runTestWithOutput(path.resolve(__dirname, "benign-strings.prisma"), false);
+  await runTestWithOutput(path.resolve(__dirname, "disallow-boolean-fields/benign-strings.test-prisma"), false);
 
-  // Top-of-file ignore pragma (if supported): should pass
-  await runTestWithOutput(path.resolve(__dirname, "ignored-top-comment.prisma"), false);
+  // Top-of-file ignore pragma (if supported): should fail
+  await runTestWithOutput(path.resolve(__dirname, "disallow-boolean-fields/ignored-top-comment.test-prisma"), true);
 }
 
 runExtendedSuite()
