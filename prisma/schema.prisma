@@ -15,69 +15,26 @@ datasource db {
     extensions = [pg_uuidv7]
 }
 
-enum Status {
-    ACTIVE
-    INACTIVE
-    ARCHIVED
-}
-
-/// erDiagram
-///     ReleaseComponent {
-///         string repository
-///         string displayName
-///         string releaseNamePattern
-///     }
-///
-///     JiraRelease {
-///         string name
-///         timestamptz syncedAt
-///     }
-///
-///     ReleaseVersion {
-///         string name
-///     }
-///
-///     ComponentVersion {
-///         int component_id FK
-///         int release_id FK nullable
-///         int version_id FK
-///     }
-///
-///     BuiltVersion {
-///         int release_id FK nullable
-///         int version_id FK
-///     }
-///
-///     ReleaseComponent ||--o{ ComponentVersion : "has"
-///     ReleaseVersion ||--o{ ComponentVersion : "used in"
-///     JiraRelease ||--o{ ComponentVersion : "linked to"
-///
-///     ReleaseVersion ||--o{ BuiltVersion : "built as"
-///     JiraRelease ||--o{ BuiltVersion : "linked to"
 model ReleaseComponent {
     id                 String             @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
-    repository         String             @unique
+    repository         String?            @unique
     displayName        String
     releaseNamePattern String
     componentVersions  ComponentVersion[]
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
-    status    Status   @default(ACTIVE)
-    deletedAt DateTime?
 }
 
 model JiraRelease {
     id                String             @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
     name              String             @unique
-    syncedAt          DateTime
+    syncedAt          DateTime?
     componentVersions ComponentVersion[]
     builtVersions     BuiltVersion[]
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
-    status    Status   @default(ACTIVE)
-    deletedAt DateTime?
 }
 
 model ReleaseVersion {
@@ -88,8 +45,6 @@ model ReleaseVersion {
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
-    status    Status   @default(ACTIVE)
-    deletedAt DateTime?
 }
 
 model ComponentVersion {
@@ -103,8 +58,6 @@ model ComponentVersion {
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
-    status    Status   @default(ACTIVE)
-    deletedAt DateTime?
 
     @@index([componentId])
     @@index([releaseId])
@@ -120,13 +73,12 @@ model BuiltVersion {
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
-    status    Status   @default(ACTIVE)
-    deletedAt DateTime?
 
     @@index([releaseId])
     @@index([versionId])
 }
 
+// TODO: Remove once the tRPC is figured out and I know what I am doing
 model Post {
     id        String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
     name      String
@@ -174,6 +126,7 @@ model Session {
 model User {
     id            String    @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
     name          String?
+    // TODO: Remove
     email         String?   @unique
     emailVerified DateTime?
     image         String?
