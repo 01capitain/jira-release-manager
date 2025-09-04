@@ -48,31 +48,47 @@ function loadSchema() {
 }
 
 function blockNames(text, blockType) {
-  // Rough parser: matches "model Name {", "generator name {", "datasource name {"
-  const re = new RegExp(`^\\s*${blockType}\\s+([A-Za-z_][A-Za-z0-9_]*)\\s*\\{`, 'gm');
   const names = [];
-  let m;
-  while ((m = re.exec(text))) names.push(m[1]);
+  const lines = text.split('\n');
+  for (const line of lines) {
+    const trimmedLine = line.trim();
+    if (trimmedLine.startsWith(blockType)) {
+      const parts = trimmedLine.split(' ');
+      if (parts.length > 1) {
+        names.push(parts[1]);
+      }
+    }
+  }
   return names;
 }
 
 function getBlock(text, blockType, name) {
-  const start = new RegExp(`^\\s*${blockType}\\s+${name}\\s*\\{`, 'm');
-  const startMatch = text.match(start);
-  if (!startMatch) return null;
-  const startIdx = startMatch.index;
-  // naive brace matching from startIdx
-  let i = text.indexOf('{', startIdx);
-  if (i === -1) return null;
-  let depth = 1;
-  let j = i + 1;
-  while (j < text.length && depth > 0) {
-    const ch = text[j];
-    if (ch === '{') depth++;
-    else if (ch === '}') depth--;
-    j++;
+  const lines = text.split('\n');
+  let inBlock = false;
+  let block = '';
+  let depth = 0;
+
+  for (const line of lines) {
+    const trimmedLine = line.trim();
+    if (trimmedLine.startsWith(`${blockType} ${name}`)) {
+      inBlock = true;
+    }
+
+    if (inBlock) {
+      block += line + '\n';
+      if (line.includes('{')) {
+        depth++;
+      }
+      if (line.includes('}')) {
+        depth--;
+        if (depth === 0) {
+          inBlock = false;
+          return block;
+        }
+      }
+    }
   }
-  return text.slice(startIdx, j);
+  return null;
 }
 
 describe('Prisma schema structure', () => {
@@ -103,7 +119,7 @@ describe('Prisma schema structure', () => {
     expect(dsBlock).toMatch(/provider\s*=\s*"postgresql"/);
     expect(dsBlock).toMatch(/url\s*=\s*env\("DATABASE_URL"\)/);
     // extension list includes pg_uuidv7
-    expect(dsBlock.replace(/\s+/g, ' ')).toMatch(/extensions\s*=\s*\[[^\]]*pg_uuidv7[^\]]*\]/);
+    expect(dsBlock.replace(/\s+/g, ' ')).toMatch(/extensions\s*=\s*\[[^\]]*pg_uuidv7[^\}\]]*\]/);
   });
 
   it('contains the Post model with proper UUID v7 id, timestamps, relations, and indexes', () => {
@@ -111,7 +127,7 @@ describe('Prisma schema structure', () => {
     expect(postBlock).toBeTruthy();
 
     // id: String @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
-    expect(postBlock.replace(/\s+/g, ' ')).toMatch(/id\s+String\s+@id\s+@default\(dbgenerated\("uuid_generate_v7\(\)"\)\)\s+@db\.Uuid/);
+    expect(postBlock.replace(/\s+/g, ' ')).toMatch(/id\s+String\s+@id\s+@default\(dbgenerated\(\"uuid_generate_v7\(\)\"\)\)\s+@db.Uuid/);
 
     // name: String
     expect(postBlock).toMatch(/^\s*name\s+String\s*$/m);
@@ -124,7 +140,7 @@ describe('Prisma schema structure', () => {
 
     // createdBy relation and createdById field with @db.Uuid
     expect(postBlock.replace(/\s+/g, ' ')).toMatch(/createdBy\s+User\s+@relation\(fields:\s*\[createdById\],\s*references:\s*\[id\]\)/);
-    expect(postBlock.replace(/\s+/g, ' ')).toMatch(/createdById\s+String\s+@db\.Uuid/);
+    expect(postBlock.replace(/\s+/g, ' ')).toMatch(/createdById\s+String\s+@db.Uuid/);
 
     // indexes on name and createdById
     expect(postBlock).toMatch(/@@index\(\[name\]\)/);
@@ -143,18 +159,18 @@ describe('Prisma schema structure', () => {
     expect(vt).toBeTruthy();
 
     // Account basics
-    expect(account.replace(/\s+/g, ' ')).toMatch(/id\s+String\s+@id\s+@default\(dbgenerated\("uuid_generate_v7\(\)"\)\)\s+@db\.Uuid/);
+    expect(account.replace(/\s+/g, ' ')).toMatch(/id\s+String\s+@id\s+@default\(dbgenerated\(\"uuid_generate_v7\(\)\"\)\)\s+@db.Uuid/);
     expect(account).toMatch(/@@unique\(\[provider,\s*providerAccountId\]\)/);
     expect(account).toMatch(/@@index\(\[userId\]\)/);
     expect(account.replace(/\s+/g, ' ')).toMatch(/user\s+User\s+@relation\(fields:\s*\[userId\],\s*references:\s*\[id\],\s*onDelete:\s*Cascade\)/);
 
     // Session basics
-    expect(session.replace(/\s+/g, ' ')).toMatch(/id\s+String\s+@id\s+@default\(dbgenerated\("uuid_generate_v7\(\)"\)\)\s+@db\.Uuid/);
+    expect(session.replace(/\s+/g, ' ')).toMatch(/id\s+String\s+@id\s+@default\(dbgenerated\(\"uuid_generate_v7\(\)\"\)\)\s+@db.Uuid/);
     expect(session).toMatch(/sessionToken\s+String\s+@unique/);
     expect(session).toMatch(/@@index\(\[userId\]\)/);
 
     // User basics
-    expect(user.replace(/\s+/g, ' ')).toMatch(/id\s+String\s+@id\s+@default\(dbgenerated\("uuid_generate_v7\(\)"\)\)\s+@db\.Uuid/);
+    expect(user.replace(/\s+/g, ' ')).toMatch(/id\s+String\s+@id\s+@default\(dbgenerated\(\"uuid_generate_v7\(\)\"\)\)\s+@db.Uuid/);
     expect(user).toMatch(/email\s+String\?\s+@unique/);
 
     // VerificationToken basics
@@ -168,8 +184,9 @@ describe('Prisma schema structure', () => {
     expect(clientCount).toBe(1);
     // Also assert that a generator block is not nested within another
     const clientBlock = getBlock(schemaText, 'generator', 'client');
+    const lines = clientBlock.split('\n').slice(1).join('\n');
     // A simple heuristic: client block should not contain another "generator client {"
-    expect(clientBlock).not.toMatch(/^\s*generator\s+client\s*\{/m);
+    expect(lines).not.toContain('generator client {');
   });
 
   it('uses UUID columns for all id fields across models (String @db.Uuid)', () => {
@@ -178,10 +195,10 @@ describe('Prisma schema structure', () => {
       const block = getBlock(schemaText, 'model', m);
       // Skip models that may not have id by design
       if (!block) continue;
-      if (/^\s*@@id/m.test(block)) continue;
+      if (/^@@id/m.test(block)) continue;
       // If an 'id' field exists, ensure it's String @db.Uuid
-      if (/^\s*id\s+/m.test(block)) {
-        expect(block.replace(/\s+/g, ' ')).toMatch(/id\s+String\s+@id\b.*@db\.Uuid/);
+      if (/^id\s+/m.test(block)) {
+        expect(block.replace(/\s+/g, ' ')).toMatch(/id\s+String\s+@id\b.*@db.Uuid/);
       }
     }
   });
