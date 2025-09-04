@@ -122,12 +122,12 @@ describe('Prisma schema structure', () => {
     expect(dsBlock.replace(/\s+/g, ' ')).toMatch(/extensions\s*=\s*\[[^\]]*pg_uuidv7[^\}\]]*\]/);
   });
 
-  it('contains the Post model with proper UUID v7 id, timestamps, relations, and indexes', () => {
+  it('contains the ReleaseComponent model with proper UUID v7 id, timestamps, relations, and indexes', () => {
     const postBlock = getBlock(schemaText, 'model', 'Post');
     expect(postBlock).toBeTruthy();
 
-    // id: String @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
-    expect(postBlock.replace(/\s+/g, ' ')).toMatch(/id\s+String\s+@id\s+@default\(dbgenerated\(\"uuid_generate_v7\(\)\"\)\)\s+@db.Uuid/);
+    // id: String @id @default(dbgenerated("uuid_generate_v7()") @db.Uuid
+    expect(postBlock.replace(/\s+/g, ' ')).toMatch(/id\s+String\s+@id\s+@default\(dbgenerated\("uuid_generate_v7\(\)"\)\)\s+@db.Uuid/);
 
     // name: String
     expect(postBlock).toMatch(/^\s*name\s+String\s*$/m);
