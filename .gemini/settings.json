@@ -1,0 +1,20 @@
+{ 
+    "contextFileName": "AGENTS.md",
+    "tools.allowed": [
+        "run_shell_command(mkdir)",
+        "run_shell_command(ls)",
+        "run_shell_command(gh issue view)"
+    ],
+    "mcpServers": {
+    "shadcn": {
+      "command": "npx",
+      "args": ["shadcn@3.2.1", "mcp"]
+    },
+    "context7": {
+      "httpUrl": "https://mcp.context7.com/mcp",
+      "headers": {
+        "CONTEXT7_API_KEY": "${process.env.CONTEXT7_API_KEY}"
+      }
+    }
+  }
+ }
