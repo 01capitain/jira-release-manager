@@ -8,7 +8,7 @@
     "mcpServers": {
     "shadcn": {
       "command": "npx",
-      "args": ["shadcn@latest", "mcp"]
+      "args": ["shadcn@3.2.1", "mcp"]
     },
     "context7": {
       "httpUrl": "https://mcp.context7.com/mcp",
