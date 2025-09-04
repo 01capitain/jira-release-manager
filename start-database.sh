@@ -80,4 +80,5 @@ $DOCKER_CMD run -d \
   -e POSTGRES_PASSWORD="$DB_PASSWORD" \
   -e POSTGRES_DB="$DB_NAME" \
   -p "$DB_PORT":5432 \
-  docker.io/postgres && echo "Database container '$DB_CONTAINER_NAME' was successfully created"
+  -v ./prisma/init.sql:/docker-entrypoint-initdb.d/init.sql \
+  ghcr.io/fboulnois/pg_uuidv7 && echo "Database container '$DB_CONTAINER_NAME' was successfully created"
