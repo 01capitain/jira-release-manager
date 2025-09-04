@@ -2,8 +2,7 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-    provider        = "prisma-client-js"
-    previewFeatures = ["postgresqlExtensions"]
+    provider = "prisma-client-js"
 }
 
 datasource db {
@@ -138,6 +137,7 @@ model Post {
     createdById String @db.Uuid
 
     @@index([name])
+    @@index([createdById])
 }
 
 // Necessary for Next auth
@@ -158,6 +158,7 @@ model Account {
     refresh_token_expires_in Int?
 
     @@unique([provider, providerAccountId])
+    @@index([userId])
 }
 
 model Session {
@@ -166,6 +167,8 @@ model Session {
     userId       String   @db.Uuid
     expires      DateTime
     user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@index([userId])
 }
 
 model User {

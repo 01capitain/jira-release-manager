@@ -38,6 +38,12 @@ Set up with `./start-database.sh`.
 
 Eslint + [Prettier](https://prettier.io/)
 
+### Testing
+
+[Jest](https://jestjs.io/)
+
+Run tests with `pnpm test`.
+
 ### tRPC
 
 [tRPC](https://trpc.io)
