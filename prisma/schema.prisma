@@ -15,6 +15,70 @@ datasource db {
     extensions = [pg_uuidv7]
 }
 
+model ReleaseComponent {
+    id                 String             @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+    repository         String?            @unique
+    displayName        String
+    releaseNamePattern String
+    componentVersions  ComponentVersion[]
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+}
+
+model JiraRelease {
+    id                String             @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+    name              String             @unique
+    syncedAt          DateTime?
+    componentVersions ComponentVersion[]
+    builtVersions     BuiltVersion[]
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+}
+
+model ReleaseVersion {
+    id                String             @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+    name              String             @unique
+    componentVersions ComponentVersion[]
+    builtVersions     BuiltVersion[]
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+}
+
+model ComponentVersion {
+    id          String           @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+    component   ReleaseComponent @relation(fields: [componentId], references: [id])
+    componentId String           @db.Uuid
+    release     JiraRelease?     @relation(fields: [releaseId], references: [id])
+    releaseId   String?          @db.Uuid
+    version     ReleaseVersion   @relation(fields: [versionId], references: [id])
+    versionId   String           @db.Uuid
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@index([componentId])
+    @@index([releaseId])
+    @@index([versionId])
+}
+
+model BuiltVersion {
+    id        String         @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+    release   JiraRelease?   @relation(fields: [releaseId], references: [id])
+    releaseId String?        @db.Uuid
+    version   ReleaseVersion @relation(fields: [versionId], references: [id])
+    versionId String         @db.Uuid
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@index([releaseId])
+    @@index([versionId])
+}
+
+// TODO: Remove once the tRPC is figured out and I know what I am doing
 model Post {
     id        String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
     name      String
@@ -62,6 +126,7 @@ model Session {
 model User {
     id            String    @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
     name          String?
+    // TODO: Remove
     email         String?   @unique
     emailVerified DateTime?
     image         String?
