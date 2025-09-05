@@ -10,12 +10,22 @@ export async function GET() {
 }
 
 const createSchema = z.object({
-  name: z.string(),
+  name: z.string().trim().min(1, "name is required"),
 });
 
 export async function POST(request: NextRequest) {
-  const json = (await request.json()) as { name: string };
-  const data = createSchema.parse(json);
-  const releaseVersion = await releaseVersionService.create(data);
-  return NextResponse.json(releaseVersion);
+  try {
+    const json = await request.json();
+    const parsed = createSchema.safeParse(json);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { message: "Invalid body", issues: parsed.error.issues },
+        { status: 400 },
+      );
+    }
+    const releaseVersion = await releaseVersionService.create(parsed.data);
+    return NextResponse.json(releaseVersion, { status: 201 });
+  } catch {
+    return NextResponse.json({ message: "Invalid JSON" }, { status: 400 });
+  }
 }

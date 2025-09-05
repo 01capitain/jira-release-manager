@@ -6,11 +6,9 @@ const releaseVersionService = new ReleaseVersionService();
 
 export const releaseVersionRouter = createTRPCRouter({
   create: publicProcedure
-    .input(z.object({ name: z.string() }))
-    .mutation(({ input }) => {
-      return releaseVersionService.create(input);
-    }),
-  getOne: publicProcedure.input(z.string()).query(({ input }) => {
+    .input(z.object({ name: z.string().trim().min(1) }))
+    .mutation(({ input }) => releaseVersionService.create(input)),
+  getOne: publicProcedure.input(z.string().uuid()).query(({ input }) => {
     return releaseVersionService.getOne(input);
   }),
   getAll: publicProcedure.query(() => {

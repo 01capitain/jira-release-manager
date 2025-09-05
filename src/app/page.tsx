@@ -15,12 +15,14 @@ export default async function Home() {
             <form
               action={async (formData) => {
                 "use server";
-                const name = formData.get("name") as string;
+                const raw = formData.get("name");
+                const name = typeof raw === "string" ? raw.trim() : "";
+                if (!name) return;
                 await api.releaseVersion.create({ name });
                 revalidatePath("/");
               }}
             >
-              <input type="text" name="name" />
+              <input type="text" name="name" required minLength={1} placeholder="Release version name" />
               <button type="submit">Create</button>
             </form>
           </div>
