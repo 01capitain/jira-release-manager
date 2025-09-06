@@ -2,7 +2,8 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-    provider = "prisma-client-js"
+    provider        = "prisma-client-js"
+    previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
@@ -15,130 +16,128 @@ datasource db {
     extensions = [pg_uuidv7]
 }
 
-model ReleaseComponent {
-    id                 String             @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
-    repository         String?            @unique
-    displayName        String
-    releaseNamePattern String
-    componentVersions  ComponentVersion[]
+// model ReleaseComponent {
+//     id                 String             @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+//     repository         String?            @unique
+//     displayName        String
+//     releaseNamePattern String
+//     componentVersions  ComponentVersion[]
 
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
-}
+//     createdAt DateTime @default(now())
+//     updatedAt DateTime @updatedAt
+// }
 
-model JiraRelease {
-    id                String             @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
-    name              String             @unique
-    syncedAt          DateTime?
-    componentVersions ComponentVersion[]
-    builtVersions     BuiltVersion[]
+// model JiraRelease {
+//     id                String             @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+//     name              String             @unique
+//     syncedAt          DateTime?
+//     componentVersions ComponentVersion[]
+//     builtVersions     BuiltVersion[]
 
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
-}
+//     createdAt DateTime @default(now())
+//     updatedAt DateTime @updatedAt
+// }
 
 model ReleaseVersion {
-    id                String             @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
-    name              String             @unique
-    componentVersions ComponentVersion[]
-    builtVersions     BuiltVersion[]
+    id   String @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+    name String @unique
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
 }
 
-model ComponentVersion {
-    id          String           @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
-    component   ReleaseComponent @relation(fields: [componentId], references: [id])
-    componentId String           @db.Uuid
-    release     JiraRelease?     @relation(fields: [releaseId], references: [id])
-    releaseId   String?          @db.Uuid
-    version     ReleaseVersion   @relation(fields: [versionId], references: [id])
-    versionId   String           @db.Uuid
+// model ComponentVersion {
+//     id          String           @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+//     component   ReleaseComponent @relation(fields: [componentId], references: [id])
+//     componentId String           @db.Uuid
+//     release     JiraRelease?     @relation(fields: [releaseId], references: [id])
+//     releaseId   String?          @db.Uuid
+//     version     ReleaseVersion   @relation(fields: [versionId], references: [id])
+//     versionId   String           @db.Uuid
 
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+//     createdAt DateTime @default(now())
+//     updatedAt DateTime @updatedAt
 
-    @@index([componentId])
-    @@index([releaseId])
-    @@index([versionId])
-}
+//     @@index([componentId])
+//     @@index([releaseId])
+//     @@index([versionId])
+// }
 
-model BuiltVersion {
-    id        String         @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
-    release   JiraRelease?   @relation(fields: [releaseId], references: [id])
-    releaseId String?        @db.Uuid
-    version   ReleaseVersion @relation(fields: [versionId], references: [id])
-    versionId String         @db.Uuid
+// model BuiltVersion {
+//     id        String         @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+//     release   JiraRelease?   @relation(fields: [releaseId], references: [id])
+//     releaseId String?        @db.Uuid
+//     version   ReleaseVersion @relation(fields: [versionId], references: [id])
+//     versionId String         @db.Uuid
 
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+//     createdAt DateTime @default(now())
+//     updatedAt DateTime @updatedAt
 
-    @@index([releaseId])
-    @@index([versionId])
-}
+//     @@index([releaseId])
+//     @@index([versionId])
+// }
 
-// TODO: Remove once the tRPC is figured out and I know what I am doing
-model Post {
-    id        String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
-    name      String
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+// // TODO: Remove once the tRPC is figured out and I know what I am doing
+// model Post {
+//     id        String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+//     name      String
+//     createdAt DateTime @default(now())
+//     updatedAt DateTime @updatedAt
 
-    createdBy   User   @relation(fields: [createdById], references: [id])
-    createdById String @db.Uuid
+//     createdBy   User   @relation(fields: [createdById], references: [id])
+//     createdById String @db.Uuid
 
-    @@index([name])
-    @@index([createdById])
-}
+//     @@index([name])
+//     @@index([createdById])
+// }
 
-// Necessary for Next auth
-model Account {
-    id                       String  @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
-    userId                   String  @db.Uuid
-    type                     String
-    provider                 String
-    providerAccountId        String
-    refresh_token            String? // @db.Text
-    access_token             String? // @db.Text
-    expires_at               Int?
-    token_type               String?
-    scope                    String?
-    id_token                 String? // @db.Text
-    session_state            String?
-    user                     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-    refresh_token_expires_in Int?
+// // Necessary for Next auth
+// model Account {
+//     id                       String  @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+//     userId                   String  @db.Uuid
+//     type                     String
+//     provider                 String
+//     providerAccountId        String
+//     refresh_token            String? // @db.Text
+//     access_token             String? // @db.Text
+//     expires_at               Int?
+//     token_type               String?
+//     scope                    String?
+//     id_token                 String? // @db.Text
+//     session_state            String?
+//     user                     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+//     refresh_token_expires_in Int?
 
-    @@unique([provider, providerAccountId])
-    @@index([userId])
-}
+//     @@unique([provider, providerAccountId])
+//     @@index([userId])
+// }
 
-model Session {
-    id           String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
-    sessionToken String   @unique
-    userId       String   @db.Uuid
-    expires      DateTime
-    user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+// model Session {
+//     id           String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+//     sessionToken String   @unique
+//     userId       String   @db.Uuid
+//     expires      DateTime
+//     user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-    @@index([userId])
-}
+//     @@index([userId])
+// }
 
-model User {
-    id            String    @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
-    name          String?
-    // TODO: Remove
-    email         String?   @unique
-    emailVerified DateTime?
-    image         String?
-    accounts      Account[]
-    sessions      Session[]
-    posts         Post[]
-}
+// model User {
+//     id            String    @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+//     name          String?
+//     // TODO: Remove
+//     email         String?   @unique
+//     emailVerified DateTime?
+//     image         String?
+//     accounts      Account[]
+//     sessions      Session[]
+//     posts         Post[]
+// }
 
-model VerificationToken {
-    identifier String
-    token      String   @unique
-    expires    DateTime
+// model VerificationToken {
+//     identifier String
+//     token      String   @unique
+//     expires    DateTime
 
-    @@unique([identifier, token])
-}
+//     @@unique([identifier, token])
+// }

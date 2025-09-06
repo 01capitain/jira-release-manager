@@ -1,9 +1,17 @@
 { 
     "contextFileName": "AGENTS.md",
     "tools.allowed": [
-        "run_shell_command(mkdir)",
-        "run_shell_command(ls)",
-        "run_shell_command(gh issue view)"
+        "run_shell_command(ls *)",
+        "run_shell_command(mkdir *)",
+        "run_shell_command(touch *)",
+        "run_shell_command(cp -r * *)",
+        "run_shell_command(mv * *)",
+        "write_file(*)",
+        "delete_file(*)",
+        "make_directory(*)",
+        "read_file(*)",
+        "list_directory(*)",
+        "run_shell_command(gh issue view * --json number,title,body)"
     ],
     "mcpServers": {
     "shadcn": {
