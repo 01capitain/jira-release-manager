@@ -22,7 +22,7 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className={`${geist.variable} h-full`}>
-      <body className="bg-gray-900 h-full py-4">
+      <body className="min-h-screen bg-background text-foreground">
         <TRPCReactProvider>{children}</TRPCReactProvider>
       </body>
     </html>

@@ -8,20 +8,23 @@ export async function AppSidebar() {
   const session = await auth();
 
   return (
-    <div className="flex h-full flex-col">
+    <aside className="flex h-full flex-col border-r bg-background">
       <div className="p-4">
         <h2 className="text-lg font-semibold">Jira Release Manager</h2>
       </div>
-      <div className="flex-1 p-4">
+      <nav aria-label="Primary" className="flex-1 p-4">
         <ul className="flex flex-col gap-1">
           <li>
             <div className="p-2">
-              <div className="text-xs font-medium text-gray-500">
+              <div className="text-xs font-medium text-muted-foreground">
                 Versions
               </div>
               <ul className="flex flex-col gap-1">
                 <li>
-                  <Link href="/" className="flex w-full items-center rounded-md p-2 text-sm hover:bg-gray-100">
+                  <Link
+                    href="/"
+                    className="flex w-full items-center rounded-md p-2 text-sm hover:bg-accent hover:text-accent-foreground"
+                  >
                     Posts
                   </Link>
                 </li>
@@ -29,6 +32,7 @@ export async function AppSidebar() {
             </div>
           </li>
         </ul>
+      </nav>
       </div>
       <div className="p-4">
         {session?.user ? (
