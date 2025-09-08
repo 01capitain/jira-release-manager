@@ -21,16 +21,7 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "test": "jest",
-  // package.json
-  {
-    // …
-    "scripts": {
-      // …
      "test:db-schema": "node tests/scripts/test-lint-db-schema.mjs"
-      // …
-    }
-    // …
-  }
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.7.2",

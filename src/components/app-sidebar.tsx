@@ -33,8 +33,7 @@ export async function AppSidebar() {
           </li>
         </ul>
       </nav>
-      </div>
-      <div className="p-4">
+      <div className="p-4 mt-auto">
         {session?.user ? (
           <div className="flex items-center gap-2">
             <p className="text-sm font-medium">{session.user.name}</p>
@@ -51,6 +50,6 @@ export async function AppSidebar() {
           </Link>
         )}
       </div>
-    </div>
+    </aside>
   );
 }
