@@ -21,7 +21,9 @@ export function useFlip(id: string) {
         el.style.transform = `translate(${dx}px, ${dy}px)`;
         // Force reflow
         void el.getBoundingClientRect();
-        el.style.transition = "transform 600ms cubic-bezier(0.22, 1, 0.36, 1)";
+        const dev = process.env.NODE_ENV === "development";
+        const ms = dev ? 5000 : 600;
+        el.style.transition = `transform ${ms}ms cubic-bezier(0.22, 1, 0.36, 1)`;
         el.style.transform = "translate(0, 0)";
         const done = () => {
           el.style.transition = "";
