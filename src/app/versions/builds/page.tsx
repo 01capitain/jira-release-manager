@@ -1,3 +1,5 @@
+export const metadata = { title: "Builds · Versions" };
+
 export default function VersionsBuildsPage() {
   return (
     <div className="mx-auto w-full max-w-6xl">

@@ -23,19 +23,26 @@ export default async function Home() {
         </div>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div className="rounded-lg bg-neutral-100 p-4 dark:bg-neutral-800/60">
-            <h3 className="mb-1 text-sm font-medium text-neutral-500 dark:text-neutral-400">Status</h3>
-            <p className="text-lg font-semibold">{hello ? hello.greeting : "Loading..."}</p>
+          <div>
+            <h3 className="mb-1 text-sm font-medium text-neutral-500 dark:text-neutral-400">
+              Status
+            </h3>
+-           <p className="text-lg font-semibold">
+-             {hello ? hello.greeting : "Loading..."}
+           <p className="text-lg font-semibold">
+             {hello.greeting}
+           </p>
           </div>
           <Link
             className="rounded-lg bg-neutral-100 p-4 transition hover:bg-neutral-200 dark:bg-neutral-800/60 dark:hover:bg-neutral-800"
-            href="/releases"
+            href="/versions/releases"
           >
             <h3 className="mb-1 text-sm font-medium text-neutral-500 dark:text-neutral-400">Manage</h3>
             <p className="text-lg font-semibold">Releases</p>
           </Link>
           <Link
             className="rounded-lg bg-neutral-100 p-4 transition hover:bg-neutral-200 dark:bg-neutral-800/60 dark:hover:bg-neutral-800"
-            href="/builds"
+            href="/versions/builds"
           >
             <h3 className="mb-1 text-sm font-medium text-neutral-500 dark:text-neutral-400">Inspect</h3>
             <p className="text-lg font-semibold">Builds</p>

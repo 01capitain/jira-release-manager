@@ -40,13 +40,26 @@ export default function AddReleaseCard({ onCreated }: { onCreated?: (item: Relea
     const item = addReleaseVersion(name.trim());
     setPhase("success");
     // brief success flash before FLIP transition kicks in from parent
-    setTimeout(() => {
-      onCreated?.(item);
-      setOpen(false);
-      setPhase("idle");
-      setName("");
-    }, 700);
-  }
+// ... earlier in the component, after other state hooks
+const [error, setError] = React.useState<string | null>(null);
+
+const timersRef = React.useRef<number[]>([]);
+React.useEffect(() => {
+  return () => {
+    timersRef.current.forEach(clearTimeout);
+    timersRef.current = [];
+  };
+}, []);
+
+// ... later, where the timeout is set
+// brief success flash before FLIP transition kicks in from parent
+const t = window.setTimeout(() => {
+  onCreated?.(item);
+  setOpen(false);
+  setPhase("idle");
+  setName("");
+}, 700);
+timersRef.current.push(t);
 
   return (
     <GlowingEffect
@@ -56,8 +69,10 @@ export default function AddReleaseCard({ onCreated }: { onCreated?: (item: Relea
       className="h-full"
     >
       <Card
+      <Card
         className={cn(
-          "group relative h-72 cursor-pointer overflow-hidden transition-shadow hover:shadow-md",
+          "group relative h-72 overflow-hidden transition-shadow hover:shadow-md",
+          open ? "cursor-default" : "cursor-pointer",
           phase === "loading" ? "border-neutral-300/60 dark:border-neutral-700/60" : undefined,
         )}
       >

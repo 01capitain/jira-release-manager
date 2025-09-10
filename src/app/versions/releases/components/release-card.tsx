@@ -9,8 +9,8 @@ export default function ReleaseCard({ id, name, createdAt, animateOnMount, varia
 
   React.useEffect(() => {
     if (animateOnMount) {
-      const id = requestAnimationFrame(() => setEntered(true));
-      return () => cancelAnimationFrame(id);
+      const rafId = requestAnimationFrame(() => setEntered(true));
+      return () => cancelAnimationFrame(rafId);
     }
   }, [animateOnMount]);
 
