@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "env:check": "node scripts/check-node.mjs",
     "build": "next build",
     "comment": "Tests the database schema linting script.",
     "check": "eslint . && pnpm run lint:db-schema && tsc --noEmit",
@@ -25,7 +26,7 @@
     "test:db-schema": "node tests/scripts/test-lint-db-schema.mjs"
   },
   "engines": {
-    "node": ">=18.18.0",
+    "node": ">=22.0.0 <23",
     "pnpm": ">=10.0.0"
   },
   "dependencies": {
