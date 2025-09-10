@@ -21,10 +21,11 @@ export default function AddReleaseCard({ onCreated }: { onCreated?: (item: Relea
   const timersRef = React.useRef<number[]>([]);
 
   React.useEffect(() => {
+    const timers = timersRef.current;
     return () => {
-      timersRef.current.forEach(clearTimeout);
+      timers.forEach(clearTimeout);
     };
-  }, []);
+    }, []);
 
   function reset() {
     setName("");

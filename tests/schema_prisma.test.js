@@ -47,14 +47,20 @@ function loadSchema() {
   return { schemaPath, text };
 }
 
+/**
+ * @param {string} text
+ * @param {string} blockType
+ * @returns {string[]} 
+ */
 function blockNames(text, blockType) {
+  /** @type {string[]} */
   const names = [];
   const lines = text.split('\n');
   for (const line of lines) {
     const trimmedLine = line.trim();
     if (trimmedLine.startsWith(blockType)) {
       const parts = trimmedLine.split(' ');
-      if (parts.length > 1) {
+      if (parts.length > 1 && parts[1]) {
         names.push(parts[1]);
       }
     }
@@ -62,6 +68,12 @@ function blockNames(text, blockType) {
   return names;
 }
 
+/**
+ * @param {string} text
+ * @param {string} blockType
+ * @param {string} name
+ * @returns {string | null}
+ */
 function getBlock(text, blockType, name) {
   const lines = text.split('\n');
   let inBlock = false;
@@ -92,7 +104,8 @@ function getBlock(text, blockType, name) {
 }
 
 describe('Prisma schema structure', () => {
-  let schemaText;
+  /** @type {string} */
+  let schemaText = '';
 
   beforeAll(() => {
     const { text } = loadSchema();
@@ -107,44 +120,53 @@ describe('Prisma schema structure', () => {
 
     const block = getBlock(schemaText, 'generator', 'client');
     expect(block).toBeTruthy();
-    expect(block).toMatch(/provider\s*=\s*"prisma-client-js"/);
+    if (block) {
+      expect(block).toMatch(/provider\s*=\s*"prisma-client-js"/);
+    }
   });
 
   it('defines a PostgreSQL datasource with DATABASE_URL and pg_uuidv7 extension', () => {
     const dss = blockNames(schemaText, 'datasource');
     expect(dss.length).toBeGreaterThanOrEqual(1);
 
-    // Find the first datasource block and validate key expectations
-    const dsBlock = getBlock(schemaText, 'datasource', dss[0]);
-    expect(dsBlock).toMatch(/provider\s*=\s*"postgresql"/);
-    expect(dsBlock).toMatch(/url\s*=\s*env\("DATABASE_URL"\)/);
-    // extension list includes pg_uuidv7
-    expect(dsBlock.replace(/\s+/g, ' ')).toMatch(/extensions\s*=\s*\[[^\]]*pg_uuidv7[^\}\]]*\]/);
+    if (dss.length > 0 && dss[0]) {
+      // Find the first datasource block and validate key expectations
+      const dsBlock = getBlock(schemaText, 'datasource', dss[0]);
+      expect(dsBlock).toBeTruthy();
+      if (dsBlock) {
+        expect(dsBlock).toMatch(/provider\s*=\s*"postgresql"/);
+        expect(dsBlock).toMatch(/url\s*=\s*env\("DATABASE_URL"\)/);
+        // extension list includes pg_uuidv7
+        expect(dsBlock.replace(/\s+/g, ' ')).toMatch(/extensions\s*=\s*\[[^\]]*pg_uuidv7[^\}\]]*\]/);
+      }
+    }
   });
 
   it('contains the ReleaseComponent model with proper UUID v7 id, timestamps, relations, and indexes', () => {
     const postBlock = getBlock(schemaText, 'model', 'Post');
     expect(postBlock).toBeTruthy();
 
-    // id: String @id @default(dbgenerated("uuid_generate_v7()") @db.Uuid
-    expect(postBlock.replace(/\s+/g, ' ')).toMatch(/id\s+String\s+@id\s+@default\(dbgenerated\("uuid_generate_v7\(\)"\)\)\s+@db.Uuid/);
+    if (postBlock) {
+      // id: String @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+      expect(postBlock.replace(/\s+/g, ' ')).toMatch(/id\s+String\s+@id\s+@default\(dbgenerated\(\"uuid_generate_v7\(\)\"\)\)\s+@db.Uuid/);
 
-    // name: String
-    expect(postBlock).toMatch(/^\s*name\s+String\s*$/m);
+      // name: String
+      expect(postBlock).toMatch(/^\s*name\s+String\s*$/m);
 
-    // createdAt default now()
-    expect(postBlock.replace(/\s+/g, ' ')).toMatch(/createdAt\s+DateTime\s+@default\(now\(\)\)/);
+      // createdAt default now()
+      expect(postBlock.replace(/\s+/g, ' ')).toMatch(/createdAt\s+DateTime\s+@default\(now\(\)\)/);
 
-    // updatedAt @updatedAt
-    expect(postBlock.replace(/\s+/g, ' ')).toMatch(/updatedAt\s+DateTime\s+@updatedAt/);
+      // updatedAt @updatedAt
+      expect(postBlock.replace(/\s+/g, ' ')).toMatch(/updatedAt\s+DateTime\s+@updatedAt/);
 
-    // createdBy relation and createdById field with @db.Uuid
-    expect(postBlock.replace(/\s+/g, ' ')).toMatch(/createdBy\s+User\s+@relation\(fields:\s*\[createdById\],\s*references:\s*\[id\]\)/);
-    expect(postBlock.replace(/\s+/g, ' ')).toMatch(/createdById\s+String\s+@db.Uuid/);
+      // createdBy relation and createdById field with @db.Uuid
+      expect(postBlock.replace(/\s+/g, ' ')).toMatch(/createdBy\s+User\s+@relation\(fields:\s*\[createdById\],\s*references:\s*\[id\]\)/);
+      expect(postBlock.replace(/\s+/g, ' ')).toMatch(/createdById\s+String\s+@db.Uuid/);
 
-    // indexes on name and createdById
-    expect(postBlock).toMatch(/@@index\(\[name\]\)/);
-    expect(postBlock).toMatch(/@@index\(\[createdById\]\)/);
+      // indexes on name and createdById
+      expect(postBlock).toMatch(/@@index\(\[name\]\)/);
+      expect(postBlock).toMatch(/@@index\(\[createdById\]\)/);
+    }
   });
 
   it('includes NextAuth models: Account, Session, User, VerificationToken with expected keys and constraints', () => {
@@ -158,24 +180,32 @@ describe('Prisma schema structure', () => {
     expect(user).toBeTruthy();
     expect(vt).toBeTruthy();
 
-    // Account basics
-    expect(account.replace(/\s+/g, ' ')).toMatch(/id\s+String\s+@id\s+@default\(dbgenerated\(\"uuid_generate_v7\(\)\"\)\)\s+@db.Uuid/);
-    expect(account).toMatch(/@@unique\(\[provider,\s*providerAccountId\]\)/);
-    expect(account).toMatch(/@@index\(\[userId\]\)/);
-    expect(account.replace(/\s+/g, ' ')).toMatch(/user\s+User\s+@relation\(fields:\s*\[userId\],\s*references:\s*\[id\],\s*onDelete:\s*Cascade\)/);
+    if (account) {
+      // Account basics
+      expect(account.replace(/\s+/g, ' ')).toMatch(/id\s+String\s+@id\s+@default\(dbgenerated\(\"uuid_generate_v7\(\)\"\)\)\s+@db.Uuid/);
+      expect(account).toMatch(/@@unique\(\[provider,\s*providerAccountId\]\)/);
+      expect(account).toMatch(/@@index\(\[userId\]\)/);
+      expect(account.replace(/\s+/g, ' ')).toMatch(/user\s+User\s+@relation\(fields:\s*\[userId\],\s*references:\s*\[id\],\s*onDelete:\s*Cascade\)/);
+    }
 
-    // Session basics
-    expect(session.replace(/\s+/g, ' ')).toMatch(/id\s+String\s+@id\s+@default\(dbgenerated\(\"uuid_generate_v7\(\)\"\)\)\s+@db.Uuid/);
-    expect(session).toMatch(/sessionToken\s+String\s+@unique/);
-    expect(session).toMatch(/@@index\(\[userId\]\)/);
+    if (session) {
+      // Session basics
+      expect(session.replace(/\s+/g, ' ')).toMatch(/id\s+String\s+@id\s+@default\(dbgenerated\(\"uuid_generate_v7\(\)\"\)\)\s+@db.Uuid/);
+      expect(session).toMatch(/sessionToken\s+String\s+@unique/);
+      expect(session).toMatch(/@@index\(\[userId\]\)/);
+    }
 
-    // User basics
-    expect(user.replace(/\s+/g, ' ')).toMatch(/id\s+String\s+@id\s+@default\(dbgenerated\(\"uuid_generate_v7\(\)\"\)\)\s+@db.Uuid/);
-    expect(user).toMatch(/email\s+String\?\s+@unique/);
+    if (user) {
+      // User basics
+      expect(user.replace(/\s+/g, ' ')).toMatch(/id\s+String\s+@id\s+@default\(dbgenerated\(\"uuid_generate_v7\(\)\"\)\)\s+@db.Uuid/);
+      expect(user).toMatch(/email\s+String\?\s+@unique/);
+    }
 
-    // VerificationToken basics
-    expect(vt).toMatch(/@@unique\(\[identifier,\s*token\]\)/);
-    expect(vt).toMatch(/token\s+String\s+@unique/);
+    if (vt) {
+      // VerificationToken basics
+      expect(vt).toMatch(/@@unique\(\[identifier,\s*token\]\)/);
+      expect(vt).toMatch(/token\s+String\s+@unique/);
+    }
   });
 
   it('does not declare duplicate generator client blocks (guard against accidental nesting/duplication)', () => {
@@ -184,9 +214,12 @@ describe('Prisma schema structure', () => {
     expect(clientCount).toBe(1);
     // Also assert that a generator block is not nested within another
     const clientBlock = getBlock(schemaText, 'generator', 'client');
-    const lines = clientBlock.split('\n').slice(1).join('\n');
-    // A simple heuristic: client block should not contain another "generator client {"
-    expect(lines).not.toContain('generator client {');
+    expect(clientBlock).toBeTruthy();
+    if (clientBlock) {
+      const lines = clientBlock.split('\n').slice(1).join('\n');
+      // A simple heuristic: client block should not contain another "generator client {"
+      expect(lines).not.toContain('generator client {');
+    }
   });
 
   it('uses UUID columns for all id fields across models (String @db.Uuid)', () => {
