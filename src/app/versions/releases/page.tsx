@@ -13,14 +13,23 @@ export default function VersionsReleasesPage() {
   const [page, setPage] = React.useState(1);
   React.useEffect(() => setItems(getReleaseVersions()), []);
 
+  // Keep page within bounds when items or first-page capacity change
+  React.useEffect(() => {
+    const PAGE_SIZE = 9;
+    const firstPageCapacity = showPlus ? PAGE_SIZE - 1 : PAGE_SIZE;
+    const totalPages =
+      items.length <= firstPageCapacity
+        ? 1
+        : 1 + Math.ceil((items.length - firstPageCapacity) / PAGE_SIZE);
+    if (page < 1) setPage(1);
+    else if (page > totalPages) setPage(totalPages);
+  }, [items.length, showPlus, page]);
   return (
     <div className="mx-auto w-full max-w-6xl space-y-6">
       {(() => {
         const PAGE_SIZE = 9;
         const totalPages = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
         const clamped = Math.min(Math.max(1, page), totalPages);
-        if (clamped !== page) setPage(clamped);
-
         const startIndex = (clamped - 1) * PAGE_SIZE;
         const isFirstPage = clamped === 1;
         const capacity = isFirstPage && showPlus ? PAGE_SIZE - 1 : PAGE_SIZE;

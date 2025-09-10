@@ -8,12 +8,12 @@ export default function ReleaseList({ items: initial }: { items?: ReleaseVersion
   const [items, setItems] = React.useState<ReleaseVersion[]>(initial ?? []);
 
   React.useEffect(() => {
-    // hydrate from localStorage on mount
-    setItems(getReleaseVersions());
-  }, []);
-
-  React.useEffect(() => {
-    if (initial) setItems(initial);
+    // Hydrate: prefer initial when provided; otherwise fall back to localStorage.
+    if (initial && initial.length > 0) {
+      setItems(initial);
+    } else {
+      setItems(getReleaseVersions());
+    }
   }, [initial]);
 
   if (items.length === 0) {
@@ -34,7 +34,9 @@ export default function ReleaseList({ items: initial }: { items?: ReleaseVersion
             <div className="flex items-baseline justify-between">
               <div className="text-base font-medium">{r.name}</div>
               <div className="text-xs text-neutral-500 dark:text-neutral-400">
-                {new Date(r.createdAt).toLocaleString()}
+                <time dateTime={r.createdAt}>
+                  {isNaN(new Date(r.createdAt).getTime()) ? "—" : new Date(r.createdAt).toLocaleString()}
+                </time>
               </div>
             </div>
           </CardContent>

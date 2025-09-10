@@ -33,7 +33,10 @@ export default function ReleaseCard({ id, name, createdAt, animateOnMount, varia
           <div className="text-2xl font-semibold tracking-tight">{name}</div>
           {createdAt ? (
             <div className="mt-2 text-xs text-neutral-500 dark:text-neutral-400">
-              {new Date(createdAt).toLocaleString()}
+              {(() => {
+                const d = new Date(createdAt);
+                return Number.isNaN(d.getTime()) ? createdAt : d.toLocaleString();
+              })()}
             </div>
           ) : null}
         </div>

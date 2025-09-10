@@ -12,6 +12,7 @@ export function useFlip(id: string) {
     if (!el) return;
     const next = el.getBoundingClientRect();
     const prev = rects.get(id);
+    let cleanup: (() => void) | undefined;
 
     if (prev) {
       const dx = prev.left - next.left;
@@ -31,10 +32,14 @@ export function useFlip(id: string) {
           el.removeEventListener("transitionend", done);
         };
         el.addEventListener("transitionend", done);
+        cleanup = () => el.removeEventListener("transitionend", done);
       }
     }
 
     rects.set(id, next);
+    return () => {
+      cleanup?.();
+    };
   });
 
   return ref;

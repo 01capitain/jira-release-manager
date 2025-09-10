@@ -25,6 +25,14 @@
   animation: jrm-slide-right 0.9s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .animate-jrm-glow,
+  .animate-jrm-slide-right,
+  .jrm-thinking::after {
+    animation: none !important;
+  }
+}
+
 /* Animated dots for "Thinking..." */
 @keyframes jrm-dots {
   0% { content: ""; }

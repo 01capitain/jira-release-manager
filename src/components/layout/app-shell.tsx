@@ -41,12 +41,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [expanded, setExpanded] = React.useState<Record<string, boolean>>({ versions: true });
 
   React.useEffect(() => {
-    try {
-      const html = document.documentElement.className;
-      const bodyBg = getComputedStyle(document.body).backgroundColor;
-      console.log("[appshell] html classes:", html, "body bg:", bodyBg);
-    } catch {
-      // noop
+    if (process.env.NODE_ENV !== "production") {
+      try {
+        const html = document.documentElement.className;
+        const bodyBg = getComputedStyle(document.body).backgroundColor;
+        console.log("[appshell] html classes:", html, "body bg:", bodyBg);
+      } catch {
+        // noop
+      }
     }
   }, []);
 
@@ -65,7 +67,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             >
               <div className="flex h-14 items-center justify-between gap-2 px-4">
                 <div className="flex items-center gap-2 font-semibold">
-                  <div className="h-6 w-6 rounded bg-neutral-900 dark:bg-neutral-100" />
+                  <div className="h-6 w-6 rounded bg-neutral-900 dark:bg-neutral-100" aria-hidden="true" />
                   <span>Jira Release Manager</span>
                 </div>
                 <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setOpen(false)}>
@@ -166,7 +168,7 @@ function computeCrumbs(pathname: string): Crumb[] {
   let href = "";
   for (const seg of segments) {
     href += `/${seg}`;
-    const label = map[seg] ?? seg.replace(/-/g, " ");
+    const label = map[seg] ?? decodeURIComponent(seg).replace(/-/g, " ");
     crumbs.push({ label, href });
   }
   // Mark last as current (no href)

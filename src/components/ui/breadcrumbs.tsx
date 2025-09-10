@@ -18,9 +18,18 @@ export function Breadcrumbs({ items, className }: { items: Crumb[]; className?: 
                 {c.label}
               </Link>
             ) : (
-              <span className="text-neutral-900 dark:text-neutral-100">{c.label}</span>
+              <span
+                className="text-neutral-900 dark:text-neutral-100"
+                aria-current="page"
+              >
+                {c.label}
+              </span>
             )}
-            {i < items.length - 1 ? <span className="text-neutral-400">/</span> : null}
+            {i < items.length - 1 ? (
+              <span className="text-neutral-400" aria-hidden="true">
+                /
+              </span>
+            ) : null}
           </li>
         ))}
       </ol>

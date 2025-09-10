@@ -10,15 +10,12 @@ export function ModeToggle() {
   const [mounted, setMounted] = React.useState(false);
   React.useEffect(() => setMounted(true), []);
   React.useEffect(() => {
-    try {
-      console.log(
-        "[theme] mounted:",
-        { theme, systemTheme, storage: typeof window !== "undefined" ? localStorage.getItem("jrm-ui-theme") : null },
-        "html:",
-        typeof document !== "undefined" ? document.documentElement.className : "",
-      );
-    } catch {
-      // noop
+    if (process.env.NODE_ENV !== "production") {
+      try {
+        console.log("[theme] mounted:", { theme, systemTheme });
+      } catch {
+        // noop
+      }
     }
   }, [theme, systemTheme]);
   const isDark = (theme === "system" ? systemTheme : theme) === "dark";
@@ -28,6 +25,8 @@ export function ModeToggle() {
       variant="ghost"
       size="icon"
       aria-label="Toggle theme"
+      aria-pressed={isDark}
+      title="Toggle theme"
       onClick={() => setTheme(isDark ? "light" : "dark")}
     >
       {mounted ? (

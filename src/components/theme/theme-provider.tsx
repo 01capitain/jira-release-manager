@@ -12,6 +12,9 @@ export function ThemeProvider({
       attribute="class"
       defaultTheme="dark"
       enableSystem
+      enableColorScheme
+      disableTransitionOnChange
+      themes={["light", "dark"]}
       storageKey="jrm-ui-theme"
       {...props}
     >
