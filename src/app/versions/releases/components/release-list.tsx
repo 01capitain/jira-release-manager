@@ -4,7 +4,11 @@ import * as React from "react";
 import { Card, CardContent } from "~/components/ui/card";
 import { getReleaseVersions, type ReleaseVersion } from "./release-storage";
 
-export default function ReleaseList({ items: initial }: { items?: ReleaseVersion[] }) {
+export default function ReleaseList({
+  items: initial,
+}: {
+  items?: ReleaseVersion[];
+}) {
   const [items, setItems] = React.useState<ReleaseVersion[]>(initial ?? []);
 
   React.useEffect(() => {
@@ -35,7 +39,9 @@ export default function ReleaseList({ items: initial }: { items?: ReleaseVersion
               <div className="text-base font-medium">{r.name}</div>
               <div className="text-xs text-neutral-500 dark:text-neutral-400">
                 <time dateTime={r.createdAt}>
-                  {isNaN(new Date(r.createdAt).getTime()) ? "—" : new Date(r.createdAt).toLocaleString()}
+                  {isNaN(new Date(r.createdAt).getTime())
+                    ? "—"
+                    : new Date(r.createdAt).toLocaleString()}
                 </time>
               </div>
             </div>
@@ -45,4 +51,3 @@ export default function ReleaseList({ items: initial }: { items?: ReleaseVersion
     </div>
   );
 }
-

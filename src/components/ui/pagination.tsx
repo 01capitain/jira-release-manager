@@ -13,7 +13,14 @@ type PaginationProps = {
   siblingCount?: number; // how many pages on each side of current
 };
 
-export function Pagination({ total, pageSize, page, onPageChange, className, siblingCount = 1 }: PaginationProps) {
+export function Pagination({
+  total,
+  pageSize,
+  page,
+  onPageChange,
+  className,
+  siblingCount = 1,
+}: PaginationProps) {
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   const pages = React.useMemo(() => {
@@ -32,13 +39,24 @@ export function Pagination({ total, pageSize, page, onPageChange, className, sib
   const canNext = page < totalPages;
 
   return (
-    <nav aria-label="Pagination" className={cn("flex items-center justify-end gap-2", className)}>
-      <Button variant="secondary" size="sm" onClick={() => onPageChange(page - 1)} disabled={!canPrev}>
+    <nav
+      aria-label="Pagination"
+      className={cn("flex items-center justify-end gap-2", className)}
+    >
+      <Button
+        variant="secondary"
+        size="sm"
+        onClick={() => onPageChange(page - 1)}
+        disabled={!canPrev}
+      >
         Previous
       </Button>
       {pages.map((p, i) =>
         p === "ellipsis" ? (
-          <span key={`e-${i}`} className="px-2 text-neutral-500 dark:text-neutral-400">
+          <span
+            key={`e-${i}`}
+            className="px-2 text-neutral-500 dark:text-neutral-400"
+          >
             …
           </span>
         ) : (
@@ -53,10 +71,14 @@ export function Pagination({ total, pageSize, page, onPageChange, className, sib
           </Button>
         ),
       )}
-      <Button variant="secondary" size="sm" onClick={() => onPageChange(page + 1)} disabled={!canNext}>
+      <Button
+        variant="secondary"
+        size="sm"
+        onClick={() => onPageChange(page + 1)}
+        disabled={!canNext}
+      >
         Next
       </Button>
     </nav>
   );
 }
-

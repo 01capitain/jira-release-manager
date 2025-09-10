@@ -18,7 +18,9 @@ export default async function Home() {
         <div className="flex items-baseline justify-between">
           <h1 className="text-3xl font-semibold tracking-tight">Dashboard</h1>
           <span className="text-sm text-neutral-500 dark:text-neutral-400">
-            {session ? `Welcome, ${session.user?.name ?? "user"}` : "Not signed in"}
+            {session
+              ? `Welcome, ${session.user?.name ?? "user"}`
+              : "Not signed in"}
           </span>
         </div>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

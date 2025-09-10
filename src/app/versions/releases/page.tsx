@@ -3,7 +3,10 @@
 import * as React from "react";
 import AddReleaseCard from "./components/add-release-card";
 import ReleaseCard from "./components/release-card";
-import { type ReleaseVersion, getReleaseVersions } from "./components/release-storage";
+import {
+  type ReleaseVersion,
+  getReleaseVersions,
+} from "./components/release-storage";
 import { Pagination } from "~/components/ui/pagination";
 
 export default function VersionsReleasesPage() {
@@ -43,28 +46,28 @@ export default function VersionsReleasesPage() {
               {isFirstPage && showPlus && (
                 <AddReleaseCard
                   onCreated={(it) => {
-                      setPage(1);
-                      // First render: hide plus and place the new item at index 0 so we can measure its rect
-                      setShowPlus(false);
-                      setItems((prev) => [it, ...prev]);
-                      setHighlightId(it.id);
-                      // Next tick: show the plus again which shifts the card to the right; FLIP hook animates the move
-                      setTimeout(() => setShowPlus(true), 50);
-                      // Remove highlight after the motion completes
-                      setTimeout(() => setHighlightId(null), 800);
-                    }}
-                  />
-                )}
-                {pageItems.map((it, idx) => (
-                  <ReleaseCard
-                    key={it.id}
-                    id={it.id}
-                    name={it.name}
-                    createdAt={it.createdAt}
-                    animateOnMount={isFirstPage && idx === 0 && !showPlus}
-                    variant={it.id === highlightId ? "success" : "default"}
-                  />
-                ))}
+                    setPage(1);
+                    // First render: hide plus and place the new item at index 0 so we can measure its rect
+                    setShowPlus(false);
+                    setItems((prev) => [it, ...prev]);
+                    setHighlightId(it.id);
+                    // Next tick: show the plus again which shifts the card to the right; FLIP hook animates the move
+                    setTimeout(() => setShowPlus(true), 50);
+                    // Remove highlight after the motion completes
+                    setTimeout(() => setHighlightId(null), 800);
+                  }}
+                />
+              )}
+              {pageItems.map((it, idx) => (
+                <ReleaseCard
+                  key={it.id}
+                  id={it.id}
+                  name={it.name}
+                  createdAt={it.createdAt}
+                  animateOnMount={isFirstPage && idx === 0 && !showPlus}
+                  variant={it.id === highlightId ? "success" : "default"}
+                />
+              ))}
             </div>
 
             <Pagination

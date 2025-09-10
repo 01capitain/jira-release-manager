@@ -3,7 +3,19 @@
 import * as React from "react";
 import { Card, CardContent } from "~/components/ui/card";
 import { useFlip } from "~/components/animation/use-flip";
-export default function ReleaseCard({ id, name, createdAt, animateOnMount, variant = "default" }: { id: string; name: string; createdAt?: string; animateOnMount?: boolean; variant?: "default" | "success" }) {
+export default function ReleaseCard({
+  id,
+  name,
+  createdAt,
+  animateOnMount,
+  variant = "default",
+}: {
+  id: string;
+  name: string;
+  createdAt?: string;
+  animateOnMount?: boolean;
+  variant?: "default" | "success";
+}) {
   const [entered, setEntered] = React.useState(!animateOnMount);
   const ref = useFlip(id);
 
@@ -24,7 +36,9 @@ export default function ReleaseCard({ id, name, createdAt, animateOnMount, varia
       ref={ref}
       className={[
         "group relative h-72 overflow-hidden transition-all duration-500 ease-out hover:shadow-md",
-        entered ? "opacity-100 translate-y-0 scale-100" : "opacity-0 -translate-y-2 scale-95",
+        entered
+          ? "translate-y-0 scale-100 opacity-100"
+          : "-translate-y-2 scale-95 opacity-0",
         variantClasses,
       ].join(" ")}
     >
@@ -35,7 +49,9 @@ export default function ReleaseCard({ id, name, createdAt, animateOnMount, varia
             <div className="mt-2 text-xs text-neutral-500 dark:text-neutral-400">
               {(() => {
                 const d = new Date(createdAt);
-                return Number.isNaN(d.getTime()) ? createdAt : d.toLocaleString();
+                return Number.isNaN(d.getTime())
+                  ? createdAt
+                  : d.toLocaleString();
               })()}
             </div>
           ) : null}
