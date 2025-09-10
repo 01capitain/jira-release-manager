@@ -18,6 +18,13 @@ export default function AddReleaseCard({ onCreated }: { onCreated?: (item: Relea
   const [name, setName] = React.useState("");
   const [phase, setPhase] = React.useState<Phase>("idle");
   const [error, setError] = React.useState<string | null>(null);
+  const timersRef = React.useRef<number[]>([]);
+
+  React.useEffect(() => {
+    return () => {
+      timersRef.current.forEach(clearTimeout);
+    };
+  }, []);
 
   function reset() {
     setName("");
@@ -35,31 +42,17 @@ export default function AddReleaseCard({ onCreated }: { onCreated?: (item: Relea
       return;
     }
     setPhase("loading");
-    const delay = process.env.NODE_ENV === "development" ? 5000 : 1000;
+    const delay = process.env.NODE_ENV === "development" ? 1500 : 1000;
     await new Promise((r) => setTimeout(r, delay));
     const item = addReleaseVersion(name.trim());
     setPhase("success");
-    // brief success flash before FLIP transition kicks in from parent
-// ... earlier in the component, after other state hooks
-const [error, setError] = React.useState<string | null>(null);
 
-const timersRef = React.useRef<number[]>([]);
-React.useEffect(() => {
-  return () => {
-    timersRef.current.forEach(clearTimeout);
-    timersRef.current = [];
-  };
-}, []);
-
-// ... later, where the timeout is set
-// brief success flash before FLIP transition kicks in from parent
-const t = window.setTimeout(() => {
-  onCreated?.(item);
-  setOpen(false);
-  setPhase("idle");
-  setName("");
-}, 700);
-timersRef.current.push(t);
+    const t = window.setTimeout(() => {
+      onCreated?.(item);
+      reset();
+    }, 700);
+    timersRef.current.push(t);
+  }
 
   return (
     <GlowingEffect
@@ -68,7 +61,6 @@ timersRef.current.push(t);
       thickness={phase !== "idle" ? "thick" : "thin"}
       className="h-full"
     >
-      <Card
       <Card
         className={cn(
           "group relative h-72 overflow-hidden transition-shadow hover:shadow-md",
