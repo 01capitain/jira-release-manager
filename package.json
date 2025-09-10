@@ -22,7 +22,7 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "test": "jest",
-    "test:db-schema": "node test/scripts/test-lint-db-schema.mjs"
+    "test:db-schema": "node tests/scripts/test-lint-db-schema.mjs"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.7.2",

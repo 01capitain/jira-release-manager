@@ -28,12 +28,8 @@ type Phase = "idle" | "loading" | "success";
 
 ## Make loading intentionally slow in development
 
-Use an environment‑aware delay so developers see the state without slowing production.
+Use an environment-aware delay so developers see the state without slowing production. Also, respect `prefers-reduced-motion` by disabling non-essential animations when set.
 
-```ts
-const delay = process.env.NODE_ENV === "development" ? 5000 : 1000;
-await new Promise((r) => setTimeout(r, delay));
-```
 
 This pattern is used in the create release form. For animations (like FLIP), we also slow the transition duration in dev so the move is easy to evaluate.
 

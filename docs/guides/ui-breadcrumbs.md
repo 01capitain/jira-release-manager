@@ -35,8 +35,7 @@ map["audits"] = "Audits";
 
 ## Current page
 
-- The last crumb is rendered without an `href` to indicate the current page.
-
+- The last crumb is rendered without an `href` and with `aria-current="page"` to indicate the current page.
 ## Advanced
 
 - If you need dynamic breadcrumb titles (e.g., entity names), consider passing a client component as a child that renders a custom breadcrumb next to the default one, or extend `computeCrumbs` to accept an override map via React context.
