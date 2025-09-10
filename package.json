@@ -7,6 +7,8 @@
     "build": "next build",
     "comment": "Tests the database schema linting script.",
     "check": "eslint . && pnpm run lint:db-schema && tsc --noEmit",
+    "check:clean": "pnpm run clean && pnpm run check",
+    "clean": "rm -rf .next tsconfig.tsbuildinfo",
     "db:generate": "prisma migrate dev",
     "db:migrate": "prisma migrate deploy",
     "db:push": "prisma db push",
