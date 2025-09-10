@@ -9,15 +9,15 @@ export function ModeToggle() {
   const { theme, setTheme, systemTheme } = useTheme();
   const [mounted, setMounted] = React.useState(false);
   React.useEffect(() => setMounted(true), []);
-  React.useEffect(() => {
-    if (process.env.NODE_ENV !== "production") {
-      try {
-        console.log("[theme] mounted:", { theme, systemTheme });
-      } catch {
-        // noop
-      }
-    }
-  }, [theme, systemTheme]);
+
+  if (!mounted) {
+    return (
+      <Button variant="ghost" size="icon" aria-label="Toggle theme" disabled>
+        <Sun className="h-5 w-5" />
+      </Button>
+    );
+  }
+
   const isDark = (theme === "system" ? systemTheme : theme) === "dark";
 
   return (
@@ -29,11 +29,7 @@ export function ModeToggle() {
       title="Toggle theme"
       onClick={() => setTheme(isDark ? "light" : "dark")}
     >
-      {mounted ? (
-        isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />
-      ) : (
-        <Sun className="h-5 w-5" />
-      )}
+      {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
     </Button>
   );
 }
