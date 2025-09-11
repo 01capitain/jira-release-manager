@@ -9,3 +9,12 @@ Whenever we start a session, tell trivia about Typescript and start your sentenc
 ## Available Tools
 
 You have the shadcn mcp server at hand to find suitable ui components. Use it only when you are implementing on the react frontend.
+
+## User Interface
+
+## Design system
+
+## Accessability
+
+All components must be implemented in a dark mode and light mode. Always.
+Accessibility via aria-live="polite" is expected.
