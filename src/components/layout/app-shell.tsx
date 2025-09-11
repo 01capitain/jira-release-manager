@@ -1,23 +1,22 @@
 "use client";
 
-import * as React from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useSession, signIn, signOut } from "next-auth/react";
 import {
-  Menu,
-  ChevronRight,
   ChevronDown,
-  ChevronRight as CaretRight,
-  Settings,
-  LogOut,
+  ChevronRight,
   Layers,
+  LogOut,
+  Menu,
+  Settings,
 } from "lucide-react";
-import { cn } from "~/lib/utils";
-import { Button } from "~/components/ui/button";
+import { signIn, signOut, useSession } from "next-auth/react";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import * as React from "react";
 import { ModeToggle } from "~/components/theme/mode-toggle";
-import { Separator } from "~/components/ui/separator";
 import { Breadcrumbs, type Crumb } from "~/components/ui/breadcrumbs";
+import { Button } from "~/components/ui/button";
+import { Separator } from "~/components/ui/separator";
+import { cn } from "~/lib/utils";
 
 type NavGroup = {
   id: string;
@@ -46,6 +45,7 @@ const NAV_GROUPS: NavGroup[] = [
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const { data: session } = useSession();
   const [open, setOpen] = React.useState(false);
   const [expanded, setExpanded] = React.useState<Record<string, boolean>>({
@@ -123,7 +123,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                           isOpen ? (
                             <ChevronDown className="h-4 w-4" />
                           ) : (
-                            <CaretRight className="h-4 w-4" />
+                            <ChevronRight className="h-4 w-4" />
                           )
                         ) : null}
                       </button>
@@ -163,7 +163,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     <Button
                       variant="ghost"
                       className="justify-start gap-2"
-                      onClick={() => void signOut({ redirect: false })}
+                      onClick={async () => {
+                        await signOut({ redirect: false });
+                        router.refresh();
+                      }}
                     >
                       <LogOut className="h-4 w-4" />
                       Logout

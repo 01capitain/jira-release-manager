@@ -105,7 +105,11 @@ export default function AddReleaseCard({
                 </Button>
               </div>
             ) : (
-              <form onSubmit={onSubmit} className="space-y-4" aria-busy={phase === "loading"}>
+              <form
+                onSubmit={onSubmit}
+                className="space-y-4"
+                aria-busy={phase === "loading"}
+              >
                 <div className="flex items-start justify-between">
                   <div>
                     <h3 className="text-lg font-semibold">
