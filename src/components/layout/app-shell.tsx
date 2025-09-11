@@ -163,7 +163,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     <Button
                       variant="ghost"
                       className="justify-start gap-2"
-                      onClick={() => void signOut()}
+                      onClick={() => void signOut({ redirect: false })}
                     >
                       <LogOut className="h-4 w-4" />
                       Logout
