@@ -1,14 +1,22 @@
 "use client";
 
-import * as React from "react";
+import {
+  ChevronDown,
+  ChevronRight,
+  Layers,
+  LogOut,
+  Menu,
+  Settings,
+} from "lucide-react";
+import { signIn, signOut, useSession } from "next-auth/react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { Menu, ChevronRight, ChevronDown, ChevronRight as CaretRight, Settings, LogOut, Layers } from "lucide-react";
-import { cn } from "~/lib/utils";
-import { Button } from "~/components/ui/button";
+import { usePathname, useRouter } from "next/navigation";
+import * as React from "react";
 import { ModeToggle } from "~/components/theme/mode-toggle";
-import { Separator } from "~/components/ui/separator";
 import { Breadcrumbs, type Crumb } from "~/components/ui/breadcrumbs";
+import { Button } from "~/components/ui/button";
+import { Separator } from "~/components/ui/separator";
+import { cn } from "~/lib/utils";
 
 type NavGroup = {
   id: string;
@@ -37,8 +45,12 @@ const NAV_GROUPS: NavGroup[] = [
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { data: session } = useSession();
   const [open, setOpen] = React.useState(false);
-  const [expanded, setExpanded] = React.useState<Record<string, boolean>>({ versions: true });
+  const [expanded, setExpanded] = React.useState<Record<string, boolean>>({
+    versions: true,
+  });
 
   React.useEffect(() => {
     if (process.env.NODE_ENV !== "production") {
@@ -61,16 +73,24 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             {/* Sidebar inside the floating container */}
             <aside
               className={cn(
-                "flex h-auto w-64 shrink-0 flex-col border-r border-neutral-200 bg-white/80 backdrop-blur dark:border-neutral-800 dark:bg-neutral-900/80 md:translate-x-0",
+                "flex h-auto w-64 shrink-0 flex-col border-r border-neutral-200 bg-white/80 backdrop-blur md:translate-x-0 dark:border-neutral-800 dark:bg-neutral-900/80",
                 open ? "translate-x-0" : "-translate-x-full md:translate-x-0",
               )}
             >
               <div className="flex h-14 items-center justify-between gap-2 px-4">
                 <div className="flex items-center gap-2 font-semibold">
-                  <div className="h-6 w-6 rounded bg-neutral-900 dark:bg-neutral-100" aria-hidden="true" />
+                  <div
+                    className="h-6 w-6 rounded bg-neutral-900 dark:bg-neutral-100"
+                    aria-hidden="true"
+                  />
                   <span>Jira Release Manager</span>
                 </div>
-                <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setOpen(false)}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="md:hidden"
+                  onClick={() => setOpen(false)}
+                >
                   <ChevronRight className="h-5 w-5" />
                 </Button>
               </div>
@@ -80,26 +100,43 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   const Icon = group.icon;
                   const isExpandable = group.items && group.items.length > 0;
                   const isOpen = expanded[group.id] ?? false;
-                  const parentActive = group.items?.some((it) => pathname.startsWith(it.href));
+                  const parentActive = group.items?.some((it) =>
+                    pathname.startsWith(it.href),
+                  );
                   return (
                     <div key={group.id} className="mb-2">
                       <button
                         type="button"
-                        onClick={() => isExpandable && setExpanded((e) => ({ ...e, [group.id]: !isOpen }))}
+                        onClick={() =>
+                          isExpandable &&
+                          setExpanded((e) => ({ ...e, [group.id]: !isOpen }))
+                        }
                         className={cn(
                           "flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm hover:bg-neutral-100 dark:hover:bg-neutral-800",
-                          parentActive && "bg-neutral-100 font-medium dark:bg-neutral-800",
+                          parentActive &&
+                            "bg-neutral-100 font-medium dark:bg-neutral-800",
                         )}
+                        aria-expanded={isExpandable ? isOpen : undefined}
+                        aria-controls={
+                          isExpandable ? `submenu-${group.id}` : undefined
+                        }
                       >
                         {Icon ? <Icon className="h-4 w-4" /> : null}
                         <span className="flex-1">{group.label}</span>
                         {isExpandable ? (
-                          isOpen ? <ChevronDown className="h-4 w-4" /> : <CaretRight className="h-4 w-4" />
+                          isOpen ? (
+                            <ChevronDown className="h-4 w-4" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4" />
+                          )
                         ) : null}
                       </button>
 
                       {isExpandable && isOpen ? (
-                        <div className="ml-3 border-l border-neutral-200 pl-3 dark:border-neutral-800">
+                        <div
+                          id={`submenu-${group.id}`}
+                          className="ml-3 border-l border-neutral-200 pl-3 dark:border-neutral-800"
+                        >
                           {group.items!.map((item) => {
                             const active = pathname.startsWith(item.href);
                             return (
@@ -108,7 +145,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                                 href={item.href}
                                 className={cn(
                                   "mb-1 block rounded-md px-3 py-2 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-800",
-                                  active && "bg-neutral-100 font-medium dark:bg-neutral-800",
+                                  active &&
+                                    "bg-neutral-100 font-medium dark:bg-neutral-800",
                                 )}
                                 onClick={() => setOpen(false)}
                               >
@@ -121,26 +159,52 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     </div>
                   );
                 })}
-
               </nav>
               <Separator className="mt-2" />
               <div className="px-2 py-3">
-                <Link href="/api/auth/signout" className="block">
-                  <Button variant="ghost" className="w-full justify-start gap-3">
-                    <LogOut className="h-4 w-4" />
-                    Logout
+                {session?.user ? (
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="truncate text-sm text-neutral-600 dark:text-neutral-300">
+                      {session.user.name ?? session.user.email ?? "Signed in"}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      className="justify-start gap-2"
+                      onClick={async () => {
+                        await signOut({ redirect: false });
+                        router.refresh();
+                      }}
+                    >
+                      <LogOut className="h-4 w-4" />
+                      Logout
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    className="w-full justify-start"
+                    onClick={() => void signIn("discord")}
+                  >
+                    log in per discord sso
                   </Button>
-                </Link>
+                )}
               </div>
             </aside>
 
             {/* Content area inside floating container */}
             <div className="flex min-h-full flex-1 flex-col">
               <header className="sticky top-0 z-10 flex h-14 items-center gap-2 border-b border-neutral-200 bg-white/80 px-4 backdrop-blur dark:border-neutral-800 dark:bg-neutral-900/80">
-                <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setOpen(true)}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="md:hidden"
+                  onClick={() => setOpen(true)}
+                >
                   <Menu className="h-5 w-5" />
                 </Button>
-                <Breadcrumbs items={computeCrumbs(pathname)} className="hidden md:block" />
+                <Breadcrumbs
+                  items={computeCrumbs(pathname)}
+                  className="hidden md:block"
+                />
                 <div className="ml-auto flex items-center gap-2">
                   <ModeToggle />
                 </div>
@@ -172,6 +236,9 @@ function computeCrumbs(pathname: string): Crumb[] {
     crumbs.push({ label, href });
   }
   // Mark last as current (no href)
-  if (crumbs.length > 1) crumbs[crumbs.length - 1] = { label: crumbs[crumbs.length - 1]!.label } as Crumb;
+  if (crumbs.length > 1)
+    crumbs[crumbs.length - 1] = {
+      label: crumbs[crumbs.length - 1]!.label,
+    };
   return crumbs;
 }
