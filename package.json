@@ -14,6 +14,8 @@
     "check-all": "eslint . && pnpm run lint:db-schema && tsc --noEmit",
     "validate-all": "pnpm format:check && pnpm check-all",
     "clean": "rm -rf .next tsconfig.tsbuildinfo",
+    "db:init": "prisma db execute --file ./init.sql --schema prisma/schema.prisma",
+    "db:reset": "prisma migrate reset --force --skip-seed && pnpm db:init && prisma db push",
     "db:generate": "prisma migrate dev",
     "db:migrate": "prisma migrate deploy",
     "db:push": "prisma db push",
