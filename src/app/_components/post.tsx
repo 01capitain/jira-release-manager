@@ -33,7 +33,17 @@ export function LatestPost() {
         <input
           type="text"
           placeholder="Title"
-          aria-label="Title"
+        <label htmlFor="post-title" className="sr-only">
+          Title
+        </label>
+        <input
+          type="text"
+          placeholder="Title"
+          id="post-title"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className="w-full rounded-full bg-white/10 px-4 py-2 text-white"
+        />
           value={name}
           onChange={(e) => setName(e.target.value)}
           className="w-full rounded-full bg-white/10 px-4 py-2 text-white"
