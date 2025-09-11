@@ -116,6 +116,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                           parentActive &&
                             "bg-neutral-100 font-medium dark:bg-neutral-800",
                         )}
+                        aria-expanded={isExpandable ? isOpen : undefined}
+                        aria-controls={
+                          isExpandable ? `submenu-${group.id}` : undefined
+                        }
                       >
                         {Icon ? <Icon className="h-4 w-4" /> : null}
                         <span className="flex-1">{group.label}</span>
@@ -129,7 +133,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       </button>
 
                       {isExpandable && isOpen ? (
-                        <div className="ml-3 border-l border-neutral-200 pl-3 dark:border-neutral-800">
+                        <div
+                          id={`submenu-${group.id}`}
+                          className="ml-3 border-l border-neutral-200 pl-3 dark:border-neutral-800"
+                        >
                           {group.items!.map((item) => {
                             const active = pathname.startsWith(item.href);
                             return (
