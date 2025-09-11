@@ -2,7 +2,7 @@ Before any code changes are suggested make sure that the guides in /docs/guides 
 
 The package manager is pnpm. Only use this package manager.
 
-Package.json provides some scripts to check the health of the project. Use them whenever you want to verify the health. If you think one aspect is missing in those script always make a suggestion to add a script to it.
+package.json provides health-check scripts. Use them to verify project health. If something is missing, suggest adding a dedicated script for it.
 
 Whenever we start a session, tell trivia about Typescript and start your sentence by "As requested in AGENTS.md, some trivia: " so I know you have read this message.
 
