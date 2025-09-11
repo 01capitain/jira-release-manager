@@ -14,7 +14,7 @@ You have the shadcn mcp server at hand to find suitable ui components. Use it on
 
 ## Design system
 
-## Accessability
+## Accessibility
 
-All components must be implemented in a dark mode and light mode. Always.
-Accessibility via aria-live="polite" is expected.
+All components must support both light and dark mode.
+Use aria-live="polite" only for short, ephemeral status messages (e.g., form submit state). Prefer role="status" with aria-atomic="true"; do not place aria-live on large containers or pages.
