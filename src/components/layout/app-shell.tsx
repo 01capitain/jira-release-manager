@@ -229,6 +229,6 @@ function computeCrumbs(pathname: string): Crumb[] {
   if (crumbs.length > 1)
     crumbs[crumbs.length - 1] = {
       label: crumbs[crumbs.length - 1]!.label,
-    } as Crumb;
+    };
   return crumbs;
 }
