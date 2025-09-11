@@ -46,7 +46,10 @@ export default tseslint.config(
       "jsx-a11y/control-has-associated-label": "warn",
       "jsx-a11y/label-has-associated-control": ["warn", { assert: "either" }],
       "jsx-a11y/click-events-have-key-events": "warn",
-
+      "jsx-a11y/anchor-is-valid": "warn",
+      "jsx-a11y/alt-text": "warn",
+      "jsx-a11y/no-autofocus": "warn",
+      "jsx-a11y/interactive-supports-focus": "warn",
       "@typescript-eslint/array-type": "off",
       "@typescript-eslint/consistent-type-definitions": "off",
       "@typescript-eslint/consistent-type-imports": [
