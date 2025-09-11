@@ -47,12 +47,21 @@ export const authConfig = {
   ],
   adapter: PrismaAdapter(db),
   callbacks: {
-    session: ({ session, user }) => ({
-      ...session,
-      user: {
-        ...session.user,
-        id: user.id,
-      },
-    }),
+    session: ({ session, user, token }) => {
+      // Be defensive: when no active session, `session.user` may be undefined during callback evaluation
+      if (session?.user) {
+        const id =
+          user?.id ??
+          (typeof token?.sub === "string" ? token.sub : session.user.id);
+        return {
+          ...session,
+          user: {
+            ...session.user,
+            id,
+          },
+        };
+      }
+      return session;
+    },
   },
 } satisfies NextAuthConfig;

@@ -32,7 +32,9 @@ export function GlowingEffect({
       <div
         className={cn(
           "relative rounded-xl",
-          active ? `${ring} ${ringColor} ring-offset-2 ring-offset-white dark:ring-offset-neutral-900` : undefined,
+          active
+            ? `${ring} ${ringColor} ring-offset-2 ring-offset-white dark:ring-offset-neutral-900`
+            : undefined,
         )}
       >
         {children}
