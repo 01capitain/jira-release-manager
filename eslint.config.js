@@ -25,7 +25,17 @@ export default tseslint.config(
     ],
     rules: {
       // Forbid using the old '@/...' alias; use '~/' instead
-      "no-restricted-imports": ["error", { patterns: ["@/*"] }],
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["@/*"],
+              message: "Use the '~/…' alias instead of '@/…'. Update imports or run the alias migration script."
+            }
+          ]
+        }
+      ],
       // Accessibility essentials
       "jsx-a11y/aria-props": "warn",
       "jsx-a11y/aria-proptypes": "warn",
