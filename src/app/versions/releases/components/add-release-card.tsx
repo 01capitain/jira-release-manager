@@ -172,7 +172,11 @@ export default function AddReleaseCard({
                   </Button>
                 </div>
                 {phase === "loading" && (
-                  <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-neutral-100/70 text-neutral-700 dark:bg-neutral-900/50 dark:text-neutral-200">
+                  <div
+                    className="pointer-events-none absolute inset-0 flex items-center justify-center bg-neutral-100/70 text-neutral-700 dark:bg-neutral-900/50 dark:text-neutral-200"
+                    role="status"
+                    aria-live="polite"
+                  >
                     <span className="text-sm font-medium">
                       Thinking
                       <span className="jrm-thinking" />
