@@ -5,9 +5,10 @@
   "type": "module",
   "scripts": {
     "env:check": "node scripts/check-node.mjs",
-   "check": "pnpm run env:check && eslint . && pnpm run lint:db-schema && tsc --noEmit",
+    "check": "pnpm run env:check && eslint . && pnpm run lint:db-schema && tsc --noEmit",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,mdx}\" --cache",
     "format:write": "prettier --write \"**/*.{ts,tsx,js,jsx,mdx}\" --cache",
-   "preinstall": "node scripts/check-node.mjs",
+    "preinstall": "node scripts/check-node.mjs",
     "postinstall": "prisma generate",
     "build": "next build",
     "check-all": "eslint . && pnpm run lint:db-schema && tsc --noEmit",
@@ -18,9 +19,6 @@
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
     "dev": "next dev --turbo",
-    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,mdx}\" --cache",
-    "format:write": "prettier --write \"**/*.{ts,tsx,js,jsx,mdx}\" --cache",
-    "postinstall": "prisma generate",
     "lint": "eslint .",
     "lint:a11y": "eslint . --ext .ts,.tsx",
     "lint:fix": "eslint --fix .",
@@ -31,8 +29,6 @@
     "test": "jest",
     "test:db-schema": "node tests/scripts/test-lint-db-schema.mjs"
   },
-  "engines": {
-    "node": ">=22.0.0 <23",
   "engines": {
     "node": ">=22.0.0 <23"
   },
