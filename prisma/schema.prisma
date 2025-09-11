@@ -13,6 +13,8 @@ datasource db {
     // https://next-auth.js.org/adapters/prisma#create-the-prisma-schema
     // https://www.prisma.io/docs/reference/api-reference/prisma-schema-reference#string
     url        = env("DATABASE_URL")
+    // Allow multi-schema setup for auth and app
+    schemas    = ["app", "auth"]
     extensions = [pg_uuidv7]
 }
 
@@ -50,6 +52,7 @@ model ReleaseVersion {
 
     @@index([name])
     @@index([createdById])
+    @@schema("app")
 }
 
 /**
@@ -80,7 +83,22 @@ model ReleaseVersion {
  * }
  */
 
+model User {
+    id             String           @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+    name           String?
+    // TODO: Remove
+    email          String?          @unique
+    emailVerified  DateTime?
+    image          String?
+    accounts       Account[]
+    sessions       Session[]
+    ReleaseVersion ReleaseVersion[]
+
+    @@schema("app")
+}
+
 // Necessary for Next auth
+// AUTH MODELS (mapped to auth schema)
 model Account {
     id                       String  @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
     userId                   String  @db.Uuid
@@ -99,6 +117,7 @@ model Account {
 
     @@unique([provider, providerAccountId])
     @@index([userId])
+    @@schema("auth")
 }
 
 model Session {
@@ -109,18 +128,7 @@ model Session {
     user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
     @@index([userId])
-}
-
-model User {
-    id             String           @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
-    name           String?
-    // TODO: Remove
-    email          String?          @unique
-    emailVerified  DateTime?
-    image          String?
-    accounts       Account[]
-    sessions       Session[]
-    ReleaseVersion ReleaseVersion[]
+    @@schema("auth")
 }
 
 model VerificationToken {
@@ -129,4 +137,5 @@ model VerificationToken {
     expires    DateTime
 
     @@unique([identifier, token])
+    @@schema("auth")
 }
