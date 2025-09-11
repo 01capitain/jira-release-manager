@@ -39,7 +39,7 @@ export default function ReleaseList({
               <div className="text-base font-medium">{r.name}</div>
               <div className="text-xs text-neutral-500 dark:text-neutral-400">
                 <time dateTime={r.createdAt}>
-                  {isNaN(new Date(r.createdAt).getTime())
+                  {Number.isNaN(new Date(r.createdAt).getTime())
                     ? "—"
                     : new Date(r.createdAt).toLocaleString()}
                 </time>
