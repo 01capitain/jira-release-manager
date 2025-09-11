@@ -24,6 +24,8 @@ export default tseslint.config(
       ...tseslint.configs.stylisticTypeChecked,
     ],
     rules: {
+      // Forbid using the old '@/...' alias; use '~/' instead
+      "no-restricted-imports": ["error", { patterns: ["@/*"] }],
       // Accessibility essentials
       "jsx-a11y/aria-props": "warn",
       "jsx-a11y/aria-proptypes": "warn",
