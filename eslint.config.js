@@ -31,10 +31,11 @@ export default tseslint.config(
           patterns: [
             {
               group: ["@/*"],
-              message: "Use the '~/…' alias instead of '@/…'. Update imports or run the alias migration script."
-            }
-          ]
-        }
+              message:
+                "Use the '~/…' alias instead of '@/…'. Update imports or run the alias migration script.",
+            },
+          ],
+        },
       ],
       // Accessibility essentials
       "jsx-a11y/aria-props": "warn",
