@@ -65,7 +65,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#0b1225] text-neutral-900 dark:bg-neutral-100 dark:text-neutral-100">
+    <div className="min-h-screen bg-neutral-100 text-neutral-900 dark:bg-neutral-900 dark:text-neutral-100">
       <div className="mx-auto w-full max-w-7xl p-4 md:p-6 lg:p-8">
         {/* Floating container that includes sidebar + content */}
         <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-lg dark:border-neutral-800 dark:bg-neutral-900">
