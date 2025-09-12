@@ -30,6 +30,7 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "test-all": "jest && pnpm test:db-schema",
+    "test": "jest",
     "test:db-schema": "node tests/scripts/test-lint-db-schema.mjs"
   },
   "engines": {
