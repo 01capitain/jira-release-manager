@@ -51,3 +51,16 @@ model User {
 Always specify the schema of the entity. If the entity is handled within the application, use @@schema("app")
 
 @@schema("auth") is exclusively used for entities managed by NextAuth adapter.
+
+## Timestamps: Public API Type
+
+When exposing timestamps to clients (via tRPC/REST), use the shared `ISO8601` type:
+
+- Type location: `src/shared/types/iso8601.ts`
+- Format: strict UTC ISO 8601 ending with `Z` (e.g., `2025-01-01T12:34:56.000Z`)
+- Validation schema: `IsoTimestampSchema` (Zod) – validates the `YYYY-MM-DDTHH:mm:ss(.sss)?Z` pattern
+
+Implementation notes:
+
+- In DTO helpers (e.g., `src/shared/zod/dto/*.dto.ts`), convert database `Date` to ISO via `.toISOString()` and validate the DTO before returning.
+- Do not return raw `Date` objects to clients.
