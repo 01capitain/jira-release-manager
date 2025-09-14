@@ -33,7 +33,9 @@ export default function BuiltVersionCard({
             <div className="mt-2 text-xs text-neutral-500 dark:text-neutral-400">
               {(() => {
                 const d = new Date(createdAt);
-                return Number.isNaN(d.getTime()) ? createdAt : d.toLocaleString();
+                if (Number.isNaN(d.getTime())) return createdAt;
+                const local = d.toLocaleString();
+                return <time dateTime={d.toISOString()} title={local}>{local}</time>;
               })()}
             </div>
           ) : null}
