@@ -19,8 +19,11 @@ export default function BuiltVersionCard({
   return (
     <Card
       className={[
-        "group relative h-72 overflow-hidden transition-all duration-500 ease-out hover:shadow-md",
-        entered ? "translate-y-0 scale-100 opacity-100" : "-translate-y-2 scale-95 opacity-0",
+        "group relative h-72 overflow-hidden hover:shadow-md",
+        "transition-all duration-500 ease-out motion-reduce:transition-none",
+        entered
+          ? "translate-y-0 scale-100 opacity-100 motion-reduce:transform-none motion-reduce:opacity-100"
+          : "-translate-y-2 scale-95 opacity-0 motion-reduce:transform-none motion-reduce:opacity-100",
       ].join(" ")}
     >
       <CardContent className="flex h-full items-center justify-center p-6">
