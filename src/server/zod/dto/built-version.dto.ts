@@ -27,6 +27,10 @@ export function toBuiltVersionDto(model: unknown): BuiltVersionDto {
 }
 
 export function mapToBuiltVersionDtos(models: unknown[]): BuiltVersionDto[] {
+  return models.map(toBuiltVersionDto);
+}
+
+export function mapToBuiltVersionDtos(models: unknown[]): BuiltVersionDto[] {
   return models.map((m) => toBuiltVersionDto(m));
 }
 
