@@ -8,9 +8,9 @@ generator client {
 
 // Generate Zod schemas from Prisma models to keep server/client types in sync
 generator zod {
-    provider = "prisma-zod-generator"
+    provider      = "prisma-zod-generator"
     // Server-only: generate under src/server so clients don't import these directly
-    output   = "../src/server/zod"
+    output        = "../src/server/zod"
     relationModel = true
 }
 
@@ -48,8 +48,8 @@ datasource db {
  */
 
 model ReleaseVersion {
-    id   String @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
-    name String @unique
+    id            String         @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+    name          String         @unique
     // componentVersions ComponentVersion[]
     builtVersions BuiltVersion[]
 
@@ -92,16 +92,16 @@ model ReleaseVersion {
  */
 
 model User {
-    id             String           @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
-    name           String?
+    id              String           @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+    name            String?
     // TODO: Remove
-    email          String?          @unique
-    emailVerified  DateTime?
-    image          String?
-    accounts       Account[]
-    sessions       Session[]
-    ReleaseVersion ReleaseVersion[]
-    BuiltVersion   BuiltVersion[]
+    email           String?          @unique
+    emailVerified   DateTime?
+    image           String?
+    accounts        Account[]
+    sessions        Session[]
+    ReleaseVersions ReleaseVersion[]
+    BuiltVersions   BuiltVersion[]
 
     @@schema("app")
 }
