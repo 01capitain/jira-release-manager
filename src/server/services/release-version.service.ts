@@ -1,11 +1,11 @@
 import type { PrismaClient } from "@prisma/client";
-import type { ReleaseVersionDto } from "~/shared/types/release-version";
+import { mapToBuiltVersionDtos } from "~/server/zod/dto/built-version.dto";
 import {
   mapToReleaseVersionDtos,
   toReleaseVersionDto,
 } from "~/server/zod/dto/release-version.dto";
+import type { ReleaseVersionDto } from "~/shared/types/release-version";
 import type { ReleaseVersionWithBuildsDto } from "~/shared/types/release-version-with-builds";
-import { mapToBuiltVersionDtos } from "~/server/zod/dto/built-version.dto";
 
 export class ReleaseVersionService {
   constructor(private readonly db: PrismaClient) {}
@@ -51,8 +51,12 @@ export class ReleaseVersionService {
       },
     });
     return rows.map((r) => ({
-      ...toReleaseVersionDto({ id: r.id, name: r.name, createdAt: r.createdAt }),
-      builtVersions: mapToBuiltVersionDtos(r.builtVersions as unknown[]),
+      ...toReleaseVersionDto({
+        id: r.id,
+        name: r.name,
+        createdAt: r.createdAt,
+      }),
+      builtVersions: mapToBuiltVersionDtos(r.builtVersions),
     }));
   }
 }
