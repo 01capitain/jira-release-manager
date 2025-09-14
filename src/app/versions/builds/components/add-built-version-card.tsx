@@ -117,7 +117,11 @@ export default function AddBuiltVersionCard({
         ) : (
           <CardContent className="min-h-72 p-6">
             {phase === "success" ? (
-              <div className="flex h-44 flex-col items-center justify-center gap-3">
+              <div
+                className="flex h-44 flex-col items-center justify-center gap-3"
+                role="status"
+                aria-atomic="true"
+              >
                 <div className="inline-flex items-center gap-2 rounded-md bg-emerald-50 px-3 py-1 text-sm text-emerald-700 ring-1 ring-inset ring-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-200 dark:ring-emerald-800">
                   <Check className="h-4 w-4" />
                   Built version created
@@ -126,6 +130,7 @@ export default function AddBuiltVersionCard({
                   Add another
                 </Button>
               </div>
+            ) : (
             ) : (
               <form
                 onSubmit={onSubmit}
