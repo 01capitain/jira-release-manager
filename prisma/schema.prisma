@@ -6,6 +6,14 @@ generator client {
     previewFeatures = ["postgresqlExtensions"]
 }
 
+// Generate Zod schemas from Prisma models to keep server/client types in sync
+generator zod {
+    provider = "prisma-zod-generator"
+    // Server-only: generate under src/server so clients don't import these directly
+    output   = "../src/server/zod"
+    relationModel = true
+}
+
 datasource db {
     provider   = "postgresql"
     // NOTE: When using mysql or sqlserver, uncomment the @db.Text annotations in model Account below

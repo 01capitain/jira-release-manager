@@ -15,7 +15,7 @@
     "validate-all": "pnpm format:check && pnpm check-all",
     "clean": "rm -rf .next tsconfig.tsbuildinfo",
     "db:init": "prisma db execute --file ./init.sql --schema prisma/schema.prisma",
-    "db:reset": "prisma migrate reset --force --skip-seed && pnpm db:init && prisma db push",
+    "db:reset": "node scripts/dev-db-reset.mjs",
     "db:generate": "prisma migrate dev",
     "db:lint": "node scripts/disallow-boolean-fields.mjs",
     "db:migrate": "prisma migrate deploy",
@@ -75,6 +75,7 @@
     "prettier": "^3.6.2",
     "prettier-plugin-tailwindcss": "^0.6.14",
     "prisma": "^6.16.0",
+    "prisma-zod-generator": "^1.20.2",
     "tailwindcss": "^4.1.13",
     "typescript": "^5.9.2",
     "typescript-eslint": "^8.43.0"
@@ -82,5 +83,5 @@
   "ct3aMetadata": {
     "initVersion": "7.39.3"
   },
-  "packageManager": "pnpm@10.14.0"
+  "packageManager": "pnpm@10.16.1"
 }

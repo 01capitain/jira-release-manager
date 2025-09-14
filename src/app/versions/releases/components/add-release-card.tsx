@@ -9,7 +9,10 @@ import { Label } from "~/components/ui/label";
 import { cn } from "~/lib/utils";
 import { GlowingEffect } from "~/components/ui/glowing-effect";
 
-import { addReleaseVersion, type ReleaseVersion } from "./release-storage";
+import type { ReleaseVersionDto as ReleaseVersion } from "~/shared/types/release-version";
+import { api } from "~/trpc/react";
+import { ReleaseVersionCreateSchema } from "~/shared/schemas/release-version";
+import { useSession, signIn } from "next-auth/react";
 
 type Phase = "idle" | "loading" | "success";
 
@@ -18,6 +21,8 @@ export default function AddReleaseCard({
 }: {
   onCreated?: (item: ReleaseVersion) => void;
 }) {
+  const { status } = useSession();
+  const createMutation = api.releaseVersion.create.useMutation();
   const [open, setOpen] = React.useState(false);
   const [name, setName] = React.useState("");
   const [phase, setPhase] = React.useState<Phase>("idle");
@@ -42,21 +47,31 @@ export default function AddReleaseCard({
     e.preventDefault();
     setError(null);
     if (phase === "loading") return;
-    if (!name.trim()) {
-      setError("Please enter a name.");
+    const parsed = ReleaseVersionCreateSchema.safeParse({ name });
+    if (!parsed.success) {
+      setError(parsed.error.issues[0]?.message ?? "Invalid input");
       return;
     }
     setPhase("loading");
-    const delay = process.env.NODE_ENV === "development" ? 1500 : 1000;
-    await new Promise((r) => setTimeout(r, delay));
-    const item = addReleaseVersion(name.trim());
-    setPhase("success");
-
-    const t = window.setTimeout(() => {
-      onCreated?.(item);
-      reset();
-    }, 700);
-    timersRef.current.push(t);
+    try {
+      const created = await createMutation.mutateAsync({
+        name: parsed.data.name,
+      });
+      const item: ReleaseVersion = {
+        id: created.id,
+        name: created.name,
+        createdAt: created.createdAt,
+      };
+      setPhase("success");
+      const t = window.setTimeout(() => {
+        onCreated?.(item);
+        reset();
+      }, 700);
+      timersRef.current.push(t);
+    } catch {
+      setPhase("idle");
+      setError("Failed to create release. Please try again.");
+    }
   }
 
   return (
@@ -69,13 +84,30 @@ export default function AddReleaseCard({
       <Card
         className={cn(
           "group relative h-72 overflow-hidden transition-shadow hover:shadow-md",
-          open ? "cursor-default" : "cursor-pointer",
+          status !== "authenticated"
+            ? "cursor-default opacity-75"
+            : open
+              ? "cursor-default"
+              : "cursor-pointer",
           phase === "loading"
             ? "border-neutral-300/60 dark:border-neutral-700/60"
             : undefined,
         )}
       >
-        {!open ? (
+        {status !== "authenticated" ? (
+          <CardContent className="min-h-72 p-6">
+            <div className="flex h-44 flex-col items-center justify-center gap-3 text-center">
+              <div className="text-sm text-neutral-600 dark:text-neutral-300">
+                You need to be signed in to create a new release version.
+              </div>
+              <div className="flex gap-3">
+                <Button onClick={() => void signIn("discord")}>
+                  Log in with Discord
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        ) : !open ? (
           <button
             type="button"
             aria-label="Add release version"
@@ -179,7 +211,7 @@ export default function AddReleaseCard({
                   <div
                     className="pointer-events-none absolute inset-0 flex items-center justify-center bg-neutral-100/70 text-neutral-700 dark:bg-neutral-900/50 dark:text-neutral-200"
                     role="status"
-                    aria-live="polite"
+                    aria-atomic="true"
                   >
                     <span className="text-sm font-medium">
                       Thinking

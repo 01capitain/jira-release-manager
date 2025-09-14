@@ -3,42 +3,70 @@
 import * as React from "react";
 import AddReleaseCard from "./components/add-release-card";
 import ReleaseCard from "./components/release-card";
-import {
-  type ReleaseVersion,
-  getReleaseVersions,
-} from "./components/release-storage";
+import type { ReleaseVersionDto as ReleaseVersion } from "~/shared/types/release-version";
 import { Pagination } from "~/components/ui/pagination";
+import { Button } from "~/components/ui/button";
+import { RefreshCw } from "lucide-react";
+import { api } from "~/trpc/react";
 
 export default function VersionsReleasesPage() {
-  const [items, setItems] = React.useState<ReleaseVersion[]>([]);
+  const PAGE_SIZE = 9;
+  const [page, setPage] = React.useState(1);
+  const utils = api.useUtils();
+  const { data, refetch, isFetching } = api.releaseVersion.list.useQuery(
+    { page, pageSize: PAGE_SIZE },
+    {
+      // Cache pages; do not auto-refetch unless manually requested
+      staleTime: Infinity,
+      gcTime: 5 * 60 * 1000,
+      refetchOnWindowFocus: false,
+    },
+  );
+  const items = (data?.items ?? []) as ReleaseVersion[];
   const [showPlus, setShowPlus] = React.useState(true);
   const [highlightId, setHighlightId] = React.useState<string | null>(null);
-  const [page, setPage] = React.useState(1);
-  React.useEffect(() => setItems(getReleaseVersions()), []);
 
   // Keep page within bounds when items or first-page capacity change
   React.useEffect(() => {
     const PAGE_SIZE = 9;
     const firstPageCapacity = showPlus ? PAGE_SIZE - 1 : PAGE_SIZE;
     const totalPages =
-      items.length <= firstPageCapacity
+      (data?.total ?? 0) <= firstPageCapacity
         ? 1
-        : 1 + Math.ceil((items.length - firstPageCapacity) / PAGE_SIZE);
+        : 1 + Math.ceil(((data?.total ?? 0) - firstPageCapacity) / PAGE_SIZE);
     if (page < 1) setPage(1);
     else if (page > totalPages) setPage(totalPages);
-  }, [items.length, showPlus, page]);
+  }, [data?.total, showPlus, page]);
   return (
     <div className="mx-auto w-full max-w-6xl space-y-6">
+      <div className="flex items-center justify-end">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            setPage(1);
+            void utils.releaseVersion.list.invalidate({
+              page: 1,
+              pageSize: PAGE_SIZE,
+            });
+          }}
+          disabled={isFetching}
+          aria-label="Reload release versions"
+        >
+          <RefreshCw className="mr-2 h-4 w-4" />
+          {isFetching ? "Refreshing" : "Refresh"}
+        </Button>
+      </div>
       {(() => {
-        const PAGE_SIZE = 9;
-        const totalPages = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
+        const totalPages = Math.max(
+          1,
+          Math.ceil((data?.total ?? 0) / PAGE_SIZE),
+        );
         const clamped = Math.min(Math.max(1, page), totalPages);
-        const startIndex = (clamped - 1) * PAGE_SIZE;
         const isFirstPage = clamped === 1;
         const capacity = isFirstPage && showPlus ? PAGE_SIZE - 1 : PAGE_SIZE;
-        const pageItems = isFirstPage
-          ? items.slice(0, capacity)
-          : items.slice(startIndex, startIndex + PAGE_SIZE);
+        const pageItems = isFirstPage ? items.slice(0, capacity) : items;
 
         return (
           <>
@@ -46,14 +74,17 @@ export default function VersionsReleasesPage() {
               {isFirstPage && showPlus && (
                 <AddReleaseCard
                   onCreated={(it) => {
+                    // Insert locally at first position on page 1 without refetch
                     setPage(1);
-                    // First render: hide plus and place the new item at index 0 so we can measure its rect
-                    setShowPlus(false);
-                    setItems((prev) => [it, ...prev]);
+                    setShowPlus(true);
+                    utils.releaseVersion.list.setData(
+                      { page: 1, pageSize: PAGE_SIZE },
+                      (old) => ({
+                        total: (old?.total ?? 0) + 1,
+                        items: [it, ...(old?.items ?? [])].slice(0, PAGE_SIZE),
+                      }),
+                    );
                     setHighlightId(it.id);
-                    // Next tick: show the plus again which shifts the card to the right; FLIP hook animates the move
-                    setTimeout(() => setShowPlus(true), 50);
-                    // Remove highlight after the motion completes
                     setTimeout(() => setHighlightId(null), 800);
                   }}
                 />
@@ -72,7 +103,7 @@ export default function VersionsReleasesPage() {
 
             <Pagination
               className="mt-2"
-              total={items.length}
+              total={data?.total ?? 0}
               pageSize={PAGE_SIZE}
               page={clamped}
               onPageChange={(p) => setPage(p)}
