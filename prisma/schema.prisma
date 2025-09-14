@@ -160,7 +160,7 @@ model BuiltVersion {
     createdBy   User     @relation(fields: [createdById], references: [id])
     createdById String   @db.Uuid
 
-    @@index([versionId])
+    @@index([versionId, createdAt])
     @@index([createdById])
     @@schema("app")
 }
