@@ -51,7 +51,7 @@ model ReleaseVersion {
     id   String @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
     name String @unique
     // componentVersions ComponentVersion[]
-    // builtVersions     BuiltVersion[]
+    builtVersions BuiltVersion[]
 
     createdAt   DateTime @default(now())
     updatedAt   DateTime @updatedAt
@@ -101,6 +101,7 @@ model User {
     accounts       Account[]
     sessions       Session[]
     ReleaseVersion ReleaseVersion[]
+    BuiltVersion   BuiltVersion[]
 
     @@schema("app")
 }
@@ -146,4 +147,20 @@ model VerificationToken {
 
     @@unique([identifier, token])
     @@schema("auth")
+}
+
+model BuiltVersion {
+    id        String         @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+    name      String
+    version   ReleaseVersion @relation(fields: [versionId], references: [id])
+    versionId String         @db.Uuid
+
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @updatedAt
+    createdBy   User     @relation(fields: [createdById], references: [id])
+    createdById String   @db.Uuid
+
+    @@index([versionId])
+    @@index([createdById])
+    @@schema("app")
 }
