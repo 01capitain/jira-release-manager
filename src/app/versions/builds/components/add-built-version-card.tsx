@@ -178,7 +178,7 @@ export default function AddBuiltVersionCard({
                 <div className="flex gap-2">
                   <Button type="submit" disabled={phase === "loading"}>
                     {phase === "loading" ? (
-                      <span className="inline-flex items-center gap-2">
+                      <span className="inline-flex items-center gap-2" role="status" aria-atomic="true">
                         Saving
                         <span className="jrm-thinking" />
                       </span>
