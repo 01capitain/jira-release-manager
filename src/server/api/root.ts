@@ -1,5 +1,6 @@
 import { postRouter } from "~/server/api/routers/post";
 import { releaseVersionRouter } from "~/server/api/routers/release-version";
+import { builtVersionRouter } from "~/server/api/routers/built-version";
 import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
 
 /**
@@ -10,6 +11,7 @@ import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
 export const appRouter = createTRPCRouter({
   post: postRouter,
   releaseVersion: releaseVersionRouter,
+  builtVersion: builtVersionRouter,
 });
 
 // export type definition of API
