@@ -34,6 +34,7 @@ export default function AddBuiltVersionCard({
     const timers = timersRef.current;
     return () => {
       timers.forEach(clearTimeout);
+      timersRef.current = [];
     };
   }, []);
 
