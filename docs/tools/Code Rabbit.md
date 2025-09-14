@@ -184,3 +184,7 @@ Suggested to improve the error message in the tests to show what schema was test
 Suggested to refactor the regex that are used to identify the findings. Provided a directly commitable change (which i used) or an prompt to use for an AI agent.
 When you want to merge the commit directly it warns you that this code is AI generated. Very nice.
 5/5 - super helpful and directly actionable.
+
+# Ressources:
+
+https://github.com/coderabbitai/awesome-coderabbit
