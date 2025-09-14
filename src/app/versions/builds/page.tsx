@@ -33,6 +33,13 @@ export default function VersionsBuildsPage() {
           <RefreshCw className="mr-2 h-4 w-4" />
           {isFetching ? "Refreshing" : "Refresh"}
         </Button>
+        <span
+          role="status"
+          aria-atomic="true"
+          className="sr-only"
+        >
+          {isFetching ? "Refreshing built versions" : "Built versions up to date"}
+        </span>
       </div>
 
       {(data ?? []).map((rel) => (
