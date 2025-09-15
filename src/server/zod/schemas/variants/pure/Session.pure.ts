@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 // prettier-ignore
 export const SessionModelSchema = z.object({

@@ -36,15 +36,13 @@ export default function VersionsBuildsPage() {
     }
   };
 
-  const { data, isFetching, refetch } = api.builtVersion.listReleasesWithBuilds.useQuery(
-    undefined,
-    {
+  const { data, isFetching, refetch } =
+    api.builtVersion.listReleasesWithBuilds.useQuery(undefined, {
       staleTime: Infinity,
       gcTime: 5 * 60 * 1000,
       refetchOnWindowFocus: false,
       placeholderData: () => (hydrated ? readCache() : undefined),
-    },
-  );
+    });
 
   React.useEffect(() => {
     if (data) writeCache(data as ReleaseVersionWithBuildsDto[]);
@@ -53,7 +51,9 @@ export default function VersionsBuildsPage() {
   return (
     <div className="mx-auto w-full max-w-6xl space-y-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold tracking-tight">Built Versions</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">
+          Built Versions
+        </h1>
         <Button
           type="button"
           variant="outline"
@@ -67,7 +67,9 @@ export default function VersionsBuildsPage() {
         </Button>
         {hydrated && (
           <span role="status" aria-atomic="true" className="sr-only">
-            {isFetching ? "Refreshing built versions" : "Built versions up to date"}
+            {isFetching
+              ? "Refreshing built versions"
+              : "Built versions up to date"}
           </span>
         )}
       </div>
@@ -92,14 +94,22 @@ export default function VersionsBuildsPage() {
                   (old) =>
                     (old ?? []).map((it) =>
                       it.id === rel.id
-                        ? { ...it, builtVersions: [created, ...it.builtVersions] }
+                        ? {
+                            ...it,
+                            builtVersions: [created, ...it.builtVersions],
+                          }
                         : it,
                     ),
                 );
               }}
             />
             {rel.builtVersions.map((b) => (
-              <BuiltVersionCard key={b.id} name={b.name} createdAt={b.createdAt} />
+              <BuiltVersionCard
+                key={b.id}
+                id={b.id}
+                name={b.name}
+                createdAt={b.createdAt}
+              />
             ))}
             {hydrated && isFetching && (
               <div

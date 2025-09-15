@@ -2,11 +2,14 @@
 
 import * as React from "react";
 import { Card, CardContent } from "~/components/ui/card";
+import { ComponentVersionLabels } from "./component-version-labels";
 
 export default function BuiltVersionCard({
+  id,
   name,
   createdAt,
 }: {
+  id: string;
   name: string;
   createdAt?: string;
 }) {
@@ -30,7 +33,7 @@ export default function BuiltVersionCard({
           : "-translate-y-2 scale-95 opacity-0 motion-reduce:transform-none motion-reduce:opacity-100",
       ].join(" ")}
     >
-      <CardContent className="flex h-full items-center justify-center p-6">
+      <CardContent className="flex h-full flex-col items-center justify-center p-6">
         <div className="text-center">
           <div className="text-2xl font-semibold tracking-tight">{name}</div>
           {createdAt ? (
@@ -49,6 +52,7 @@ export default function BuiltVersionCard({
             </div>
           ) : null}
         </div>
+        <ComponentVersionLabels builtVersionId={id} />
       </CardContent>
     </Card>
   );

@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 // prettier-ignore
 export const ReleaseVersionResultSchema = z.object({
@@ -10,4 +10,6 @@ export const ReleaseVersionResultSchema = z.object({
     createdById: z.string()
 }).strict();
 
-export type ReleaseVersionResultType = z.infer<typeof ReleaseVersionResultSchema>;
+export type ReleaseVersionResultType = z.infer<
+  typeof ReleaseVersionResultSchema
+>;
