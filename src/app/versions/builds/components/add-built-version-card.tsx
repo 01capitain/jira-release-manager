@@ -131,7 +131,6 @@ export default function AddBuiltVersionCard({
                 </Button>
               </div>
             ) : (
-            ) : (
               <form
                 onSubmit={onSubmit}
                 className="space-y-4"
@@ -200,4 +199,3 @@ export default function AddBuiltVersionCard({
     </GlowingEffect>
   );
 }
-
