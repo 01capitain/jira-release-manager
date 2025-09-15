@@ -17,6 +17,7 @@ export default function ReleaseCard({
   variant?: "default" | "success";
 }) {
   const [entered, setEntered] = React.useState(!animateOnMount);
+  const [hydrated, setHydrated] = React.useState(false);
   const ref = useFlip(id);
 
   React.useEffect(() => {
@@ -25,6 +26,10 @@ export default function ReleaseCard({
       return () => cancelAnimationFrame(rafId);
     }
   }, [animateOnMount]);
+
+  React.useEffect(() => {
+    setHydrated(true);
+  }, []);
 
   const variantClasses =
     variant === "success"
@@ -49,9 +54,14 @@ export default function ReleaseCard({
             <div className="mt-2 text-xs text-neutral-500 dark:text-neutral-400">
               {(() => {
                 const d = new Date(createdAt);
-                return Number.isNaN(d.getTime())
-                  ? createdAt
-                  : d.toLocaleString();
+                if (Number.isNaN(d.getTime())) return createdAt;
+                const iso = d.toISOString();
+                const txt = hydrated ? d.toLocaleString() : iso;
+                return (
+                  <time dateTime={iso} suppressHydrationWarning>
+                    {txt}
+                  </time>
+                );
               })()}
             </div>
           ) : null}

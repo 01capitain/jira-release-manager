@@ -11,9 +11,13 @@ export default function BuiltVersionCard({
   createdAt?: string;
 }) {
   const [entered, setEntered] = React.useState(false);
+  const [hydrated, setHydrated] = React.useState(false);
   React.useEffect(() => {
     const rafId = requestAnimationFrame(() => setEntered(true));
     return () => cancelAnimationFrame(rafId);
+  }, []);
+  React.useEffect(() => {
+    setHydrated(true);
   }, []);
 
   return (
@@ -34,8 +38,13 @@ export default function BuiltVersionCard({
               {(() => {
                 const d = new Date(createdAt);
                 if (Number.isNaN(d.getTime())) return createdAt;
+                const iso = d.toISOString();
                 const local = d.toLocaleString();
-                return <time dateTime={d.toISOString()} title={local}>{local}</time>;
+                return (
+                  <time dateTime={iso} title={local} suppressHydrationWarning>
+                    {hydrated ? local : iso}
+                  </time>
+                );
               })()}
             </div>
           ) : null}
@@ -44,4 +53,3 @@ export default function BuiltVersionCard({
     </Card>
   );
 }
-

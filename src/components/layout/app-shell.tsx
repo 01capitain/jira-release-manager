@@ -66,7 +66,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-neutral-900 dark:bg-neutral-100">
-        <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white text-neutral-900 shadow-lg dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-100">
       <div className="mx-auto w-full max-w-7xl p-4 md:p-6 lg:p-8">
         {/* Floating container that includes sidebar + content */}
         <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-lg dark:border-neutral-800 dark:bg-neutral-900">
@@ -138,7 +137,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                           id={`submenu-${group.id}`}
                           className="ml-3 border-l border-neutral-200 pl-3 dark:border-neutral-800"
                         >
-                          {group.items!.map((item) => {
+                          {(group.items ?? []).map((item) => {
                             const active = pathname.startsWith(item.href);
                             return (
                               <Link
@@ -221,7 +220,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
 function computeCrumbs(pathname: string): Crumb[] {
   const segments = pathname.split("/").filter(Boolean);
-  if (segments.length === 0) return [{ label: "Dashboard", href: "/" }];
+  if (segments.length === 0)
+    return [
+      {
+        label: "Dashboard",
+        href: "/",
+      },
+    ];
   const map: Record<string, string> = {
     versions: "Versions",
     releases: "Release Versions",
@@ -237,9 +242,9 @@ function computeCrumbs(pathname: string): Crumb[] {
     crumbs.push({ label, href });
   }
   // Mark last as current (no href)
-  if (crumbs.length > 1)
-    crumbs[crumbs.length - 1] = {
-      label: crumbs[crumbs.length - 1]!.label,
-    };
+  if (crumbs.length > 1) {
+    const last = crumbs[crumbs.length - 1];
+    crumbs[crumbs.length - 1] = { label: last.label };
+  }
   return crumbs;
 }

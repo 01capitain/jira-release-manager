@@ -13,16 +13,48 @@ export default function VersionsReleasesPage() {
   const PAGE_SIZE = 9;
   const [page, setPage] = React.useState(1);
   const utils = api.useUtils();
-  const { data, refetch, isFetching } = api.releaseVersion.list.useQuery(
+  // Local storage helpers for simple, page-scoped cache
+  const storageKey = (p: number) => `jrm:releases:list:p${p}:s${PAGE_SIZE}:v1`;
+  const readCache = (p: number) => {
+    try {
+      const raw = localStorage.getItem(storageKey(p));
+      if (!raw) return undefined;
+      const parsed = JSON.parse(raw) as { total: number; items: ReleaseVersion[] };
+      if (
+        typeof parsed?.total === "number" &&
+        Array.isArray(parsed?.items)
+      )
+        return parsed;
+    } catch {
+      // ignore malformed cache
+    }
+    return undefined;
+  };
+  const writeCache = (p: number, payload: { total: number; items: ReleaseVersion[] }) => {
+    try {
+      localStorage.setItem(storageKey(p), JSON.stringify(payload));
+    } catch {
+      // storage might be unavailable (quota/permissions); fail silently
+    }
+  };
+  const [hydrated, setHydrated] = React.useState(false);
+
+  React.useEffect(() => {
+    setHydrated(true);
+  }, []);
+
+  const { data, isFetching } = api.releaseVersion.list.useQuery(
     { page, pageSize: PAGE_SIZE },
     {
       // Cache pages; do not auto-refetch unless manually requested
       staleTime: Infinity,
       gcTime: 5 * 60 * 1000,
       refetchOnWindowFocus: false,
+      // Use client cache only after hydration to avoid SSR/CSR mismatch
+      placeholderData: () => (hydrated ? readCache(page) : undefined),
     },
   );
-  const items = (data?.items ?? []) as ReleaseVersion[];
+  const items: ReleaseVersion[] = data?.items ?? [];
   const [showPlus, setShowPlus] = React.useState(true);
   const [highlightId, setHighlightId] = React.useState<string | null>(null);
 
@@ -37,6 +69,12 @@ export default function VersionsReleasesPage() {
     if (page < 1) setPage(1);
     else if (page > totalPages) setPage(totalPages);
   }, [data?.total, showPlus, page]);
+  // Persist latest page data into localStorage whenever it changes
+  React.useEffect(() => {
+    if (data) writeCache(page, { total: data.total ?? 0, items: data.items ?? [] });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, data?.total, data?.items]);
+
   return (
     <div className="mx-auto w-full max-w-6xl space-y-6">
       <div className="flex items-center justify-end">
@@ -57,6 +95,11 @@ export default function VersionsReleasesPage() {
           <RefreshCw className="mr-2 h-4 w-4" />
           {isFetching ? "Refreshing" : "Refresh"}
         </Button>
+        {hydrated && (
+          <span role="status" aria-atomic="true" className="sr-only">
+            {isFetching ? "Refreshing release versions" : "Release versions up to date"}
+          </span>
+        )}
       </div>
       {(() => {
         const totalPages = Math.max(
@@ -70,7 +113,10 @@ export default function VersionsReleasesPage() {
 
         return (
           <>
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3">
+            <div className={[
+              "relative grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3",
+              isFetching ? "opacity-90" : "",
+            ].join(" ")}>
               {isFirstPage && showPlus && (
                 <AddReleaseCard
                   onCreated={(it) => {
@@ -95,10 +141,22 @@ export default function VersionsReleasesPage() {
                   id={it.id}
                   name={it.name}
                   createdAt={it.createdAt}
-                  animateOnMount={isFirstPage && idx === 0 && !showPlus}
+                  animateOnMount={hydrated && isFirstPage && idx === 0 && !showPlus}
                   variant={it.id === highlightId ? "success" : "default"}
                 />
               ))}
+              {hydrated && isFetching && (
+                <div
+                  className="pointer-events-none absolute inset-0 flex items-center justify-center bg-neutral-100/40 text-neutral-700 dark:bg-neutral-900/30 dark:text-neutral-200"
+                  role="status"
+                  aria-atomic="true"
+                >
+                  <span className="text-sm font-medium">
+                    Refreshing
+                    <span className="jrm-thinking" />
+                  </span>
+                </div>
+              )}
             </div>
 
             <Pagination
