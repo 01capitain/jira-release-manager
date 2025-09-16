@@ -96,7 +96,9 @@ export default function VersionsBuildsPage() {
                       it.id === rel.id
                         ? {
                             ...it,
-                            builtVersions: [created, ...it.builtVersions],
+                            builtVersions: it.builtVersions.some(x => x.id === created.id)
+                              ? it.builtVersions
+                              : [created, ...it.builtVersions],
                           }
                         : it,
                     ),
