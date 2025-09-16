@@ -1,4 +1,4 @@
-import type { PrismaClient } from "@prisma/client";
+import type { PrismaClient, User } from "@prisma/client";
 import { mapToBuiltVersionDtos } from "~/server/zod/dto/built-version.dto";
 import {
   mapToReleaseVersionDtos,
@@ -26,7 +26,7 @@ export class ReleaseVersionService {
     return { total, items: mapToReleaseVersionDtos(rows) };
   }
 
-  async create(userId: string, name: string): Promise<ReleaseVersionDto> {
+  async create(userId: User["id"], name: string): Promise<ReleaseVersionDto> {
     const created = await this.db.releaseVersion.create({
       data: {
         name: name.trim(),

@@ -7,6 +7,8 @@ import {
 import { BuiltVersionCreateSchema } from "~/shared/schemas/built-version";
 import { ReleaseVersionService } from "~/server/services/release-version.service";
 import { BuiltVersionService } from "~/server/services/built-version.service";
+import { BuiltVersionStatusService } from "~/server/services/built-version-status.service";
+import type { BuiltVersionAction } from "~/shared/types/built-version-status";
 import type { ReleaseVersionWithBuildsDto } from "~/shared/types/release-version-with-builds";
 import type { BuiltVersionDto } from "~/shared/types/built-version";
 
@@ -38,5 +40,56 @@ export const builtVersionRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }): Promise<BuiltVersionDto> => {
       const svc = new BuiltVersionService(ctx.db);
       return svc.create(ctx.session.user.id, input.versionId, input.name);
+    }),
+
+  // Derive current status and return full history for a Built Version
+  getStatus: publicProcedure
+    .input(z.object({ builtVersionId: z.string().uuid() }))
+    .query(async ({ ctx, input }) => {
+      const svc = new BuiltVersionStatusService(ctx.db);
+      const [status, history] = await Promise.all([
+        svc.getCurrentStatus(input.builtVersionId),
+        svc.getHistory(input.builtVersionId),
+      ]);
+      return { status, history } as const;
+    }),
+
+  // Perform a transition; only allowed actions from current state succeed
+  transition: protectedProcedure
+    .input(
+      z.object({
+        builtVersionId: z.string().uuid(),
+        action: z.custom<BuiltVersionAction>((v) =>
+          [
+            "startDeployment",
+            "cancelDeployment",
+            "markActive",
+            "revertToDeployment",
+            "deprecate",
+            "reactivate",
+          ].includes(v as string),
+        ),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const svc = new BuiltVersionStatusService(ctx.db);
+      try {
+        const res = await svc.transition(
+          input.builtVersionId,
+          input.action,
+          ctx.session.user.id,
+        );
+        const history = await svc.getHistory(input.builtVersionId);
+        return { ...res, history } as const;
+      } catch (err: unknown) {
+        const e = err as { message?: string; code?: string; details?: unknown };
+        throw new Error(
+          JSON.stringify({
+            code: e.code ?? "TRANSITION_FAILED",
+            message: e.message ?? "Transition failed",
+            details: e.details ?? null,
+          }),
+        );
+      }
     }),
 });
