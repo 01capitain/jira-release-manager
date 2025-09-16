@@ -2,6 +2,8 @@ import { postRouter } from "~/server/api/routers/post";
 import { releaseVersionRouter } from "~/server/api/routers/release-version";
 import { builtVersionRouter } from "~/server/api/routers/built-version";
 import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
+import { releaseComponentRouter } from "~/server/api/routers/release-component";
+import { componentVersionRouter } from "~/server/api/routers/component-version";
 
 /**
  * This is the primary router for your server.
@@ -12,6 +14,8 @@ export const appRouter = createTRPCRouter({
   post: postRouter,
   releaseVersion: releaseVersionRouter,
   builtVersion: builtVersionRouter,
+  releaseComponent: releaseComponentRouter,
+  componentVersion: componentVersionRouter,
 });
 
 // export type definition of API

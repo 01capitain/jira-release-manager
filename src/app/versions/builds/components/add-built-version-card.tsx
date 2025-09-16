@@ -122,7 +122,7 @@ export default function AddBuiltVersionCard({
                 role="status"
                 aria-atomic="true"
               >
-                <div className="inline-flex items-center gap-2 rounded-md bg-emerald-50 px-3 py-1 text-sm text-emerald-700 ring-1 ring-inset ring-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-200 dark:ring-emerald-800">
+                <div className="inline-flex items-center gap-2 rounded-md bg-emerald-50 px-3 py-1 text-sm text-emerald-700 ring-1 ring-emerald-200 ring-inset dark:bg-emerald-900/30 dark:text-emerald-200 dark:ring-emerald-800">
                   <Check className="h-4 w-4" />
                   Built version created
                 </div>
@@ -182,7 +182,11 @@ export default function AddBuiltVersionCard({
                 <div className="flex gap-2">
                   <Button type="submit" disabled={phase === "loading"}>
                     {phase === "loading" ? (
-                      <span className="inline-flex items-center gap-2" role="status" aria-atomic="true">
+                      <span
+                        className="inline-flex items-center gap-2"
+                        role="status"
+                        aria-atomic="true"
+                      >
                         Saving
                         <span className="jrm-thinking" />
                       </span>

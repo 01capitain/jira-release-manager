@@ -24,6 +24,10 @@ When you are asked to get an issue or content, use the github cli. e.g. gh issue
 
 Never commit or push without explicit user consent.
 
+### Database update
+
+Don't run `pnpm prisma generate` autonomously - it willl not work. Instead ask the user to run the command.
+
 ## User Interface
 
 ## Design system

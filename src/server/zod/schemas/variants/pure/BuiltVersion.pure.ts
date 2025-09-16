@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 // prettier-ignore
 export const BuiltVersionModelSchema = z.object({
@@ -12,4 +12,3 @@ export const BuiltVersionModelSchema = z.object({
 }).passthrough();
 
 export type BuiltVersionModelType = z.infer<typeof BuiltVersionModelSchema>;
-

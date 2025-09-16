@@ -1,5 +1,9 @@
 import { z } from "zod";
-import { createTRPCRouter, protectedProcedure, publicProcedure } from "~/server/api/trpc";
+import {
+  createTRPCRouter,
+  protectedProcedure,
+  publicProcedure,
+} from "~/server/api/trpc";
 import { BuiltVersionCreateSchema } from "~/shared/schemas/built-version";
 import { ReleaseVersionService } from "~/server/services/release-version.service";
 import { BuiltVersionService } from "~/server/services/built-version.service";
@@ -36,4 +40,3 @@ export const builtVersionRouter = createTRPCRouter({
       return svc.create(ctx.session.user.id, input.versionId, input.name);
     }),
 });
-

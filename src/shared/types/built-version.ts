@@ -6,4 +6,3 @@ export type BuiltVersionDto = {
   versionId: string;
   createdAt: ISO8601;
 };
-

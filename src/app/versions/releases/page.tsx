@@ -19,18 +19,21 @@ export default function VersionsReleasesPage() {
     try {
       const raw = localStorage.getItem(storageKey(p));
       if (!raw) return undefined;
-      const parsed = JSON.parse(raw) as { total: number; items: ReleaseVersion[] };
-      if (
-        typeof parsed?.total === "number" &&
-        Array.isArray(parsed?.items)
-      )
+      const parsed = JSON.parse(raw) as {
+        total: number;
+        items: ReleaseVersion[];
+      };
+      if (typeof parsed?.total === "number" && Array.isArray(parsed?.items))
         return parsed;
     } catch {
       // ignore malformed cache
     }
     return undefined;
   };
-  const writeCache = (p: number, payload: { total: number; items: ReleaseVersion[] }) => {
+  const writeCache = (
+    p: number,
+    payload: { total: number; items: ReleaseVersion[] },
+  ) => {
     try {
       localStorage.setItem(storageKey(p), JSON.stringify(payload));
     } catch {
@@ -71,7 +74,8 @@ export default function VersionsReleasesPage() {
   }, [data?.total, showPlus, page]);
   // Persist latest page data into localStorage whenever it changes
   React.useEffect(() => {
-    if (data) writeCache(page, { total: data.total ?? 0, items: data.items ?? [] });
+    if (data)
+      writeCache(page, { total: data.total ?? 0, items: data.items ?? [] });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, data?.total, data?.items]);
 
@@ -97,7 +101,9 @@ export default function VersionsReleasesPage() {
         </Button>
         {hydrated && (
           <span role="status" aria-atomic="true" className="sr-only">
-            {isFetching ? "Refreshing release versions" : "Release versions up to date"}
+            {isFetching
+              ? "Refreshing release versions"
+              : "Release versions up to date"}
           </span>
         )}
       </div>
@@ -113,10 +119,12 @@ export default function VersionsReleasesPage() {
 
         return (
           <>
-            <div className={[
-              "relative grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3",
-              isFetching ? "opacity-90" : "",
-            ].join(" ")}>
+            <div
+              className={[
+                "relative grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3",
+                isFetching ? "opacity-90" : "",
+              ].join(" ")}
+            >
               {isFirstPage && showPlus && (
                 <AddReleaseCard
                   onCreated={(it) => {
@@ -141,7 +149,9 @@ export default function VersionsReleasesPage() {
                   id={it.id}
                   name={it.name}
                   createdAt={it.createdAt}
-                  animateOnMount={hydrated && isFirstPage && idx === 0 && !showPlus}
+                  animateOnMount={
+                    hydrated && isFirstPage && idx === 0 && !showPlus
+                  }
                   variant={it.id === highlightId ? "success" : "default"}
                 />
               ))}

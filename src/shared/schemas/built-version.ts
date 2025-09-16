@@ -6,4 +6,3 @@ export const BuiltVersionCreateSchema = z.object({
 });
 
 export type BuiltVersionCreateInput = z.infer<typeof BuiltVersionCreateSchema>;
-
