@@ -83,6 +83,7 @@ export function ColorSwatchPicker({
             title={m.label}
             disabled={disabled}
             onClick={() => onChange(c)}
+            tabIndex={isSelected ? 0 : -1}
             className={cn(
               "h-8 w-8 rounded-full border border-neutral-300 dark:border-neutral-700",
               m.bg,
