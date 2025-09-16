@@ -95,9 +95,12 @@ export default function VersionsComponentsPage() {
             <div className="space-y-2">
               <Label>Base Color</Label>
               <ColorSwatchPicker
-                colors={AllowedBaseColors as unknown as string[]}
+              <ColorSwatchPicker
+                colors={[...AllowedBaseColors]}
                 value={color}
                 onChange={setColor}
+                ariaLabel="Choose base color"
+              />
                 ariaLabel="Choose base color"
               />
               <p className="text-xs text-neutral-500 dark:text-neutral-400">
