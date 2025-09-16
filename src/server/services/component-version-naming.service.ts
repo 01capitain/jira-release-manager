@@ -17,13 +17,22 @@ export function validatePattern(pattern: string): {
 } {
   const tokenRegex = /\{[^}]+\}/g;
   const tokens = (pattern.match(tokenRegex) ?? []) as string[];
-  const unknown = tokens.filter(
-    (t): t is string => !AllowedTokens.includes(t as AllowedToken),
-  );
-  return {
-    valid: unknown.length === 0,
-    errors: unknown.map((t) => `Unknown token: ${t}`),
-  };
+  const errors: string[] = [];
+  const unknown = tokens.filter((t): t is string => !AllowedTokens.includes(t as AllowedToken));
+  if (unknown.length) {
+    errors.push(...unknown.map((t) => `Unknown token: ${t}`));
+  }
+  // Unmatched brace detection
+  let depth = 0;
+  for (const ch of pattern) {
+    if (ch === "{") depth++;
+    if (ch === "}") {
+      if (depth === 0) errors.push("Unmatched closing brace: '}'");
+      else depth--;
+    }
+  }
+  if (depth > 0) errors.push("Unmatched opening brace: '{'");
+  return { valid: errors.length === 0, errors };
 }
 
 export function expandPattern(pattern: string, ctx: NamingContext): string {
