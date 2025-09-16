@@ -37,6 +37,7 @@ export class BuiltVersionService {
 
       if (components.length > 0) {
         for (const comp of components) {
+          if (!comp.namingPattern?.trim()) continue;
           const { valid } = validatePattern(comp.namingPattern);
           if (!valid) continue; // skip invalid patterns defensively
           // Increment scope: per Built Version for this component, starting at 0
