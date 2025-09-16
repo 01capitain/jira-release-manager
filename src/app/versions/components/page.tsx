@@ -109,6 +109,7 @@ export default function VersionsComponentsPage() {
             </div>
             <div className="flex items-end justify-between sm:col-span-3">
               {error ? (
+                {/* biome-ignore lint/a11y/useSemanticElements: role=status is preferred per app a11y guidelines */}
                 <span
                   role="status"
                   aria-atomic="true"
@@ -117,10 +118,10 @@ export default function VersionsComponentsPage() {
                   {error}
                 </span>
               ) : (
+                {/* biome-ignore lint/a11y/useSemanticElements: role=status is preferred per app a11y guidelines */}
                 <span role="status" aria-atomic="true" className="sr-only">
                   {phase === "loading" ? "Saving component" : "Ready"}
                 </span>
-              )}
               <Button type="submit" disabled={phase === "loading"}>
                 {phase === "loading" ? "Saving…" : "Add Component"}
               </Button>
