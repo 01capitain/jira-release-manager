@@ -141,5 +141,7 @@ describe("ReleaseVersion and BuiltVersion behavior", () => {
     await ssvc.transition("44444444-4444-4444-4444-444444444444" as any, "startDeployment", "user-1" as any);
     // ensure builtVersion.create was NOT called
     expect(db.builtVersion.create).not.toHaveBeenCalled();
+    // ensure no component versions were created either
+    expect(db.componentVersion.create).not.toHaveBeenCalled();
   });
 });
