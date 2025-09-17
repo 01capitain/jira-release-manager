@@ -96,6 +96,8 @@ export function labelForStatus(s: BuiltVersionStatus): string {
     case "deprecated":
       return "Deprecated";
   }
+  const _exhaustive: never = s;
+  return _exhaustive;
 }
 
 export function targetStatusForAction(a: BuiltVersionAction): BuiltVersionStatus {
