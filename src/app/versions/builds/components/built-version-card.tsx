@@ -116,9 +116,6 @@ export default function BuiltVersionCard({
               className={[headerLight, headerDark, "relative pl-14 pr-12 py-1.5 text-neutral-900 dark:text-neutral-100"].join(" ")}
               aria-labelledby="bv-title"
             >
-                <div id="bv-title" className="truncate text-2xl font-bold">
-                  {name}
-                </div>
               {/* Backward (absolute, keeps content position stable) */}
               <Button
                 type="button"
@@ -135,7 +132,7 @@ export default function BuiltVersionCard({
 
               {/* Left-aligned name + status stacked */}
               <div className="min-w-0">
-                <div className="truncate text-2xl font-bold">{name}</div>
+                <div id="bv-title" className="truncate text-2xl font-bold">{name}</div>
                 <div className="truncate text-xs opacity-90">{labelForStatus(currentStatus)}</div>
               </div>
 

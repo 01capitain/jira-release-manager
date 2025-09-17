@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import {
   createTRPCRouter,
   protectedProcedure,
@@ -77,7 +78,6 @@ export const builtVersionRouter = createTRPCRouter({
         );
         const history = await svc.getHistory(input.builtVersionId);
         return { ...res, history } as const;
-import { TRPCError } from "@trpc/server";
       } catch (err: unknown) {
         const e = err as { message?: string; code?: string; details?: unknown };
         const code =
