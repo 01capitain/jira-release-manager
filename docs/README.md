@@ -26,7 +26,7 @@ A quick map of this repository’s docs and guides. Each entry links to a source
 
 ### User Interface
 
-- [guides/user interface/ui_structure](guides/user%20interface/ui_structure.md) — app shell, navigation, breadcrumbs, and client vs server component placement.
+- [guides/user_interface/ui_structure](guides/user_interface/ui_structure.md) — app shell, navigation, breadcrumbs, and client vs server component placement.
 
 ## Related Files
 
