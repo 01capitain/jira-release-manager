@@ -61,6 +61,9 @@ export function nextActionsForStatus(status: BuiltVersionStatus): BuiltVersionAc
     case "deprecated":
       return ["reactivate"];
   }
+  // Exhaustiveness guard
+  const _exhaustive: never = status;
+  return _exhaustive;
 }
 
 export function labelForAction(a: BuiltVersionAction): string {
