@@ -49,12 +49,21 @@ export default function BuiltVersionCard({
   });
 
   const [lastMessage, setLastMessage] = React.useState<string>("");
+  const clearTimerRef = React.useRef<number | null>(null);
   const act = async (action: BuiltVersionAction) => {
     await transition.mutateAsync({ builtVersionId: id, action });
     setLastMessage(`${labelForAction(action)} done`);
     // Clear message after a short delay
-    setTimeout(() => setLastMessage(""), 1500);
+    if (clearTimerRef.current) {
+      clearTimeout(clearTimerRef.current);
+    }
+    clearTimerRef.current = window.setTimeout(() => setLastMessage(""), 1500);
   };
+  React.useEffect(() => {
+    return () => {
+      if (clearTimerRef.current) clearTimeout(clearTimerRef.current);
+    };
+  }, []);
 
   // Use static tint classes so Tailwind includes them
   const tints = StatusTint[currentStatus];
