@@ -10,10 +10,9 @@ This document captures the current patterns for surfacing and handling errors in
 ## Router Patterns
 
 - Queries typically pass through; mutations validate input with Zod.
-- Some procedures throw generic `Error` objects that embed a JSON string payload (e.g., transition invalidation):
-  - `throw new Error(JSON.stringify({ code, message, details }))`
-- Consumers should parse `error.message` in these cases to extract `{ code, details }`.
-
+- Mutations should throw `TRPCError` with a stable shape:
+  - `throw new TRPCError({ code: 'BAD_REQUEST', message, cause, data: { appCode, details } })`
+- Clients read `error.data` (and `appCode`) directly without parsing strings.
 ## Service-Level Errors
 
 - Services throw `Error` with `code` and `details` attached via `Object.assign` for precise invalid states (e.g., `INVALID_TRANSITION`).
