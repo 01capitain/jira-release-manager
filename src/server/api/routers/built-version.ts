@@ -56,21 +56,17 @@ export const builtVersionRouter = createTRPCRouter({
 
   // Perform a transition; only allowed actions from current state succeed
   transition: protectedProcedure
-    .input(
-      z.object({
-        builtVersionId: z.string().uuid(),
-        action: z.custom<BuiltVersionAction>((v) =>
-          [
-            "startDeployment",
-            "cancelDeployment",
-            "markActive",
-            "revertToDeployment",
-            "deprecate",
-            "reactivate",
-          ].includes(v as string),
-        ),
-      }),
-    )
+    .input(z.object({
+      builtVersionId: z.string().uuid(),
+      action: z.enum([
+        "startDeployment",
+        "cancelDeployment",
+        "markActive",
+        "revertToDeployment",
+        "deprecate",
+        "reactivate",
+      ]) as unknown as z.ZodType<BuiltVersionAction>,
+    }))
     .mutation(async ({ ctx, input }) => {
       const svc = new BuiltVersionStatusService(ctx.db);
       try {
