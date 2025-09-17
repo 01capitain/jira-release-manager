@@ -77,15 +77,16 @@ export const builtVersionRouter = createTRPCRouter({
         );
         const history = await svc.getHistory(input.builtVersionId);
         return { ...res, history } as const;
+import { TRPCError } from "@trpc/server";
       } catch (err: unknown) {
         const e = err as { message?: string; code?: string; details?: unknown };
-        throw new Error(
-          JSON.stringify({
-            code: e.code ?? "TRANSITION_FAILED",
-            message: e.message ?? "Transition failed",
-            details: e.details ?? null,
-          }),
-        );
+        const code =
+          e?.code === "INVALID_TRANSITION" ? "BAD_REQUEST" : "INTERNAL_SERVER_ERROR";
+        throw new TRPCError({
+          code,
+          message: e?.message ?? "Transition failed",
+          cause: e,
+        });
       }
     }),
 });
