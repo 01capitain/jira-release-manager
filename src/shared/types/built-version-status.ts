@@ -113,4 +113,6 @@ export function targetStatusForAction(a: BuiltVersionAction): BuiltVersionStatus
     case "reactivate":
       return "active";
   }
+  const _exhaustive: never = a;
+  return _exhaustive;
 }
