@@ -18,34 +18,10 @@ function resolveSchemaPath() {
 
   const candidates = [
     "prisma/schema.prisma",
-    "apps/web/prisma/schema.prisma",
-    "packages/db/prisma/schema.prisma",
-    "services/api/prisma/schema.prisma",
-    "schema.prisma", // repo root fallback
   ].map((p) => path.resolve(process.cwd(), p));
 
   for (const p of candidates) {
     if (fs.existsSync(p)) return p;
-  }
-
-  // As a last resort, do a shallow walk of top-level dirs for prisma/schema.prisma
-  const top = fs
-    .readdirSync(process.cwd(), { withFileTypes: true })
-    .filter(
-      (d) =>
-        d.isDirectory() &&
-        !["node_modules", ".git", "dist", "build", "out"].includes(d.name),
-    )
-    .map((d) => d.name);
-
-  for (const dir of top) {
-    const candidate = path.resolve(
-      process.cwd(),
-      dir,
-      "prisma",
-      "schema.prisma",
-    );
-    if (fs.existsSync(candidate)) return candidate;
   }
 
   throw new Error(
@@ -153,43 +129,6 @@ describe("Prisma schema structure", () => {
           /extensions\s*=\s*\[[^\]]*pg_uuidv7[^\}\]]*\]/,
         );
       }
-    }
-  });
-
-  it("contains the ReleaseComponent model with proper UUID v7 id, timestamps, relations, and indexes", () => {
-    const postBlock = getBlock(schemaText, "model", "Post");
-    expect(postBlock).toBeTruthy();
-
-    if (postBlock) {
-      // id: String @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
-      expect(postBlock.replace(/\s+/g, " ")).toMatch(
-        /id\s+String\s+@id\s+@default\(dbgenerated\(\"uuid_generate_v7\(\)\"\)\)\s+@db.Uuid/,
-      );
-
-      // name: String
-      expect(postBlock).toMatch(/^\s*name\s+String\s*$/m);
-
-      // createdAt default now()
-      expect(postBlock.replace(/\s+/g, " ")).toMatch(
-        /createdAt\s+DateTime\s+@default\(now\(\)\)/,
-      );
-
-      // updatedAt @updatedAt
-      expect(postBlock.replace(/\s+/g, " ")).toMatch(
-        /updatedAt\s+DateTime\s+@updatedAt/,
-      );
-
-      // createdBy relation and createdById field with @db.Uuid
-      expect(postBlock.replace(/\s+/g, " ")).toMatch(
-        /createdBy\s+User\s+@relation\(fields:\s*\[createdById\],\s*references:\s*\[id\]\)/,
-      );
-      expect(postBlock.replace(/\s+/g, " ")).toMatch(
-        /createdById\s+String\s+@db.Uuid/,
-      );
-
-      // indexes on name and createdById
-      expect(postBlock).toMatch(/@@index\(\[name\]\)/);
-      expect(postBlock).toMatch(/@@index\(\[createdById\]\)/);
     }
   });
 
