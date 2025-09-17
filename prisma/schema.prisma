@@ -73,6 +73,9 @@ model ReleaseVersion {
     name          String         @unique
     // componentVersions ComponentVersion[]
     builtVersions BuiltVersion[]
+    /// Tracks the last used builtVersion increment for this release
+    /// Starts at -1 so the first auto-created builtVersion gets increment 0
+    lastUsedIncrement Int           @default(-1)
 
     createdAt   DateTime @default(now())
     updatedAt   DateTime @updatedAt
@@ -177,6 +180,8 @@ model BuiltVersion {
     name              String
     version           ReleaseVersion     @relation(fields: [versionId], references: [id])
     versionId         String             @db.Uuid
+    /// Snapshot of tokens used to generate this built version's name
+    tokenValues       Json
     componentVersions ComponentVersion[]
 
     createdAt              DateTime                 @default(now())
@@ -214,6 +219,8 @@ model ComponentVersion {
     builtVersionId     String           @db.Uuid
     name               String
     increment          Int
+    /// Snapshot of tokens used to generate this component version's name
+    tokenValues        Json
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt

@@ -27,12 +27,75 @@ export class ReleaseVersionService {
   }
 
   async create(userId: User["id"], name: string): Promise<ReleaseVersionDto> {
-    const created = await this.db.releaseVersion.create({
-      data: {
-        name: name.trim(),
-        createdBy: { connect: { id: userId } },
-      },
-      select: { id: true, name: true, createdAt: true },
+    const created = await this.db.$transaction(async (tx) => {
+      // Create the release version first
+      const release = await tx.releaseVersion.create({
+        data: {
+          name: name.trim(),
+          createdBy: { connect: { id: userId } },
+          // start lastUsedIncrement at -1; we'll set to 0 after creating initial built
+        },
+        // Select only fields needed for DTO to avoid strict schema issues
+        select: { id: true, name: true, createdAt: true },
+      });
+
+      // Auto-create initial built version with increment 0
+      const builtIncrement = 0;
+      const builtName = `${release.name}.${builtIncrement}`;
+      const built = await tx.builtVersion.create({
+        data: {
+          name: builtName,
+          version: { connect: { id: release.id } },
+          createdBy: { connect: { id: userId } },
+          tokenValues: {
+            release_version: release.name,
+            increment: builtIncrement,
+          },
+        } as any,
+        select: { id: true, name: true },
+      });
+
+      // Update release's lastUsedIncrement to 0
+      await tx.releaseVersion.update({
+        where: { id: release.id },
+        data: { lastUsedIncrement: builtIncrement } as any,
+      });
+
+      // Create initial component versions for this built
+      const components = await tx.releaseComponent.findMany({
+        select: { id: true, namingPattern: true },
+      });
+      if (components.length > 0) {
+        const { validatePattern, expandPattern } = await import(
+          "~/server/services/component-version-naming.service"
+        );
+        for (const comp of components) {
+          if (!comp.namingPattern?.trim()) continue;
+          const { valid } = validatePattern(comp.namingPattern);
+          if (!valid) continue;
+          const componentIncrement = 0;
+          const computedName = expandPattern(comp.namingPattern, {
+            releaseVersion: release.name,
+            builtVersion: built.name,
+            nextIncrement: componentIncrement,
+          });
+          await tx.componentVersion.create({
+            data: {
+              name: computedName,
+              increment: componentIncrement,
+              releaseComponent: { connect: { id: comp.id } },
+              builtVersion: { connect: { id: built.id } },
+              tokenValues: {
+                release_version: release.name,
+                built_version: built.name,
+                increment: componentIncrement,
+              },
+            } as any,
+          });
+        }
+      }
+
+      return release;
     });
     return toReleaseVersionDto(created);
   }

@@ -5,7 +5,6 @@ import { api } from "~/trpc/react";
 import type { ReleaseVersionWithBuildsDto } from "~/shared/types/release-version-with-builds";
 import { Button } from "~/components/ui/button";
 import { RefreshCw } from "lucide-react";
-import AddBuiltVersionCard from "./components/add-built-version-card";
 import BuiltVersionCard from "./components/built-version-card";
 
 export default function VersionsBuildsPage() {
@@ -85,26 +84,6 @@ export default function VersionsBuildsPage() {
             </span>
           </div>
           <div className="relative grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3">
-            <AddBuiltVersionCard
-              versionId={rel.id}
-              onCreated={(created) => {
-                // Optimistically update cache for this release
-                utils.builtVersion.listReleasesWithBuilds.setData(
-                  undefined,
-                  (old) =>
-                    (old ?? []).map((it) =>
-                      it.id === rel.id
-                        ? {
-                            ...it,
-                            builtVersions: it.builtVersions.some(x => x.id === created.id)
-                              ? it.builtVersions
-                              : [created, ...it.builtVersions],
-                          }
-                        : it,
-                    ),
-                );
-              }}
-            />
             {rel.builtVersions.map((b) => (
               <BuiltVersionCard
                 key={b.id}

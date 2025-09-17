@@ -96,11 +96,96 @@ export class BuiltVersionStatusService {
         },
       });
 
-      // Hooks: onExit/onEnter (no-ops for now). Intentionally placed after write.
+      // Hooks: onExit/onEnter. Intentionally placed after write.
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const onExit = async (_s: Prisma.BuiltVersionStatus) => {};
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const onEnter = async (_s: Prisma.BuiltVersionStatus) => {};
+      // When entering a new status, perform side effects.
+      const onEnter = async (s: Prisma.BuiltVersionStatus) => {
+        // When a built version moves to in_deployment, auto-create a successor
+        if (s !== "in_deployment") return;
+        // Fetch the built version to obtain its release version
+        const current = await tx.builtVersion.findUnique({
+          where: { id: builtVersionId },
+          select: { id: true, name: true, versionId: true, createdAt: true },
+        });
+        if (!current) return;
+        // Get release version for naming + increment tracking
+        const release = await tx.releaseVersion.findUnique({
+          where: { id: current.versionId },
+          select: { id: true, name: true, lastUsedIncrement: true },
+        });
+        if (!release) return;
+        // If there is already a newer built for this release, do NOT create a successor
+        const newer = await tx.builtVersion.findFirst({
+          where: { versionId: current.versionId, createdAt: { gt: current.createdAt } },
+          select: { id: true },
+        });
+        if (newer) return;
+        const nextBuiltIncrement = (release.lastUsedIncrement ?? -1) + 1;
+        const successorName = `${release.name}.${nextBuiltIncrement}`;
+        // Create successor BuiltVersion with token snapshot
+        const successor = await tx.builtVersion.create({
+          data: {
+            name: successorName,
+            version: { connect: { id: release.id } },
+            createdBy: { connect: { id: userId } },
+            // tokenValues: store tokens actually used for this built-version name
+            // Cast to any to avoid type issues before prisma generate
+            tokenValues: ({} as any),
+          } as any,
+          select: { id: true, name: true },
+        });
+        // Update last used increment on the release
+        await tx.releaseVersion.update({
+          where: { id: release.id },
+          data: { lastUsedIncrement: nextBuiltIncrement } as any,
+        });
+        // Persist token snapshot now that we have final values
+        await tx.builtVersion.update({
+          where: { id: successor.id },
+          data: {
+            tokenValues: {
+              release_version: release.name,
+              increment: nextBuiltIncrement,
+            },
+          } as any,
+        });
+        // Create initial component versions for this successor built
+        const components = await tx.releaseComponent.findMany({
+          select: { id: true, namingPattern: true },
+        });
+        if (components.length > 0) {
+          // Lazy import naming helpers to avoid circular deps
+          const { validatePattern, expandPattern } = await import(
+            "~/server/services/component-version-naming.service"
+          );
+          for (const comp of components) {
+            if (!comp.namingPattern?.trim()) continue;
+            const { valid } = validatePattern(comp.namingPattern);
+            if (!valid) continue;
+            // For a fresh built, component increments start at 0
+            const nextIncrement = 0;
+            const computedName = expandPattern(comp.namingPattern, {
+              releaseVersion: release.name,
+              builtVersion: successor.name,
+              nextIncrement,
+            });
+            await tx.componentVersion.create({
+              data: {
+                name: computedName,
+                increment: nextIncrement,
+                releaseComponent: { connect: { id: comp.id } },
+                builtVersion: { connect: { id: successor.id } },
+                tokenValues: {
+                  release_version: release.name,
+                  built_version: successor.name,
+                  increment: nextIncrement,
+                },
+              } as any,
+            });
+          }
+        }
+      };
       await onExit(rule.from);
       await onEnter(rule.to);
 
