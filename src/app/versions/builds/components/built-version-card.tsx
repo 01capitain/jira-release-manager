@@ -49,12 +49,21 @@ export default function BuiltVersionCard({
   });
 
   const [lastMessage, setLastMessage] = React.useState<string>("");
+  const clearTimerRef = React.useRef<number | null>(null);
   const act = async (action: BuiltVersionAction) => {
     await transition.mutateAsync({ builtVersionId: id, action });
     setLastMessage(`${labelForAction(action)} done`);
     // Clear message after a short delay
-    setTimeout(() => setLastMessage(""), 1500);
+    if (clearTimerRef.current) {
+      clearTimeout(clearTimerRef.current);
+    }
+    clearTimerRef.current = window.setTimeout(() => setLastMessage(""), 1500);
   };
+  React.useEffect(() => {
+    return () => {
+      if (clearTimerRef.current) clearTimeout(clearTimerRef.current);
+    };
+  }, []);
 
   // Use static tint classes so Tailwind includes them
   const tints = StatusTint[currentStatus];
@@ -105,8 +114,11 @@ export default function BuiltVersionCard({
           return (
             <div
               className={[headerLight, headerDark, "relative pl-14 pr-12 py-1.5 text-neutral-900 dark:text-neutral-100"].join(" ")}
-              aria-label={`Header for status ${labelForStatus(currentStatus)}`}
+              aria-labelledby="bv-title"
             >
+                <div id="bv-title" className="truncate text-2xl font-bold">
+                  {name}
+                </div>
               {/* Backward (absolute, keeps content position stable) */}
               <Button
                 type="button"

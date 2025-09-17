@@ -19,14 +19,14 @@ type TransitionRule = {
   to: Prisma.BuiltVersionStatus;
 };
 
-const Rules: Record<Prisma.BuiltVersionAction, TransitionRule> = {
+const Rules = {
   start_deployment: { from: "in_development", to: "in_deployment" },
   cancel_deployment: { from: "in_deployment", to: "in_development" },
   mark_active: { from: "in_deployment", to: "active" },
   revert_to_deployment: { from: "active", to: "in_deployment" },
   deprecate: { from: "active", to: "deprecated" },
   reactivate: { from: "deprecated", to: "active" },
-};
+} satisfies Record<Prisma.BuiltVersionAction, TransitionRule>;
 
 export class BuiltVersionStatusService {
   constructor(private readonly db: PrismaClient) {}

@@ -56,21 +56,17 @@ export const builtVersionRouter = createTRPCRouter({
 
   // Perform a transition; only allowed actions from current state succeed
   transition: protectedProcedure
-    .input(
-      z.object({
-        builtVersionId: z.string().uuid(),
-        action: z.custom<BuiltVersionAction>((v) =>
-          [
-            "startDeployment",
-            "cancelDeployment",
-            "markActive",
-            "revertToDeployment",
-            "deprecate",
-            "reactivate",
-          ].includes(v as string),
-        ),
-      }),
-    )
+    .input(z.object({
+      builtVersionId: z.string().uuid(),
+      action: z.enum([
+        "startDeployment",
+        "cancelDeployment",
+        "markActive",
+        "revertToDeployment",
+        "deprecate",
+        "reactivate",
+      ]) as unknown as z.ZodType<BuiltVersionAction>,
+    }))
     .mutation(async ({ ctx, input }) => {
       const svc = new BuiltVersionStatusService(ctx.db);
       try {
@@ -81,15 +77,16 @@ export const builtVersionRouter = createTRPCRouter({
         );
         const history = await svc.getHistory(input.builtVersionId);
         return { ...res, history } as const;
+import { TRPCError } from "@trpc/server";
       } catch (err: unknown) {
         const e = err as { message?: string; code?: string; details?: unknown };
-        throw new Error(
-          JSON.stringify({
-            code: e.code ?? "TRANSITION_FAILED",
-            message: e.message ?? "Transition failed",
-            details: e.details ?? null,
-          }),
-        );
+        const code =
+          e?.code === "INVALID_TRANSITION" ? "BAD_REQUEST" : "INTERNAL_SERVER_ERROR";
+        throw new TRPCError({
+          code,
+          message: e?.message ?? "Transition failed",
+          cause: e,
+        });
       }
     }),
 });

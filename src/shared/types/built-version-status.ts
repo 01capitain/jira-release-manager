@@ -61,6 +61,9 @@ export function nextActionsForStatus(status: BuiltVersionStatus): BuiltVersionAc
     case "deprecated":
       return ["reactivate"];
   }
+  // Exhaustiveness guard
+  const _exhaustive: never = status;
+  return _exhaustive;
 }
 
 export function labelForAction(a: BuiltVersionAction): string {
@@ -78,6 +81,8 @@ export function labelForAction(a: BuiltVersionAction): string {
     case "reactivate":
       return "Reactivate";
   }
+  const _exhaustive: never = a;
+  return _exhaustive;
 }
 
 export function labelForStatus(s: BuiltVersionStatus): string {
@@ -91,6 +96,8 @@ export function labelForStatus(s: BuiltVersionStatus): string {
     case "deprecated":
       return "Deprecated";
   }
+  const _exhaustive: never = s;
+  return _exhaustive;
 }
 
 export function targetStatusForAction(a: BuiltVersionAction): BuiltVersionStatus {
@@ -108,4 +115,6 @@ export function targetStatusForAction(a: BuiltVersionAction): BuiltVersionStatus
     case "reactivate":
       return "active";
   }
+  const _exhaustive: never = a;
+  return _exhaustive;
 }
