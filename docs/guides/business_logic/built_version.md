@@ -28,6 +28,21 @@ Key files:
 - Service: `src/server/services/built-version-status.service.ts`
 - API: `src/server/api/routers/built-version.ts` (`getStatus`, `transition`)
 
+## Allowed Transitions
+
+From `in_development`:
+- `startDeployment` → `in_deployment`
+
+From `in_deployment`:
+- `markActive` → `active`
+- `cancelDeployment` → `in_development`
+
+From `active`:
+- `deprecate` → `deprecated`
+- `revertToDeployment` → `in_deployment`
+
+From `deprecated`:
+- `reactivate` → `active`
 ## Client Caching (Built Versions Page)
 
 - The page `src/app/versions/builds/page.tsx` caches the releases-with-builds response in `localStorage` under the key `jrm:builds:releases-with-builds:v1`.
