@@ -81,6 +81,8 @@ export function labelForAction(a: BuiltVersionAction): string {
     case "reactivate":
       return "Reactivate";
   }
+  const _exhaustive: never = a;
+  return _exhaustive;
 }
 
 export function labelForStatus(s: BuiltVersionStatus): string {
