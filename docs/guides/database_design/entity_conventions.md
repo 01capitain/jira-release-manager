@@ -8,9 +8,10 @@ Keep default Prisma model names for NextAuth: User, Account, Session, Verificati
 
 Every entity must include the following columns:
 
-- id         String   @id @db.Uuid @default(dbgenerated("uuid_generate_v7()"))
-- createdAt  DateTime @default(now())
-- updatedAt  DateTime @updatedAt
+- id String @id @db.Uuid @default(dbgenerated("uuid_generate_v7()"))
+- createdAt DateTime @default(now())
+- updatedAt DateTime @updatedAt
+
 ### User Generated entities
 
 If an entity is created by a user, store it with the following columns:
@@ -51,6 +52,8 @@ model User {
 Always specify the schema of the entity. If the entity is handled within the application, use @@schema("app")
 
 @@schema("auth") is exclusively used for entities managed by NextAuth adapter.
+
+Also specify the schema when a new enum is defined.
 
 ## Timestamps: Public API Type
 

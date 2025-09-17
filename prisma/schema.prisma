@@ -26,6 +26,27 @@ datasource db {
     extensions = [pg_uuidv7]
 }
 
+// --- Built Version lifecycle enums ---
+enum BuiltVersionStatus {
+    in_development
+    in_deployment
+    active
+    deprecated
+
+    @@schema("app")
+}
+
+enum BuiltVersionAction {
+    start_deployment
+    cancel_deployment
+    mark_active
+    revert_to_deployment
+    deprecate
+    reactivate
+
+    @@schema("app")
+}
+
 /**
  * model ReleaseComponent {
  * id                 String             @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
@@ -92,17 +113,18 @@ model ReleaseVersion {
  */
 
 model User {
-    id              String           @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
-    name            String?
+    id                     String                   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+    name                   String?
     // TODO: Remove
-    email           String?          @unique
-    emailVerified   DateTime?
-    image           String?
-    accounts        Account[]
-    sessions        Session[]
-    ReleaseVersions ReleaseVersion[]
-    BuiltVersions   BuiltVersion[]
-    ReleaseComponents ReleaseComponent[]
+    email                  String?                  @unique
+    emailVerified          DateTime?
+    image                  String?
+    accounts               Account[]
+    sessions               Session[]
+    ReleaseVersions        ReleaseVersion[]
+    BuiltVersions          BuiltVersion[]
+    ReleaseComponents      ReleaseComponent[]
+    BuiltVersionTransition BuiltVersionTransition[]
 
     @@schema("app")
 }
@@ -151,16 +173,17 @@ model VerificationToken {
 }
 
 model BuiltVersion {
-    id        String         @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
-    name      String
-    version   ReleaseVersion @relation(fields: [versionId], references: [id])
-    versionId String         @db.Uuid
+    id                String             @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+    name              String
+    version           ReleaseVersion     @relation(fields: [versionId], references: [id])
+    versionId         String             @db.Uuid
     componentVersions ComponentVersion[]
 
-    createdAt   DateTime @default(now())
-    updatedAt   DateTime @updatedAt
-    createdBy   User     @relation(fields: [createdById], references: [id])
-    createdById String   @db.Uuid
+    createdAt              DateTime                 @default(now())
+    updatedAt              DateTime                 @updatedAt
+    createdBy              User                     @relation(fields: [createdById], references: [id])
+    createdById            String                   @db.Uuid
+    BuiltVersionTransition BuiltVersionTransition[]
 
     @@index([versionId, createdAt])
     @@index([createdById])
@@ -168,10 +191,10 @@ model BuiltVersion {
 }
 
 model ReleaseComponent {
-    id             String             @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
-    name           String             @unique
-    color          String
-    namingPattern  String
+    id                String             @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+    name              String             @unique
+    color             String
+    namingPattern     String
     componentVersions ComponentVersion[]
 
     createdAt   DateTime @default(now())
@@ -197,5 +220,23 @@ model ComponentVersion {
 
     @@index([releaseComponentId])
     @@index([builtVersionId])
+    @@schema("app")
+}
+
+// History of state transitions for Built Versions.
+model BuiltVersionTransition {
+    id             String             @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+    builtVersion   BuiltVersion       @relation(fields: [builtVersionId], references: [id])
+    builtVersionId String             @db.Uuid
+    fromStatus     BuiltVersionStatus
+    toStatus       BuiltVersionStatus
+    action         BuiltVersionAction
+
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @updatedAt
+    createdBy   User     @relation(fields: [createdById], references: [id])
+    createdById String   @db.Uuid
+
+    @@index([builtVersionId, createdAt])
     @@schema("app")
 }

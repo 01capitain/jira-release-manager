@@ -1,4 +1,4 @@
-import type { PrismaClient } from "@prisma/client";
+import type { PrismaClient, User, ReleaseVersion } from "@prisma/client";
 import type { BuiltVersionDto } from "~/shared/types/built-version";
 import { toBuiltVersionDto } from "~/server/zod/dto/built-version.dto";
 import {
@@ -10,8 +10,8 @@ export class BuiltVersionService {
   constructor(private readonly db: PrismaClient) {}
 
   async create(
-    userId: string,
-    versionId: string,
+    userId: User["id"],
+    versionId: ReleaseVersion["id"],
     name: string,
   ): Promise<BuiltVersionDto> {
     const created = await this.db.$transaction(async (tx) => {

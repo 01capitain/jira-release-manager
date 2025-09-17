@@ -4,7 +4,7 @@ Before any code changes are suggested make sure that the guides in /docs/guides 
 
 When considering an implementation go for the easiest implementation with a little complexitiy as possible. Go for the simple solution. Change only what is necessary to fullfill the given task.
 
-Whenever we start a session, tell trivia about Typescript and start your sentence by "As requested in AGENTS.md, some trivia: " so I know you have read this message.
+Whenever we start a session, sumarize a random paragraph of any .md file in the /docs/guide directory to refresh the memory of the user. Start this section with "As requested in AGENTS.md, some documentation: "
 
 ## Available Tools
 
