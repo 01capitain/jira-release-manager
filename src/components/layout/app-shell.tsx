@@ -17,6 +17,8 @@ import { Breadcrumbs, type Crumb } from "~/components/ui/breadcrumbs";
 import { Button } from "~/components/ui/button";
 import { Separator } from "~/components/ui/separator";
 import { cn } from "~/lib/utils";
+import { RefreshCw } from "lucide-react";
+import { api } from "~/trpc/react";
 
 type NavGroup = {
   id: string;
@@ -32,7 +34,6 @@ const NAV_GROUPS: NavGroup[] = [
     icon: Layers,
     items: [
       { href: "/versions/releases", label: "Release Versions" },
-      { href: "/versions/builds", label: "Built Versions" },
       { href: "/versions/components", label: "Release Components" },
     ],
   },
@@ -206,6 +207,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   className="hidden md:block"
                 />
                 <div className="ml-auto flex items-center gap-2">
+                  <HeaderActions pathname={pathname} />
                   <ModeToggle />
                 </div>
               </header>
@@ -247,4 +249,36 @@ function computeCrumbs(pathname: string): Crumb[] {
     crumbs[crumbs.length - 1] = { label: last.label };
   }
   return crumbs;
+}
+
+function HeaderActions({ pathname }: { pathname: string }) {
+  const utils = api.useUtils();
+  const isReleases = pathname.startsWith("/versions/releases");
+  if (!isReleases) return null;
+  const [isFetching, setIsFetching] = React.useState(false);
+  async function onRefresh() {
+    if (isFetching) return;
+    setIsFetching(true);
+    try {
+      await utils.builtVersion.listReleasesWithBuilds.invalidate();
+    } finally {
+      setIsFetching(false);
+    }
+  }
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      size="icon"
+      onClick={() => void onRefresh()}
+      aria-label="Reload releases"
+      title="Reload releases"
+      disabled={isFetching}
+    >
+      <RefreshCw className={["h-5 w-5", isFetching ? "animate-spin" : ""].join(" ")} />
+      <span className="sr-only" role="status" aria-atomic="true">
+        {isFetching ? "Refreshing releases" : "Releases up to date"}
+      </span>
+    </Button>
+  );
 }

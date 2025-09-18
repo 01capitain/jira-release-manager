@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 
 export default function BuildsPage() {
-  redirect("/versions/builds");
+  // The builds view is now merged into Releases
+  redirect("/versions/releases");
 }
