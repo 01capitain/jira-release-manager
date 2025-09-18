@@ -43,8 +43,13 @@ export default function BuiltVersionCard({
   const currentStatus = (statusData?.status ?? "in_development") as BuiltVersionStatus;
   const utils = api.useUtils();
   const transition = api.builtVersion.transition.useMutation({
-    onSuccess: async () => {
+    onSuccess: async (_data, variables) => {
       await utils.builtVersion.getStatus.invalidate({ builtVersionId: id });
+      // Only refresh the builds list when moving from in_development → in_deployment,
+      // which is triggered via the 'startDeployment' action and creates a successor build.
+      if (variables?.action === "startDeployment") {
+        await utils.builtVersion.listReleasesWithBuilds.invalidate();
+      }
     },
   });
 

@@ -1,10 +1,14 @@
 Never change this AGENTS.md without explicit user consent.
 
-Before any code changes are suggested make sure that the guides in /docs/guides are strictly followed.
-
 When considering an implementation go for the easiest implementation with a little complexitiy as possible. Go for the simple solution. Change only what is necessary to fullfill the given task.
 
 Whenever we start a session, sumarize a random paragraph of any .md file in the /docs/guide directory to refresh the memory of the user. Start this section with "As requested in AGENTS.md, some documentation: "
+
+## Documentation
+
+Before any code changes are suggested make sure that the guides in /docs/guides are strictly followed.
+
+After changes were made always scan the docs/business_logic for necessary updates. This directory should always reflect the business logic of the application.
 
 ## Available Tools
 

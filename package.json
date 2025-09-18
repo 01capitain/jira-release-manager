@@ -29,8 +29,9 @@
     "preview": "next build && next start",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "test-all": "jest && pnpm test:db-schema",
+    "test:all": "jest && pnpm test:db-schema",
     "test": "jest",
+    "test:services": "jest tests/services",
     "test:db-schema": "node tests/scripts/test-lint-db-schema.mjs"
   },
   "engines": {
@@ -77,6 +78,7 @@
     "prisma": "^6.16.0",
     "prisma-zod-generator": "^1.20.2",
     "tailwindcss": "^4.1.13",
+    "ts-jest": "^29.4.2",
     "typescript": "^5.9.2",
     "typescript-eslint": "^8.43.0"
   },

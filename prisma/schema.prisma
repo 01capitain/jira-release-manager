@@ -47,32 +47,14 @@ enum BuiltVersionAction {
     @@schema("app")
 }
 
-/**
- * model ReleaseComponent {
- * id                 String             @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
- * repository         String?            @unique
- * displayName        String
- * releaseNamePattern String
- * componentVersions  ComponentVersion[]
- * createdAt DateTime @default(now())
- * updatedAt DateTime @updatedAt
- * }
- * model JiraRelease {
- * id                String             @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
- * name              String             @unique
- * syncedAt          DateTime?
- * componentVersions ComponentVersion[]
- * builtVersions     BuiltVersion[]
- * createdAt DateTime @default(now())
- * updatedAt DateTime @updatedAt
- * }
- */
-
 model ReleaseVersion {
-    id            String         @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
-    name          String         @unique
+    id                String         @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+    name              String         @unique
     // componentVersions ComponentVersion[]
-    builtVersions BuiltVersion[]
+    builtVersions     BuiltVersion[]
+    /// Tracks the last used builtVersion increment for this release
+    /// Starts at -1 so the first auto-created builtVersion gets increment 0
+    lastUsedIncrement Int            @default(-1)
 
     createdAt   DateTime @default(now())
     updatedAt   DateTime @updatedAt
@@ -83,34 +65,6 @@ model ReleaseVersion {
     @@index([createdById])
     @@schema("app")
 }
-
-/**
- * model ComponentVersion {
- * id          String           @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
- * component   ReleaseComponent @relation(fields: [componentId], references: [id])
- * componentId String           @db.Uuid
- * release     JiraRelease?     @relation(fields: [releaseId], references: [id])
- * releaseId   String?          @db.Uuid
- * version     ReleaseVersion   @relation(fields: [versionId], references: [id])
- * versionId   String           @db.Uuid
- * createdAt DateTime @default(now())
- * updatedAt DateTime @updatedAt
- * @@index([componentId])
- * @@index([releaseId])
- * @@index([versionId])
- * }
- * model BuiltVersion {
- * id        String         @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
- * release   JiraRelease?   @relation(fields: [releaseId], references: [id])
- * releaseId String?        @db.Uuid
- * version   ReleaseVersion @relation(fields: [versionId], references: [id])
- * versionId String         @db.Uuid
- * createdAt DateTime @default(now())
- * updatedAt DateTime @updatedAt
- * @@index([releaseId])
- * @@index([versionId])
- * }
- */
 
 model User {
     id                     String                   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
@@ -177,6 +131,8 @@ model BuiltVersion {
     name              String
     version           ReleaseVersion     @relation(fields: [versionId], references: [id])
     versionId         String             @db.Uuid
+    /// Snapshot of tokens used to generate this built version's name
+    tokenValues       Json
     componentVersions ComponentVersion[]
 
     createdAt              DateTime                 @default(now())
@@ -214,6 +170,8 @@ model ComponentVersion {
     builtVersionId     String           @db.Uuid
     name               String
     increment          Int
+    /// Snapshot of tokens used to generate this component version's name
+    tokenValues        Json
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
