@@ -25,5 +25,4 @@ This document outlines patterns for the app shell, navigation, and breadcrumbs t
 ## Client vs Server Components
 
 - Route pages are Server Components by default; add `"use client"` at the top when using hooks or client-only libraries.
-- Co-locate route-specific components under the route directory (e.g., `src/app/versions/builds/components/*`).
-
+- Co-locate route-specific components under the route directory (e.g., `src/app/versions/releases/components/*`).

@@ -1,6 +1,6 @@
 # Built Version: Behavior & Side Effects
 
-This document explains how Built Versions are created, named, and how their lifecycle and UI updates are derived.
+This document explains how Releases (Built Versions) are created, named, and how their lifecycle and UI updates are derived.
 
 ## Automatic Creation & Naming
 
@@ -48,8 +48,8 @@ From `deprecated`:
 
 ## UI Behavior
 
-- Builds page (`src/app/versions/builds/page.tsx`) invalidates and refetches the releases-with-builds list only after a successful `startDeployment` transition, ensuring the auto-created successor appears immediately. Other transitions do not trigger a list reload.
-- The page caches the releases-with-builds response in `localStorage` under `jrm:builds:releases-with-builds:v1` as placeholder data and refreshes on demand.
+- Releases page (`src/app/versions/releases/page.tsx`) invalidates and refetches the releases-with-builds list only after a successful `startDeployment` transition, ensuring the auto-created successor appears immediately. Other transitions do not trigger a list reload.
+- The page caches the releases-with-builds response in `localStorage` under `jrm:releases:accordion:releases-with-builds:v1` as placeholder data and refreshes on demand.
 
 ## Key Files
 

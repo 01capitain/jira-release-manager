@@ -12,7 +12,7 @@ Location: `src/components/layout/app-shell.tsx` (function `computeCrumbs`).
 const map: Record<string, string> = {
   versions: "Versions",
   releases: "Release Versions",
-  builds: "Built Versions",
+  builds: "Release Versions", // deprecated route alias
   components: "Release Components",
   "jira-settings": "Jira settings",
 };
@@ -39,4 +39,3 @@ map["audits"] = "Audits";
 ## Advanced
 
 - If you need dynamic breadcrumb titles (e.g., entity names), consider passing a client component as a child that renders a custom breadcrumb next to the default one, or extend `computeCrumbs` to accept an override map via React context.
-

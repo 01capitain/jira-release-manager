@@ -16,7 +16,7 @@ This guide defines patterns for implementing domain services, with a focus on se
 ## Single Responsibility & Composition
 
 - Keep services cohesive:
-  - Example: `BuiltVersionService` handles creation logic for Built Versions.
+  - Example: `BuiltVersionService` handles creation logic for Releases (Built Versions).
   - Example: `BuiltVersionStatusService` owns lifecycle transitions and transition history.
 - Compose services in routers/controllers when orchestration is necessary. Avoid injecting services into each other unless a hard dependency exists.
 
@@ -34,4 +34,3 @@ This guide defines patterns for implementing domain services, with a focus on se
 ## Timestamps to Clients
 
 - Convert `Date` to strict ISO 8601 (`Z` suffix) at DTO boundary and validate with the shared `IsoTimestampSchema`.
-

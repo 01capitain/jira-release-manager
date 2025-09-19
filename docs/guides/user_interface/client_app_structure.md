@@ -5,7 +5,7 @@ This project uses Next.js App Router with tRPC and shared schemas/types. This gu
 ## Repository Layout (client‑relevant)
 
 - `src/app` – Next.js routes (RSC by default, opt‑in to client with `"use client"`).
-  - Example: `src/app/versions/builds/page.tsx` and related `components/` folder colocated under the route segment.
+  - Example: `src/app/versions/releases/page.tsx` and related `components/` folder colocated under the route segment.
 - `src/components` – Reusable UI components.
   - `src/components/ui/*` – small, composable primitives (buttons, card, inputs, etc.).
   - `src/components/layout/*` – layout shell, navigation, global UI.
@@ -22,7 +22,7 @@ This project uses Next.js App Router with tRPC and shared schemas/types. This gu
 ## Route Co‑location
 
 - Prefer co‑locating route‑specific components under the route directory, e.g.:
-  - `src/app/versions/builds/components/built-version-card.tsx`
+  - `src/app/versions/releases/components/release-version-card.tsx`
 - Reuse global primitives from `src/components/ui` to keep styling consistent.
 
 ## Data Fetching
@@ -43,4 +43,3 @@ This project uses Next.js App Router with tRPC and shared schemas/types. This gu
 - Import shared types from `src/shared/types/*` to ensure server/client agreement.
 - Status/action unions live in `src/shared/types` and drive UI affordances (e.g., which buttons to show).
 - Prefer semantic IDs in services; client code passes opaque strings validated at the router boundary (Zod `uuid`).
-
