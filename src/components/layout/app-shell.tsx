@@ -253,9 +253,9 @@ function computeCrumbs(pathname: string): Crumb[] {
 
 function HeaderActions({ pathname }: { pathname: string }) {
   const utils = api.useUtils();
+  const [isFetching, setIsFetching] = React.useState(false);
   const isReleases = pathname.startsWith("/versions/releases");
   if (!isReleases) return null;
-  const [isFetching, setIsFetching] = React.useState(false);
   async function onRefresh() {
     if (isFetching) return;
     setIsFetching(true);
