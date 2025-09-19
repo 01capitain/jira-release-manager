@@ -276,9 +276,9 @@ function HeaderActions({ pathname }: { pathname: string }) {
       disabled={isFetching}
     >
       <RefreshCw className={["h-5 w-5", isFetching ? "animate-spin" : ""].join(" ")} />
-      <span className="sr-only" role="status" aria-atomic="true">
+      <output className="sr-only" aria-atomic="true">
         {isFetching ? "Refreshing releases" : "Releases up to date"}
-      </span>
+      </output>
     </Button>
   );
 }
