@@ -181,7 +181,7 @@ model ComponentVersion {
     @@schema("app")
 }
 
-// History of state transitions for Built Versions.
+// History of state transitions for Releases (Built Versions).
 model BuiltVersionTransition {
     id             String             @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
     builtVersion   BuiltVersion       @relation(fields: [builtVersionId], references: [id])

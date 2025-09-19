@@ -232,7 +232,8 @@ function computeCrumbs(pathname: string): Crumb[] {
   const map: Record<string, string> = {
     versions: "Versions",
     releases: "Release Versions",
-    builds: "Built Versions",
+    // 'builds' route is deprecated; treat as Releases for breadcrumbs
+    builds: "Release Versions",
     components: "Release Components",
     "jira-settings": "Jira settings",
   };
