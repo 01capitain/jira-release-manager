@@ -20,11 +20,13 @@ export default function VersionsReleasesPage() {
     e?.preventDefault();
     if (saving) return;
     setError(null);
-    const parsed = ReleaseVersionCreateSchema.safeParse({ name });
+    const trimmed = name.trim();
+    const parsed = ReleaseVersionCreateSchema.safeParse({ name: trimmed });
     if (!parsed.success) {
       setError(parsed.error.issues[0]?.message ?? "Invalid input");
       return;
     }
+  }
     setSaving(true);
     try {
       await createMutation.mutateAsync({ name: parsed.data.name });
@@ -59,9 +61,14 @@ export default function VersionsReleasesPage() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 disabled={saving}
+                autoFocus
+                aria-describedby={error ? "release-name-error" : undefined}
               />
             </div>
-            <Button type="submit" disabled={saving}>
+            <Button
+              type="submit"
+              disabled={saving || name.trim().length === 0}
+            >
               {saving ? "Creating…" : "Create"}
             </Button>
             <Button
@@ -80,13 +87,13 @@ export default function VersionsReleasesPage() {
         )}
       </div>
       {error ? (
-        <div
-          role="status"
+        <output
+          id="release-name-error"
           aria-atomic="true"
-          className="-mt-4 text-xs text-red-600 dark:text-red-400"
+          className="-mt-4 block text-xs text-red-600 dark:text-red-400"
         >
           {error}
-        </div>
+        </output>
       ) : null}
 
       <ReleasesAccordion />

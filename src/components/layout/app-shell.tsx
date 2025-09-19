@@ -254,9 +254,9 @@ function computeCrumbs(pathname: string): Crumb[] {
 
 function HeaderActions({ pathname }: { pathname: string }) {
   const utils = api.useUtils();
+  const [isFetching, setIsFetching] = React.useState(false);
   const isReleases = pathname.startsWith("/versions/releases");
   if (!isReleases) return null;
-  const [isFetching, setIsFetching] = React.useState(false);
   async function onRefresh() {
     if (isFetching) return;
     setIsFetching(true);
@@ -277,9 +277,9 @@ function HeaderActions({ pathname }: { pathname: string }) {
       disabled={isFetching}
     >
       <RefreshCw className={["h-5 w-5", isFetching ? "animate-spin" : ""].join(" ")} />
-      <span className="sr-only" role="status" aria-atomic="true">
+      <output className="sr-only" aria-atomic="true">
         {isFetching ? "Refreshing releases" : "Releases up to date"}
-      </span>
+      </output>
     </Button>
   );
 }
