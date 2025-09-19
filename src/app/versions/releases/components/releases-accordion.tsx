@@ -14,13 +14,17 @@ function LatestActiveTag({
   builtVersionIds: string[];
   builtVersionNames: string[];
 }) {
-  // Query up to the first 5 builds for status to find the latest active
-  const lim = Math.min(5, builtVersionIds.length);
-  const indices = Array.from({ length: lim }, (_, i) => i);
-  const queries = indices.map((i) =>
+  // Query at most the first 5 builds for status to find the latest active,
+  // but keep hook count/order stable across renders to satisfy the Rules of Hooks.
+  const NIL_UUID = "00000000-0000-0000-0000-000000000000";
+  const slots = [0, 1, 2, 3, 4] as const;
+  const queries = slots.map((i) =>
     api.builtVersion.getStatus.useQuery(
-      { builtVersionId: builtVersionIds[i]! },
-      { staleTime: Infinity },
+      { builtVersionId: builtVersionIds[i] ?? NIL_UUID },
+      {
+        staleTime: Infinity,
+        enabled: builtVersionIds[i] !== undefined,
+      },
     ),
   );
 

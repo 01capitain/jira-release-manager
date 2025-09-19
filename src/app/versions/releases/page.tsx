@@ -26,7 +26,6 @@ export default function VersionsReleasesPage() {
       setError(parsed.error.issues[0]?.message ?? "Invalid input");
       return;
     }
-  }
     setSaving(true);
     try {
       await createMutation.mutateAsync({ name: parsed.data.name });
