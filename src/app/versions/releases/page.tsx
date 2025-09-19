@@ -20,11 +20,13 @@ export default function VersionsReleasesPage() {
     e?.preventDefault();
     if (saving) return;
     setError(null);
-    const parsed = ReleaseVersionCreateSchema.safeParse({ name });
+    const trimmed = name.trim();
+    const parsed = ReleaseVersionCreateSchema.safeParse({ name: trimmed });
     if (!parsed.success) {
       setError(parsed.error.issues[0]?.message ?? "Invalid input");
       return;
     }
+  }
     setSaving(true);
     try {
       await createMutation.mutateAsync({ name: parsed.data.name });
