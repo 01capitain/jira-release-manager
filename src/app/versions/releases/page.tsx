@@ -87,13 +87,13 @@ export default function VersionsReleasesPage() {
         )}
       </div>
       {error ? (
-        <div
-          role="status"
+        <output
+          id="release-name-error"
           aria-atomic="true"
-          className="-mt-4 text-xs text-red-600 dark:text-red-400"
+          className="-mt-4 block text-xs text-red-600 dark:text-red-400"
         >
           {error}
-        </div>
+        </output>
       ) : null}
 
       <ReleasesAccordion />
