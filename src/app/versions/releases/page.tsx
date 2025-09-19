@@ -61,9 +61,14 @@ export default function VersionsReleasesPage() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 disabled={saving}
+                autoFocus
+                aria-describedby={error ? "release-name-error" : undefined}
               />
             </div>
-            <Button type="submit" disabled={saving}>
+            <Button
+              type="submit"
+              disabled={saving || name.trim().length === 0}
+            >
               {saving ? "Creating…" : "Create"}
             </Button>
             <Button
