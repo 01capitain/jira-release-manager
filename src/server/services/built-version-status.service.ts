@@ -150,41 +150,9 @@ export class BuiltVersionStatusService {
             },
           } as any,
         });
-        // Create initial component versions for this successor built
-        const components = await tx.releaseComponent.findMany({
-          select: { id: true, namingPattern: true },
-        });
-        if (components.length > 0) {
-          // Lazy import naming helpers to avoid circular deps
-          const { validatePattern, expandPattern } = await import(
-            "~/server/services/component-version-naming.service"
-          );
-          for (const comp of components) {
-            if (!comp.namingPattern?.trim()) continue;
-            const { valid } = validatePattern(comp.namingPattern);
-            if (!valid) continue;
-            // For a fresh built, component increments start at 0
-            const nextIncrement = 0;
-            const computedName = expandPattern(comp.namingPattern, {
-              releaseVersion: release.name,
-              builtVersion: successor.name,
-              nextIncrement,
-            });
-            await tx.componentVersion.create({
-              data: {
-                name: computedName,
-                increment: nextIncrement,
-                releaseComponent: { connect: { id: comp.id } },
-                builtVersion: { connect: { id: successor.id } },
-                tokenValues: {
-                  release_version: release.name,
-                  built_version: successor.name,
-                  increment: nextIncrement,
-                },
-              } as any,
-            });
-          }
-        }
+        // Do not pre-create ComponentVersions for the successor here.
+        // ComponentVersions will now be created/moved during deployment finalization
+        // based on user-selected components (see DeploymentService).
       };
       await onExit(rule.from);
       await onEnter(rule.to);

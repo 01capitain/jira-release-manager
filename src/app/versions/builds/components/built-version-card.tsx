@@ -18,6 +18,8 @@ import { Button } from "~/components/ui/button";
 import { ComponentVersionLabels } from "./component-version-labels";
 import { Separator } from "~/components/ui/separator";
 import { RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
+import { ScrollArea } from "~/components/ui/scroll-area";
+import { Modal } from "~/components/ui/modal";
 
 export default function BuiltVersionCard({
   id,
@@ -53,9 +55,78 @@ export default function BuiltVersionCard({
     },
   });
 
+  // Raw mutations used during the modal submit flow to avoid automatic invalidation flicker
+  const transitionStart = api.builtVersion.transition.useMutation();
+  const createSuccessorBuilt = api.builtVersion.createSuccessorBuilt.useMutation();
+
+  const [selecting, setSelecting] = React.useState(false);
+  const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
+  const [submitting, setSubmitting] = React.useState(false);
+  const processing = submitting || transitionStart.isPending || createSuccessorBuilt.isPending;
+  const { data: componentsData } = api.releaseComponent.list.useQuery(undefined, {
+    enabled: false, // enabled only when entering selection mode
+  });
+  const defaultSel = api.builtVersion.defaultSelection.useQuery(
+    { builtVersionId: id },
+    { enabled: selecting },
+  );
+
+  // Color map copied from ComponentVersionLabels to ensure visual parity
+  function colorClasses(base: string) {
+    const map: Record<string, { light: string; dark: string; text: string }> = {
+      slate: { light: "bg-slate-100", dark: "dark:bg-slate-900/40", text: "text-slate-900 dark:text-slate-100" },
+      gray: { light: "bg-gray-100", dark: "dark:bg-gray-900/40", text: "text-gray-900 dark:text-gray-100" },
+      zinc: { light: "bg-zinc-100", dark: "dark:bg-zinc-900/40", text: "text-zinc-900 dark:text-zinc-100" },
+      neutral: { light: "bg-neutral-100", dark: "dark:bg-neutral-900/40", text: "text-neutral-900 dark:text-neutral-100" },
+      stone: { light: "bg-stone-100", dark: "dark:bg-stone-900/40", text: "text-stone-900 dark:text-stone-100" },
+      red: { light: "bg-red-100", dark: "dark:bg-red-900/40", text: "text-red-900 dark:text-red-100" },
+      orange: { light: "bg-orange-100", dark: "dark:bg-orange-900/40", text: "text-orange-900 dark:text-orange-100" },
+      amber: { light: "bg-amber-100", dark: "dark:bg-amber-900/40", text: "text-amber-900 dark:text-amber-100" },
+      yellow: { light: "bg-yellow-100", dark: "dark:bg-yellow-900/40", text: "text-yellow-900 dark:text-yellow-100" },
+      lime: { light: "bg-lime-100", dark: "dark:bg-lime-900/40", text: "text-lime-900 dark:text-lime-100" },
+      green: { light: "bg-green-100", dark: "dark:bg-green-900/40", text: "text-green-900 dark:text-green-100" },
+      emerald: { light: "bg-emerald-100", dark: "dark:bg-emerald-900/40", text: "text-emerald-900 dark:text-emerald-100" },
+      teal: { light: "bg-teal-100", dark: "dark:bg-teal-900/40", text: "text-teal-900 dark:text-teal-100" },
+      cyan: { light: "bg-cyan-100", dark: "dark:bg-cyan-900/40", text: "text-cyan-900 dark:text-cyan-100" },
+      sky: { light: "bg-sky-100", dark: "dark:bg-sky-900/40", text: "text-sky-900 dark:text-sky-100" },
+      blue: { light: "bg-blue-100", dark: "dark:bg-blue-900/40", text: "text-blue-900 dark:text-blue-100" },
+      indigo: { light: "bg-indigo-100", dark: "dark:bg-indigo-900/40", text: "text-indigo-900 dark:text-indigo-100" },
+      violet: { light: "bg-violet-100", dark: "dark:bg-violet-900/40", text: "text-violet-900 dark:text-violet-100" },
+      purple: { light: "bg-purple-100", dark: "dark:bg-purple-900/40", text: "text-purple-900 dark:text-purple-100" },
+      fuchsia: { light: "bg-fuchsia-100", dark: "dark:bg-fuchsia-900/40", text: "text-fuchsia-900 dark:text-fuchsia-100" },
+      pink: { light: "bg-pink-100", dark: "dark:bg-pink-900/40", text: "text-pink-900 dark:text-pink-100" },
+      rose: { light: "bg-rose-100", dark: "dark:bg-rose-900/40", text: "text-rose-900 dark:text-rose-100" },
+    };
+    return map[base] ?? map.neutral;
+  }
+  React.useEffect(() => {
+    if (!selecting) return;
+    // Lazy enable fetch when selection starts
+    void utils.releaseComponent.list.fetch();
+  }, [selecting, utils.releaseComponent.list]);
+  React.useEffect(() => {
+    if (!selecting) return;
+    const ids = defaultSel.data?.selectedReleaseComponentIds;
+    if (ids && ids.length) {
+      setSelectedIds(ids);
+    }
+  }, [selecting, defaultSel.data]);
+  // Fallback: if no prior active selection, select all available components by default
+  React.useEffect(() => {
+    if (!selecting) return;
+    if ((selectedIds?.length ?? 0) > 0) return;
+    if (componentsData && componentsData.length > 0) {
+      setSelectedIds(componentsData.map((c) => c.id));
+    }
+  }, [selecting, componentsData, selectedIds]);
+
   const [lastMessage, setLastMessage] = React.useState<string>("");
   const clearTimerRef = React.useRef<number | null>(null);
   const act = async (action: BuiltVersionAction) => {
+    if (action === "startDeployment") {
+      setSelecting(true);
+      return;
+    }
     await transition.mutateAsync({ builtVersionId: id, action });
     setLastMessage(`${labelForAction(action)} done`);
     // Clear message after a short delay
@@ -74,6 +145,7 @@ export default function BuiltVersionCard({
   const tints = StatusTint[currentStatus];
 
   return (
+    <>
     <Card
       className={[
         "group relative h-72 overflow-hidden hover:shadow-md",
@@ -167,14 +239,128 @@ export default function BuiltVersionCard({
         {/* Pending state UI suppressed per UX request */}
 
         <Separator className="my-4" />
-        <div>
+        {!selecting && (
+        <div aria-busy={processing} className="relative">
           <div className="mb-2 text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
             Components
           </div>
           <ComponentVersionLabels builtVersionId={id} />
+          {processing && (
+            <div className="absolute inset-0 bg-white/60 dark:bg-neutral-900/60" aria-hidden />
+          )}
         </div>
+        )}
         </div>
       </CardContent>
     </Card>
+    <Modal
+      open={selecting}
+      onOpenChange={(o) => setSelecting(o)}
+      title={`Start deployment of version ${name}`}
+      description={
+        <span>
+          Close the version for new developments and select the components that will be released with this version.
+        </span>
+      }
+    >
+      <div className="space-y-4">
+        <div className="text-sm font-medium">Components</div>
+        <ScrollArea className="h-60 rounded border border-neutral-200 p-2 dark:border-neutral-800 relative">
+          {(componentsData?.length ?? 0) === 0 ? (
+            <div className="p-2 text-sm text-amber-700 dark:text-amber-400">
+              No components available. Create release components first.
+            </div>
+          ) : (
+          <div className="flex flex-col items-start gap-2 p-1">
+            {(componentsData ?? []).map((c) => {
+              const isSelected = selectedIds.includes(c.id);
+              const palette = colorClasses(c.color ?? "neutral");
+              const cls = [
+                "inline-flex cursor-pointer items-center rounded-full px-2 py-1 text-xs font-medium ring-1",
+                isSelected ? `${palette.light} ${palette.dark} ${palette.text} ring-transparent` : "bg-transparent text-neutral-900 dark:text-neutral-100 ring-neutral-300 dark:ring-neutral-700",
+              ].join(" ");
+              return (
+                <button
+                  key={c.id}
+                  type="button"
+                  className={cls}
+                  aria-pressed={isSelected}
+                  onClick={() => {
+                    setSelectedIds((prev) =>
+                      isSelected ? prev.filter((id0) => id0 !== c.id) : [...prev, c.id],
+                    );
+                  }}
+                  title={c.name}
+                >
+                  <span className="truncate">{c.name}</span>
+                </button>
+              );
+            })}
+          </div>
+          )}
+          { (createSuccessorBuilt.isPending || submitting) && (
+            <div className="absolute inset-0 bg-white/50 dark:bg-neutral-900/50 flex items-center justify-center text-sm">
+              preparing Deployments...
+            </div>
+          )}
+        </ScrollArea>
+      </div>
+      {(createSuccessorBuilt.isPending || submitting) && (
+        <div role="status" aria-atomic="true" className="mt-2 text-xs opacity-80">
+          preparing Deployments...
+        </div>
+      )}
+      <div className="mt-4 flex justify-end gap-2">
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={() => setSelecting(false)}
+          disabled={createSuccessorBuilt.isPending || submitting}
+        >
+          Cancel
+        </Button>
+        <Button
+          type="button"
+          onClick={async () => {
+            if (selectedIds.length === 0) {
+              setLastMessage("Select at least one component");
+              if (clearTimerRef.current) clearTimeout(clearTimerRef.current);
+              clearTimerRef.current = window.setTimeout(() => setLastMessage(""), 1500);
+              return;
+            }
+            setSubmitting(true);
+            if (currentStatus === "in_development") {
+              await transitionStart.mutateAsync({ builtVersionId: id, action: "startDeployment" });
+            }
+            const res = await createSuccessorBuilt.mutateAsync({
+              builtVersionId: id,
+              selectedReleaseComponentIds: selectedIds,
+            });
+            // Prefetch fresh data and set caches to avoid intermediate empty states
+            const [status, currentList, releases] = await Promise.all([
+              utils.builtVersion.getStatus.fetch({ builtVersionId: id }),
+              utils.componentVersion.listByBuilt.fetch({ builtVersionId: id }),
+              utils.builtVersion.listReleasesWithBuilds.fetch(),
+            ]);
+            utils.builtVersion.getStatus.setData({ builtVersionId: id }, status);
+            utils.componentVersion.listByBuilt.setData({ builtVersionId: id }, currentList);
+            utils.builtVersion.listReleasesWithBuilds.setData(undefined, releases);
+            if (res?.summary?.successorBuiltId) {
+              const succList = await utils.componentVersion.listByBuilt.fetch({ builtVersionId: res.summary.successorBuiltId });
+              utils.componentVersion.listByBuilt.setData({ builtVersionId: res.summary.successorBuiltId }, succList);
+            }
+            setSelecting(false);
+            setLastMessage("Deployment finalized");
+            if (clearTimerRef.current) clearTimeout(clearTimerRef.current);
+            clearTimerRef.current = window.setTimeout(() => setLastMessage(""), 1500);
+            setSubmitting(false);
+          }}
+          disabled={createSuccessorBuilt.isPending || submitting}
+        >
+          {createSuccessorBuilt.isPending || submitting ? "preparing Deployments..." : `Close Version ${name}`}
+        </Button>
+      </div>
+    </Modal>
+    </>
   );
 }

@@ -9,6 +9,7 @@ import { BuiltVersionCreateSchema } from "~/shared/schemas/built-version";
 import { ReleaseVersionService } from "~/server/services/release-version.service";
 import { BuiltVersionService } from "~/server/services/built-version.service";
 import { BuiltVersionStatusService } from "~/server/services/built-version-status.service";
+import { SuccessorBuiltService } from "~/server/services/successor-built.service";
 import type { BuiltVersionAction } from "~/shared/types/built-version-status";
 import type { ReleaseVersionWithBuildsDto } from "~/shared/types/release-version-with-builds";
 import type { BuiltVersionDto } from "~/shared/types/built-version";
@@ -41,6 +42,47 @@ export const builtVersionRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }): Promise<BuiltVersionDto> => {
       const svc = new BuiltVersionService(ctx.db);
       return svc.create(ctx.session.user.id, input.versionId, input.name);
+    }),
+
+  // Determine default selection for deployment based on the most recent active build in the same release
+  defaultSelection: publicProcedure
+    .input(z.object({ builtVersionId: z.string().uuid() }))
+    .query(async ({ ctx, input }) => {
+      const built = await ctx.db.builtVersion.findUniqueOrThrow({
+        where: { id: input.builtVersionId },
+        select: { id: true, versionId: true },
+      });
+      // Find all builds for this release, newest first
+      const builds = await ctx.db.builtVersion.findMany({
+        where: { versionId: built.versionId },
+        orderBy: { createdAt: "desc" },
+        select: { id: true },
+      });
+      // Find most recent with status == active
+      let activeBuiltId: string | null = null;
+      for (const b of builds) {
+        const latest = await ctx.db.builtVersionTransition.findFirst({
+          where: { builtVersionId: b.id },
+          orderBy: { createdAt: "desc" },
+          select: { toStatus: true },
+        });
+        const status = latest?.toStatus ?? "in_development";
+        if (status === "active") {
+          activeBuiltId = b.id;
+          break;
+        }
+      }
+      if (!activeBuiltId) {
+        // No prior active build; default to all components
+        const all = await ctx.db.releaseComponent.findMany({ select: { id: true } });
+        return { selectedReleaseComponentIds: all.map((c) => c.id) } as const;
+      }
+      const rows = await ctx.db.componentVersion.findMany({
+        where: { builtVersionId: activeBuiltId },
+        select: { releaseComponentId: true },
+      });
+      const selected = Array.from(new Set(rows.map((r) => r.releaseComponentId)));
+      return { selectedReleaseComponentIds: selected } as const;
     }),
 
   // Derive current status and return full history for a Built Version
@@ -85,6 +127,39 @@ export const builtVersionRouter = createTRPCRouter({
         throw new TRPCError({
           code,
           message: e?.message ?? "Transition failed",
+          cause: e,
+        });
+      }
+    }),
+
+  // Apply selection to create the successor built arrangement (no status change)
+  createSuccessorBuilt: protectedProcedure
+    .input(z.object({
+      builtVersionId: z.string().uuid(),
+      selectedReleaseComponentIds: z.array(z.string().uuid()).min(1),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const svc = new SuccessorBuiltService(ctx.db);
+      const statusSvc = new BuiltVersionStatusService(ctx.db);
+      try {
+        const summary = await svc.createSuccessorBuilt(
+          input.builtVersionId,
+          input.selectedReleaseComponentIds,
+          ctx.session.user.id,
+        );
+        // Do not change status here; keep build in `in_deployment`.
+        const status = await statusSvc.getCurrentStatus(input.builtVersionId);
+        const history = await statusSvc.getHistory(input.builtVersionId);
+        return { status, history, summary } as const;
+      } catch (err: unknown) {
+        const e = err as { message?: string; code?: string; details?: unknown };
+        const code =
+          e?.code === "VALIDATION_ERROR" || e?.code === "INVALID_STATE" || e?.code === "MISSING_SUCCESSOR"
+            ? "BAD_REQUEST"
+            : "INTERNAL_SERVER_ERROR";
+        throw new TRPCError({
+          code,
+          message: e?.message ?? "Create successor built failed",
           cause: e,
         });
       }

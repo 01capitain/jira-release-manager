@@ -15,12 +15,17 @@ To make name generation reproducible and auditable:
 - `BuiltVersion.tokenValues` stores `{ "release_version": string, "increment": number }`.
 - `ComponentVersion.tokenValues` stores `{ "release_version": string, "built_version": string, "increment": number }`.
 
-## Component Versions on Build Creation
+## Successor Creation (createSuccessorBuilt)
 
-Whenever a Built Version is created (initial or successor):
-- The service expands naming patterns for all `ReleaseComponent`s using tokens `{release_version}`, `{built_version}`, `{increment}`.
-- For each component, a `ComponentVersion` row is created with `increment` scoped per `(builtVersionId + componentId)`, starting at `0`.
-- Invalid/empty patterns are skipped defensively without affecting other components.
+When a Built Version transitions to `in_deployment`, operators select which components to include in that release. Behavior:
+- Successor creation: The successor Built Version (X+1) is auto-created on the status transition `startDeployment` (in_development → in_deployment) if no newer build exists yet.
+- Selected components: remain attached to the releasing Built (X). One row is ensured in the successor (X+1) per component (created if missing) using the naming helpers and token snapshots. Fresh successor component series start at increment `0`.
+- Unselected components: the current row is moved from X to X+1 (no new entity created). The name and token snapshot are recomputed using the successor’s name. Any placeholder row for that component in X+1 is deleted first to avoid duplicates.
+- Transactional: The entire operation is performed in a single transaction to ensure consistency and idempotency (no duplicates per component in the successor).
+
+Notes:
+- The selection step (`createSuccessorBuilt`) keeps the build in `in_deployment`. Marking a build `active` is a separate transition performed afterwards.
+- Naming uses `{release_version}`, `{built_version}`, `{increment}` with snapshots stored on both Built and Component rows.
 
 ## Lifecycle & Status Derivation (History-Driven)
 
@@ -54,5 +59,5 @@ From `deprecated`:
 ## Key Files
 
 - Prisma models: `prisma/schema.prisma` (`ReleaseVersion.lastUsedIncrement`, `BuiltVersion.tokenValues`, `ComponentVersion.tokenValues`, `BuiltVersionTransition` + enums)
-- Services: `src/server/services/release-version.service.ts`, `src/server/services/built-version-status.service.ts`
-- API: `src/server/api/routers/built-version.ts` (`getStatus`, `transition`)
+- Services: `src/server/services/release-version.service.ts`, `src/server/services/built-version-status.service.ts`, `src/server/services/deployment.service.ts`
+- API: `src/server/api/routers/built-version.ts` (`getStatus`, `transition`, `createSuccessorBuilt` selection)

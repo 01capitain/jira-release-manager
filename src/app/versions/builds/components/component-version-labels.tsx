@@ -138,7 +138,13 @@ export function ComponentVersionLabels({
     return m;
   }, [comps]);
 
-  if (!data || data.length === 0) return null;
+  if (!data || data.length === 0) {
+    return (
+      <div className="mt-2 text-sm text-amber-700 dark:text-amber-400">
+        No components for this build yet.
+      </div>
+    );
+  }
   return (
     <div className="mt-4 flex flex-wrap gap-2" aria-label="Component versions">
       {data.map((v) => {
