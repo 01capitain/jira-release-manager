@@ -27,7 +27,15 @@ import { db } from "~/server/db";
  * @see https://trpc.io/docs/server/context
  */
 export const createTRPCContext = async (opts: { headers: Headers }) => {
-  const session = await auth();
+  let session: Awaited<ReturnType<typeof auth>> = null;
+  try {
+    session = await auth();
+  } catch (err) {
+    // Avoid bubbling Auth.js errors to public procedures; surface as anonymous session
+    if (process.env.NODE_ENV !== "production") {
+      console.warn("[auth] session resolution failed:", err);
+    }
+  }
 
   return {
     db,

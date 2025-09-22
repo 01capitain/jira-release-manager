@@ -79,6 +79,7 @@ model User {
     BuiltVersions          BuiltVersion[]
     ReleaseComponents      ReleaseComponent[]
     BuiltVersionTransition BuiltVersionTransition[]
+    jiraCredential         JiraCredential?
 
     @@schema("app")
 }
@@ -196,5 +197,20 @@ model BuiltVersionTransition {
     createdById String   @db.Uuid
 
     @@index([builtVersionId, createdAt])
+    @@schema("app")
+}
+
+// Stores per-user Jira Cloud credentials
+model JiraCredential {
+    id        String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+    user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+    userId    String   @unique @db.Uuid
+    email     String
+    apiToken  String
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@index([userId])
     @@schema("app")
 }

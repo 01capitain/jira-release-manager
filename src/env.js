@@ -15,6 +15,9 @@ export const env = createEnv({
     AUTH_DISCORD_SECRET: z.string(),
     DATABASE_URL: z.string().url(),
     CONTEXT7_API_KEY: z.string(),
+    // Jira integration
+    JIRA_BASE_URL: z.string().url().optional(),
+    JIRA_PROJECT_KEY: z.string().optional(),
     NODE_ENV: z
       .enum(["development", "test", "production"])
       .default("development"),
@@ -39,6 +42,8 @@ export const env = createEnv({
     AUTH_DISCORD_SECRET: process.env.AUTH_DISCORD_SECRET,
     DATABASE_URL: process.env.DATABASE_URL,
     CONTEXT7_API_KEY: process.env.CONTEXT7_API_KEY,
+    JIRA_BASE_URL: process.env.JIRA_BASE_URL,
+    JIRA_PROJECT_KEY: process.env.JIRA_PROJECT_KEY,
     NODE_ENV: process.env.NODE_ENV,
   },
   /**

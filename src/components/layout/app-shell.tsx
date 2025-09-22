@@ -25,6 +25,7 @@ type NavGroup = {
   label: string;
   icon?: React.ElementType;
   items?: { href: string; label: string }[];
+  href?: string;
 };
 
 const NAV_GROUPS: NavGroup[] = [
@@ -41,6 +42,10 @@ const NAV_GROUPS: NavGroup[] = [
     id: "jira",
     label: "Jira settings",
     icon: Settings,
+    items: [
+      { href: "/jira-settings/connect", label: "Jira connect" },
+      { href: "/jira-settings/releases", label: "Releases" },
+    ],
   },
 ];
 
@@ -104,34 +109,45 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   const parentActive = group.items?.some((it) =>
                     pathname.startsWith(it.href),
                   );
+                  const directActive = group.href ? pathname === group.href : false;
                   return (
                     <div key={group.id} className="mb-2">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          isExpandable &&
-                          setExpanded((e) => ({ ...e, [group.id]: !isOpen }))
-                        }
-                        className={cn(
-                          "flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm hover:bg-neutral-100 dark:hover:bg-neutral-800",
-                          parentActive &&
-                            "bg-neutral-100 font-medium dark:bg-neutral-800",
-                        )}
-                        aria-expanded={isExpandable ? isOpen : undefined}
-                        aria-controls={
-                          isExpandable ? `submenu-${group.id}` : undefined
-                        }
-                      >
-                        {Icon ? <Icon className="h-4 w-4" /> : null}
-                        <span className="flex-1">{group.label}</span>
-                        {isExpandable ? (
-                          isOpen ? (
+                      {isExpandable ? (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setExpanded((e) => ({ ...e, [group.id]: !isOpen }))
+                          }
+                          className={cn(
+                            "flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm hover:bg-neutral-100 dark:hover:bg-neutral-800",
+                            (parentActive || directActive) &&
+                              "bg-neutral-100 font-medium dark:bg-neutral-800",
+                          )}
+                          aria-expanded={isOpen}
+                          aria-controls={`submenu-${group.id}`}
+                        >
+                          {Icon ? <Icon className="h-4 w-4" /> : null}
+                          <span className="flex-1">{group.label}</span>
+                          {isOpen ? (
                             <ChevronDown className="h-4 w-4" />
                           ) : (
                             <ChevronRight className="h-4 w-4" />
-                          )
-                        ) : null}
-                      </button>
+                          )}
+                        </button>
+                      ) : group.href ? (
+                        <Link
+                          href={group.href}
+                          className={cn(
+                            "flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm hover:bg-neutral-100 dark:hover:bg-neutral-800",
+                            directActive &&
+                              "bg-neutral-100 font-medium dark:bg-neutral-800",
+                          )}
+                          onClick={() => setOpen(false)}
+                        >
+                          {Icon ? <Icon className="h-4 w-4" /> : null}
+                          <span className="flex-1">{group.label}</span>
+                        </Link>
+                      ) : null}
 
                       {isExpandable && isOpen ? (
                         <div
