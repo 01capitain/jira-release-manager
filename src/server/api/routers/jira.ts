@@ -140,6 +140,13 @@ export const jiraRouter = createTRPCRouter({
       }
       const auth = Buffer.from(`${input.email}:${token}`).toString("base64");
       const url = `${baseUrl}/rest/api/3/myself`;
+      const reproCurl = [
+        "curl --request GET \\",
+        `  --url "${url}" \\\n+`,
+        "  --user \"<YOUR_EMAIL>:<YOUR_API_TOKEN>\" \\",
+        "  --header 'Accept: application/json'",
+      ].join("\n");
+      console.info("[jira.verifyConnection] Repro command:\n" + reproCurl);
       try {
         const res = await fetch(url, {
           headers: {
@@ -172,5 +179,184 @@ export const jiraRouter = createTRPCRouter({
         const msg = err instanceof Error ? err.message : "Network error";
         return { ok: false as const, status: 0, statusText: "Network error", bodyText: msg };
       }
+    }),
+
+  canSync: protectedProcedure.mutation(async ({ ctx }) => {
+    const baseUrl = env.JIRA_BASE_URL;
+    const projectKey = env.JIRA_PROJECT_KEY;
+    const anyDb = ctx.db as unknown as { jiraCredential?: { findUnique?: Function } };
+    const model = anyDb?.jiraCredential;
+    let token: string | undefined;
+    let email: string | undefined;
+    if (model?.findUnique) {
+      const row = (await model
+        .findUnique({ where: { userId: ctx.session.user.id }, select: { email: true, apiToken: true } })
+        .catch(() => null)) as { email?: string; apiToken?: string } | null;
+      token = row?.apiToken;
+      email = row?.email;
+    }
+    // Check presence first
+    if (!baseUrl || !projectKey || !email || !token) {
+      return { ok: false as const, reason: "Missing configuration or credentials" };
+    }
+    // Validate credentials via /myself
+    const auth = Buffer.from(`${email}:${token}`).toString("base64");
+    try {
+      const meRes = await fetch(`${baseUrl}/rest/api/3/myself`, {
+        headers: { Accept: "application/json", Authorization: `Basic ${auth}` },
+        cache: "no-store",
+      });
+      if (!meRes.ok) return { ok: false as const, reason: `Auth failed: ${meRes.status}` };
+      // Validate project access (1 item page)
+      const projRes = await fetch(
+        `${baseUrl}/rest/api/3/project/${projectKey}/version?startAt=0&maxResults=1`,
+        { headers: { Accept: "application/json", Authorization: `Basic ${auth}` }, cache: "no-store" },
+      );
+      if (!projRes.ok) return { ok: false as const, reason: `Project access failed: ${projRes.status}` };
+      return { ok: true as const };
+    } catch {
+      return { ok: false as const, reason: "Network error" };
+    }
+  }),
+
+  // Quick readiness check: verifies only presence of env + user credentials
+  canSyncQuick: protectedProcedure.query(async ({ ctx }) => {
+    const baseUrl = env.JIRA_BASE_URL;
+    const projectKey = env.JIRA_PROJECT_KEY;
+    const anyDb = ctx.db as unknown as { jiraCredential?: { findUnique?: Function } };
+    const model = anyDb?.jiraCredential;
+    let email: string | undefined;
+    let token: string | undefined;
+    if (model?.findUnique) {
+      const row = (await model
+        .findUnique({ where: { userId: ctx.session.user.id }, select: { email: true, apiToken: true } })
+        .catch(() => null)) as { email?: string; apiToken?: string } | null;
+      email = row?.email ?? undefined;
+      token = row?.apiToken ?? undefined;
+    }
+    if (!baseUrl) return { ok: false as const, reason: "Missing JIRA_BASE_URL" };
+    if (!projectKey) return { ok: false as const, reason: "Missing JIRA_PROJECT_KEY" };
+    if (!email) return { ok: false as const, reason: "Missing user email" };
+    if (!token) return { ok: false as const, reason: "Missing user API token" };
+    return { ok: true as const };
+  }),
+
+  listStoredVersions: publicProcedure
+    .input(
+      z
+        .object({
+          includeReleased: z.boolean().optional(),
+          includeUnreleased: z.boolean().optional(),
+          includeArchived: z.boolean().optional(),
+          page: z.number().int().min(1).optional(),
+          pageSize: z.number().int().min(1).max(100).optional(),
+        })
+        .optional(),
+    )
+    .query(async ({ ctx, input }) => {
+      const includeReleased = input?.includeReleased ?? true;
+      const includeUnreleased = input?.includeUnreleased ?? true;
+      const includeArchived = input?.includeArchived ?? false;
+      const page = input?.page ?? 1;
+      const pageSize = input?.pageSize ?? 50;
+      const anyDb = ctx.db as unknown as { jiraVersion?: any };
+      const model = anyDb?.jiraVersion;
+      if (!model?.findMany) return { total: 0, items: [] as any[] };
+      const where = {
+        OR: [
+          includeReleased ? { released: true } : undefined,
+          includeArchived ? { archived: true } : undefined,
+          includeUnreleased ? { AND: [{ released: false }, { archived: false }] } : undefined,
+        ].filter(Boolean),
+      };
+      const [total, rows] = await Promise.all([
+        model.count({ where }),
+        model.findMany({
+          where,
+          orderBy: [{ released: "asc" }, { name: "asc" }],
+          skip: (page - 1) * pageSize,
+          take: pageSize,
+          select: {
+            id: true,
+            jiraId: true,
+            name: true,
+            released: true,
+            archived: true,
+            releaseDate: true,
+            startDate: true,
+          },
+        }),
+      ]);
+      return { total, items: rows } as const;
+    }),
+
+  syncVersions: protectedProcedure
+    .input(
+      z
+        .object({
+          includeReleased: z.boolean().optional(),
+          includeUnreleased: z.boolean().optional(),
+          includeArchived: z.boolean().optional(),
+          pageSize: z.number().int().min(1).max(100).optional(),
+        })
+        .optional(),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const svc = new JiraVersionService();
+      const anyDb = ctx.db as unknown as { jiraCredential?: any; jiraVersion?: any };
+      const credModel = anyDb?.jiraCredential;
+      const versModel = anyDb?.jiraVersion;
+      if (!credModel?.findUnique || !versModel?.upsert) {
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message: "Database models missing. Please run migration and prisma generate.",
+        });
+      }
+      const cred = await credModel.findUnique({
+        where: { userId: ctx.session.user.id },
+        select: { email: true, apiToken: true },
+      });
+      const res = await svc.fetchProjectVersions({
+        pageSize: input?.pageSize,
+        includeReleased: input?.includeReleased,
+        includeUnreleased: input?.includeUnreleased,
+        includeArchived: input?.includeArchived,
+        baseUrl: env.JIRA_BASE_URL ?? undefined,
+        projectKey: env.JIRA_PROJECT_KEY ?? undefined,
+        email: cred?.email ?? undefined,
+        apiToken: cred?.apiToken ?? undefined,
+      });
+      if (!res.configured) {
+        throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Jira not configured" });
+      }
+      // Upsert versions
+      const tx = anyDb as any;
+      let upserts = 0;
+      for (const v of res.items) {
+        await versModel.upsert({
+          where: { jiraId: v.id },
+          update: {
+            name: v.name,
+            description: v.description ?? null,
+            released: v.released,
+            archived: v.archived,
+            releaseDate: v.releaseDate ? new Date(v.releaseDate) : null,
+            startDate: v.startDate ? new Date(v.startDate) : null,
+            projectKey: env.JIRA_PROJECT_KEY ?? null,
+          },
+          create: {
+            jiraId: v.id,
+            name: v.name,
+            description: v.description ?? null,
+            released: v.released,
+            archived: v.archived,
+            releaseDate: v.releaseDate ? new Date(v.releaseDate) : null,
+            startDate: v.startDate ? new Date(v.startDate) : null,
+            projectKey: env.JIRA_PROJECT_KEY ?? null,
+          },
+        });
+        upserts += 1;
+      }
+      return { saved: upserts } as const;
     }),
 });

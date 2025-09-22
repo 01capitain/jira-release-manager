@@ -5,6 +5,7 @@ import { useSession, signIn } from "next-auth/react";
 import { Button } from "~/components/ui/button";
 import { Label } from "~/components/ui/label";
 import { api } from "~/trpc/react";
+import { Pagination } from "~/components/ui/pagination";
 
 export default function JiraReleasesPage() {
   const [includeReleased, setIncludeReleased] = React.useState(true);
@@ -12,20 +13,24 @@ export default function JiraReleasesPage() {
   const [includeArchived, setIncludeArchived] = React.useState(false);
 
   const { data: session } = useSession();
-  const query = api.jira.fetchVersions.useQuery(
-    {
-      includeReleased,
-      includeUnreleased,
-      includeArchived,
-      pageSize: 50,
-    },
-    { refetchOnWindowFocus: false, enabled: !!session },
-  );
+  // No auto-sync query; syncing happens only on explicit action
 
   const releases = api.releaseVersion.list.useQuery({ page: 1, pageSize: 100 });
+  const canSyncQuick = api.jira.canSyncQuick.useQuery(undefined, { enabled: !!session });
+  const [page, setPage] = React.useState(1);
+  const pageSize = 50;
+  const listStored = api.jira.listStoredVersions.useQuery(
+    { page, pageSize },
+    { keepPreviousData: true },
+  );
+  const sync = api.jira.syncVersions.useMutation({
+    onSuccess: async () => {
+      await listStored.refetch();
+    },
+  });
 
-  const isConfigured = query.data?.configured ?? false;
-  const items = query.data?.items ?? [];
+  // No connection check here beyond presence; handled by canSyncQuick query
+
 
   return (
     <div className="mx-auto w-full max-w-6xl">
@@ -44,108 +49,130 @@ export default function JiraReleasesPage() {
 
       <section className="mt-6 rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
         <h2 className="text-lg font-medium">Sync Releases</h2>
-        <div className="mt-3 flex flex-wrap gap-4">
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={includeUnreleased}
-              onChange={(e) => setIncludeUnreleased(e.target.checked)}
-            />
-            Unreleased
-          </label>
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={includeReleased}
-              onChange={(e) => setIncludeReleased(e.target.checked)}
-            />
-            Released
-          </label>
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={includeArchived}
-              onChange={(e) => setIncludeArchived(e.target.checked)}
-            />
-            Archived
-          </label>
+        {!session ? (
+          <div className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
+            Please sign in to manage Jira releases.
+          </div>
+        ) : null}
+        {session && canSyncQuick.data && canSyncQuick.data.ok === false ? (
+          <div className="mt-3 text-sm">
+            <p className="text-red-600 dark:text-red-400">
+              Jira connection incomplete: {canSyncQuick.data.reason ?? "Unknown reason"}
+            </p>
+            <p className="mt-1">
+              Go to <a className="underline" href="/jira-settings/connect">Jira connect</a> to configure connection before syncing.
+            </p>
+          </div>
+        ) : null}
+        {(!session || canSyncQuick.isLoading || !canSyncQuick.data) ? null : canSyncQuick.data.ok ? (
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <div
+            role="group"
+            aria-label="Filter statuses"
+            className="inline-flex overflow-hidden rounded-md border border-neutral-300 dark:border-neutral-700"
+          >
+            <Button
+              variant="outline"
+              onClick={() => setIncludeUnreleased((v) => !v)}
+              aria-pressed={includeUnreleased}
+              className={"rounded-none " + (includeUnreleased ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300" : "")}
+            >
+              Unreleased
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setIncludeReleased((v) => !v)}
+              aria-pressed={includeReleased}
+              className={"rounded-none " + (includeReleased ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300" : "")}
+            >
+              Released
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setIncludeArchived((v) => !v)}
+              aria-pressed={includeArchived}
+              className={"rounded-none " + (includeArchived ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300" : "")}
+            >
+              Archived
+            </Button>
+          </div>
           <Button
-            onClick={() => void query.refetch()}
-            disabled={query.isRefetching || query.isLoading}
+            onClick={() => void sync.mutateAsync({ includeArchived, includeReleased, includeUnreleased, pageSize: 50 })}
+            disabled={!session || sync.isPending}
             aria-label="Sync releases from Jira"
             title="Sync releases from Jira"
           >
-            {query.isLoading || query.isRefetching ? "Syncing…" : "Sync releases from Jira"}
+            {sync.isPending ? "Syncing…" : "Sync releases from Jira"}
           </Button>
         </div>
-
-        {!isConfigured ? (
-          <p className="mt-4 text-sm text-red-600 dark:text-red-400">
-            Jira connection incomplete: set environment (base URL, project key) and user credentials.
-          </p>
         ) : null}
 
-        {query.error ? (
-          <p className="mt-4 text-sm text-red-600 dark:text-red-400">
-            {query.error.message}
-          </p>
-        ) : null}
+      </section>
 
-        <div className="mt-6">
-          <h3 className="text-base font-medium">Fetched Jira versions ({items.length})</h3>
-          {query.isLoading ? (
-            <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">Loading…</p>
-          ) : items.length === 0 ? (
-            <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
-              No versions found for current filters.
-            </p>
-          ) : (
-            <ul className="mt-3 divide-y divide-neutral-200 dark:divide-neutral-800">
-              {items.map((v) => (
-                <li key={`${v.id}:${v.name}`} className="py-3">
-                  <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                    <div>
-                      <div className="font-medium">
-                        {v.name}
-                        <span className="ml-2 text-xs font-normal text-neutral-500 dark:text-neutral-400">
-                          {v.released ? "Released" : v.archived ? "Archived" : "Unreleased"}
-                        </span>
+      <section className="mt-6 rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
+        <h2 className="text-lg font-medium">Stored Jira versions</h2>
+        {listStored.isLoading ? (
+          <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">Loading…</p>
+        ) : (listStored.data?.items ?? []).length === 0 ? (
+          <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
+            No versions loaded. Click "Sync releases from Jira" to fetch.
+          </p>
+        ) : (
+          <ul className="mt-3 divide-y divide-neutral-200 dark:divide-neutral-800">
+            {(listStored.data?.items ?? []).map((v) => (
+              <li key={`${v.id}:${v.name}`} className="py-3">
+                <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <div className="font-medium">
+                      {v.name}
+                      <span className="ml-2 text-xs font-normal text-neutral-500 dark:text-neutral-400">
+                        {v.released ? "Released" : v.archived ? "Archived" : "Unreleased"}
+                      </span>
+                    </div>
+                    {v.releaseDate ? (
+                      <div className="text-xs text-neutral-500 dark:text-neutral-400">
+                        Release date: {String(v.releaseDate).slice(0, 10)}
                       </div>
-                      {v.releaseDate ? (
-                        <div className="text-xs text-neutral-500 dark:text-neutral-400">
-                          Release date: {v.releaseDate}
-                        </div>
-                      ) : null}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Label htmlFor={`map-${v.id}`} className="text-xs">Map to internal</Label>
-                      <select
-                        id={`map-${v.id}`}
-                        className="h-9 min-w-52 rounded-md border border-neutral-300 bg-transparent px-3 text-sm dark:border-neutral-700"
-                        defaultValue=""
-                        aria-label={`Map Jira version ${v.name} to internal release`}
-                      >
-                        <option value="" disabled>
-                          Select release…
-                        </option>
-                        {(releases.data?.items ?? []).map((r) => (
-                          // @ts-expect-error list returns items: ReleaseVersionDto[]
-                          <option key={r.id} value={r.id}>
-                            {/* @ts-expect-error dto has name */}
-                            {r.name}
-                          </option>
-                        ))}
-                      </select>
-                      <Button variant="secondary" disabled title="Save mapping (coming soon)">
-                        Save
-                      </Button>
-                    </div>
+                    ) : null}
                   </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor={`map-${v.id}`} className="text-xs">Map to internal</Label>
+                    <select
+                      id={`map-${v.id}`}
+                      className="h-9 min-w-52 rounded-md border border-neutral-300 bg-transparent px-3 text-sm dark:border-neutral-700"
+                      defaultValue=""
+                      aria-label={`Map Jira version ${v.name} to internal release`}
+                    >
+                      <option value="" disabled>
+                        Select release…
+                      </option>
+                      {(releases.data?.items ?? []).map((r) => (
+                        // @ts-expect-error list returns items: ReleaseVersionDto[]
+                        <option key={r.id} value={r.id}>
+                          {/* @ts-expect-error dto has name */}
+                          {r.name}
+                        </option>
+                      ))}
+                    </select>
+                    <Button variant="secondary" disabled title="Save mapping (coming soon)">
+                      Save
+                    </Button>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+        {listStored.data && listStored.data.total > pageSize ? (
+          <div className="mt-3">
+            <Pagination
+              total={listStored.data.total}
+              pageSize={pageSize}
+              page={page}
+              onPageChange={(p) => setPage(p)}
+            />
+          </div>
+        ) : null}
       </section>
     </div>
   );

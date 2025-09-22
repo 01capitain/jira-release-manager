@@ -20,6 +20,7 @@ export default function JiraConnectPage() {
   type StatusMsg = { kind: "success" | "error" | "info"; text: string } | null;
   const [status, setStatus] = React.useState<StatusMsg>(null);
   const [verifyStatus, setVerifyStatus] = React.useState<StatusMsg>(null);
+  const [verifyPrimary, setVerifyPrimary] = React.useState(false);
 
   React.useEffect(() => {
     if (cred.data?.email && !email) setEmail(cred.data.email);
@@ -35,6 +36,8 @@ export default function JiraConnectPage() {
       if (trimmedToken.length > 0) payload.apiToken = trimmedToken;
       await save.mutateAsync(payload);
       setStatus({ kind: "success", text: "Saved. Token stored securely and not shown." });
+      // Emphasize Verify after successful save
+      setVerifyPrimary(true);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Save failed";
       setStatus({ kind: "error", text: msg });
@@ -61,6 +64,8 @@ export default function JiraConnectPage() {
       const msg = err instanceof Error ? err.message : "Verification failed";
       setVerifyStatus({ kind: "error", text: msg });
     }
+    // After a connection try, de-emphasize Verify back to secondary
+    setVerifyPrimary(false);
   }
 
   // Auto-dismiss success messages after a short timeout
@@ -152,9 +157,30 @@ export default function JiraConnectPage() {
             />
           </div>
           <div className="flex items-center gap-3">
-            <Button type="submit" disabled={save.isPending || !session}>
+            <Button
+              type="submit"
+              disabled={save.isPending || !session}
+              variant={verifyPrimary ? "secondary" : "default"}
+            >
               {save.isPending ? "Saving…" : "Save"}
             </Button>
+            <Button
+              type="button"
+              variant={verifyPrimary ? "default" : "secondary"}
+              onClick={() => void onVerify()}
+              disabled={
+                !session ||
+                verify.isPending ||
+                email.trim().length === 0 ||
+                (token.trim().length === 0 && !cred.data?.hasToken)
+              }
+              aria-label="Verify Jira connection"
+              title="Verify Jira connection"
+            >
+              {verify.isPending ? "Verifying…" : "Verify connection"}
+            </Button>
+          </div>
+          <div className="mt-2 space-y-1">
             {status ? (
               <div
                 role="status"
@@ -173,38 +199,26 @@ export default function JiraConnectPage() {
                 <span>{status.text}</span>
               </div>
             ) : null}
+            {verifyStatus ? (
+              <div
+                role="status"
+                aria-atomic="true"
+                className={{
+                  success: "flex items-center gap-2 text-sm text-green-600 dark:text-green-400",
+                  error: "flex items-center gap-2 text-sm text-red-600 dark:text-red-400",
+                  info: "flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-400",
+                }[verifyStatus.kind]}
+              >
+                {verifyStatus.kind === "success" ? (
+                  <CheckCircle className="h-4 w-4" aria-hidden="true" />
+                ) : verifyStatus.kind === "error" ? (
+                  <AlertCircle className="h-4 w-4" aria-hidden="true" />
+                ) : null}
+                <span>{verifyStatus.text}</span>
+              </div>
+            ) : null}
           </div>
         </form>
-        <div className="mt-4 flex items-center gap-3">
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => void onVerify()}
-            disabled={!session || verify.isPending || email.trim().length === 0 || (token.trim().length === 0 && !cred.data?.hasToken)}
-            aria-label="Verify Jira connection"
-            title="Verify Jira connection"
-          >
-            {verify.isPending ? "Verifying…" : "Verify connection"}
-          </Button>
-          {verifyStatus ? (
-            <div
-              role="status"
-              aria-atomic="true"
-              className={{
-                success: "flex items-center gap-2 text-sm text-green-600 dark:text-green-400",
-                error: "flex items-center gap-2 text-sm text-red-600 dark:text-red-400",
-                info: "flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-400",
-              }[verifyStatus.kind]}
-            >
-              {verifyStatus.kind === "success" ? (
-                <CheckCircle className="h-4 w-4" aria-hidden="true" />
-              ) : verifyStatus.kind === "error" ? (
-                <AlertCircle className="h-4 w-4" aria-hidden="true" />
-              ) : null}
-              <span>{verifyStatus.text}</span>
-            </div>
-          ) : null}
-        </div>
       </section>
     </div>
   );
