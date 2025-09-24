@@ -17,7 +17,9 @@ To make name generation reproducible and auditable:
 
 ## Successor Creation (createSuccessorBuilt)
 
-When a Built Version transitions to `in_deployment`, operators select which components to include in that release. Behavior:
+When a Built Version transitions to `in_deployment`, operators select which components to include in that release.
+
+Behavior:
 - Successor creation: The successor Built Version (X+1) is auto-created on the status transition `startDeployment` (in_development → in_deployment) if no newer build exists yet.
 - Selected components: remain attached to the releasing Built (X). One row is ensured in the successor (X+1) per component (created if missing) using the naming helpers and token snapshots. Fresh successor component series start at increment `0`.
 - Unselected components: the current row is moved from X to X+1 (no new entity created). The name and token snapshot are recomputed using the successor’s name. Any placeholder row for that component in X+1 is deleted first to avoid duplicates.
