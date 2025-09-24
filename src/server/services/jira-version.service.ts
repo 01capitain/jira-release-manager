@@ -93,8 +93,8 @@ export class JiraVersionService {
       items.push(...mapped.filter((m) => m.id));
       isLast = Boolean((page as { isLast?: unknown }).isLast);
       const start = typeof (page as { startAt?: unknown }).startAt === "number" ? (page as { startAt?: number }).startAt : 0;
-      const max = typeof (page as { maxResults?: unknown }).maxResults === "number" ? (page as { maxResults?: number }).maxResults : mapped.length;
-      startAt = start + max;
+      const count = Array.isArray(page.values) ? (page.values as unknown[]).length : mapped.length;
+      startAt = start + count;
       // Safety guard against unexpected loops
       if (!Number.isFinite(startAt) || startAt > 10_000) break;
     }
