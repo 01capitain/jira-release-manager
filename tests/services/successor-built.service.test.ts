@@ -9,11 +9,6 @@ type CV = {
   tokenValues?: any;
 };
 
-function makeUuid(n: number) {
-  const hex = n.toString(16).padStart(12, "0");
-  return `00000000-0000-0000-0000-${hex}`;
-}
-
 function setupMockDb({
   components,
   currentBuiltName,
