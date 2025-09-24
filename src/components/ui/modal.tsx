@@ -7,7 +7,7 @@ import { cn } from "~/lib/utils";
 type ModalProps = {
   open: boolean;
   onOpenChange(this: void, open: boolean): void;
-  title?: string;
+  title?: React.ReactNode;
   description?: React.ReactNode;
   children?: React.ReactNode;
   footer?: React.ReactNode;

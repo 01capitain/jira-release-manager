@@ -24,7 +24,7 @@ export class SuccessorBuiltService {
       });
     }
 
-    const summary: SuccessorBuiltSummary = { moved: 0, created: 0, updated: 0 };
+    const summary: SuccessorBuiltSummary = { moved: 0, created: 0, updated: 0, successorBuiltId: "" };
 
     const successorId = await this.db.$transaction(async (tx) => {
       const built = await tx.builtVersion.findUniqueOrThrow({
@@ -62,6 +62,14 @@ export class SuccessorBuiltService {
         where: { id: built.versionId },
         select: { id: true, name: true },
       });
+
+      // Centralized tokenValues construction
+      const makeTokens = (builtName: string, increment: number) =>
+        ({
+          release_version: release.name,
+          built_version: builtName,
+          increment,
+        } as any);
 
       // Load all release components for this release
       const componentDefs = await tx.releaseComponent.findMany({
@@ -119,19 +127,11 @@ export class SuccessorBuiltService {
                 increment: nextIncrement,
                 releaseComponent: { connect: { id: rcId } },
                 builtVersion: { connect: { id: successor.id } },
-                tokenValues: {
-                  release_version: release.name,
-                  built_version: successor.name,
-                  increment: nextIncrement,
-                } as any,
+                tokenValues: makeTokens(successor.name, nextIncrement),
               },
               update: {
                 ...(computed ? { name: computed } : {}),
-                tokenValues: {
-                  release_version: release.name,
-                  built_version: successor.name,
-                  increment: nextIncrement,
-                } as any,
+                tokenValues: makeTokens(successor.name, nextIncrement),
               },
               select: { id: true, increment: true },
             });
@@ -161,19 +161,11 @@ export class SuccessorBuiltService {
                 increment: 0,
                 releaseComponent: { connect: { id: rcId } },
                 builtVersion: { connect: { id: built.id } },
-                tokenValues: {
-                  release_version: release.name,
-                  built_version: built.name,
-                  increment: 0,
-                } as any,
+                tokenValues: makeTokens(built.name, 0),
               },
               update: {
                 name: nameX,
-                tokenValues: {
-                  release_version: release.name,
-                  built_version: built.name,
-                  increment: 0,
-                } as any,
+                tokenValues: makeTokens(built.name, 0),
               },
             });
             // If it already existed, this counts as an update; keep summary simple and count as created only when missing in our snapshot
@@ -193,11 +185,7 @@ export class SuccessorBuiltService {
               data: {
                 builtVersionId: successor.id,
                 name,
-                tokenValues: {
-                  release_version: release.name,
-                  built_version: successor.name,
-                  increment: current.increment,
-                } as any,
+                tokenValues: makeTokens(successor.name, current.increment),
               },
             });
             summary.moved += 1;
