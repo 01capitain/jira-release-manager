@@ -209,7 +209,9 @@ export const jiraRouter = createTRPCRouter({
       if (!meRes.ok) return { ok: false as const, reason: `Auth failed: ${meRes.status}` };
       // Validate project access (1 item page)
       const projRes = await fetch(
-        `${baseUrl}/rest/api/3/project/${projectKey}/version?startAt=0&maxResults=1`,
+        `${String(baseUrl).replace(/\/+$/, "")}/rest/api/3/project/${encodeURIComponent(
+          String(projectKey)
+        )}/version?startAt=0&maxResults=1`,
         { headers: { Accept: "application/json", Authorization: `Basic ${auth}` }, cache: "no-store" },
       );
       if (!projRes.ok) return { ok: false as const, reason: `Project access failed: ${projRes.status}` };
