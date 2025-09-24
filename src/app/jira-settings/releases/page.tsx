@@ -143,10 +143,8 @@ export default function JiraReleasesPage() {
                       <option value="" disabled>
                         Select release…
                       </option>
-                      {(releases.data?.items ?? []).map((r) => (
-                        // @ts-expect-error list returns items: ReleaseVersionDto[]
+                      {((releases.data?.items ?? []) as Array<{ id: string; name: string }>).map((r) => (
                         <option key={r.id} value={r.id}>
-                          {/* @ts-expect-error dto has name */}
                           {r.name}
                         </option>
                       ))}
