@@ -165,11 +165,12 @@ export class SuccessorBuiltService {
           }
         } else {
           // Unselected: move current row to successor
-          if (succ) {
-            await tx.componentVersion.delete({ where: { id: succ.id } });
-            successorByComponent.delete(rcId);
-          }
+          // Idempotency: only delete successor seed and move when a current row exists.
           if (current) {
+            if (succ) {
+              await tx.componentVersion.delete({ where: { id: succ.id } });
+              successorByComponent.delete(rcId);
+            }
             const name = computeName(rcId, current.increment) ?? current.name;
             await tx.componentVersion.update({
               where: { id: current.id },
@@ -185,6 +186,7 @@ export class SuccessorBuiltService {
             });
             summary.moved += 1;
           }
+          // If current is missing, do nothing to avoid losing an existing successor row.
         }
       }
       return successor.id;
