@@ -9,9 +9,6 @@ export function ComponentVersionLabels({
 }: {
   builtVersionId: string;
 }) {
-  const { data } = api.componentVersion.listByBuilt.useQuery({
-    builtVersionId,
-  });
   const { data: comps } = api.releaseComponent.list.useQuery();
 
   // Map componentId -> color
@@ -24,8 +21,9 @@ export function ComponentVersionLabels({
   const { data, isLoading } = api.componentVersion.listByBuilt.useQuery({
     builtVersionId,
   });
+  const versions = data ?? [];
 
-  if (!isLoading && (!data || data.length === 0)) {
+  if (!isLoading && versions.length === 0) {
     return (
       <div
         className="mt-2 text-sm text-amber-700 dark:text-amber-400"
@@ -36,9 +34,16 @@ export function ComponentVersionLabels({
       </div>
     );
   }
+  if (isLoading) {
+    return (
+      <div className="mt-2 text-sm text-muted-foreground" role="status" aria-atomic="true">
+        Loading component versions…
+      </div>
+    );
+  }
   return (
     <div className="mt-4 flex flex-wrap gap-2" aria-label="Component versions">
-      {data.map((v) => {
+      {versions.map((v) => {
         const c = colorClasses(
           colorByComponent.get(v.releaseComponentId) ?? "neutral",
         );

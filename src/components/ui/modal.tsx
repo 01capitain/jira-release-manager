@@ -6,17 +6,21 @@ import { cn } from "~/lib/utils";
 
 type ModalProps = {
   open: boolean;
-  onOpenChange(open: boolean): void;
+  onOpenChange(this: void, open: boolean): void;
   title?: string;
   description?: React.ReactNode;
   children?: React.ReactNode;
   footer?: React.ReactNode;
   className?: string;
+  restoreFocusOnClose?: boolean;
 };
 
-export function Modal({ open, onOpenChange, title, description, children, footer, className }: ModalProps) {
+export function Modal({ open, onOpenChange, title, description, children, footer, className, restoreFocusOnClose = true }: ModalProps) {
   const ref = React.useRef<HTMLDivElement | null>(null);
   const [mounted, setMounted] = React.useState(false);
+  const titleId = React.useId();
+  const descriptionId = React.useId();
+  const prevFocusRef = React.useRef<HTMLElement | null>(null);
 
   React.useEffect(() => {
     setMounted(true);
@@ -39,6 +43,27 @@ export function Modal({ open, onOpenChange, title, description, children, footer
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onOpenChange]);
 
+  // Manage focus: capture previous focus, move focus into dialog on open,
+  // and restore focus to the opener on close
+  React.useEffect(() => {
+    if (open) {
+      prevFocusRef.current = (document.activeElement as HTMLElement | null) ?? null;
+      ref.current?.focus();
+    } else {
+      if (restoreFocusOnClose) {
+        const el = prevFocusRef.current;
+        if (el?.isConnected) {
+          try {
+            el.focus({ preventScroll: true });
+          } catch {
+            // no-op
+          }
+        }
+      }
+      prevFocusRef.current = null;
+    }
+  }, [open, restoreFocusOnClose]);
+
   if (!mounted) return null;
 
   return ReactDOM.createPortal(
@@ -58,21 +83,26 @@ export function Modal({ open, onOpenChange, title, description, children, footer
           ref={ref}
           role="dialog"
           aria-modal="true"
-          aria-labelledby={title ? "modal-title" : undefined}
+          aria-labelledby={title ? titleId : undefined}
+          aria-describedby={description ? descriptionId : undefined}
+          tabIndex={-1}
           className={cn(
             "relative z-10 w-full max-w-3xl rounded-lg border border-neutral-200 bg-white shadow-lg dark:border-neutral-800 dark:bg-neutral-900",
             className,
           )}
         >
-          {(title || description) && (
+          {(title ?? description) && (
             <div className="border-b border-neutral-200 p-4 dark:border-neutral-800">
               {title && (
-                <h2 id="modal-title" className="text-lg font-semibold">
+                <h2 id={titleId} className="text-lg font-semibold">
                   {title}
                 </h2>
               )}
               {description && (
-                <div className="mt-1 text-sm text-neutral-600 dark:text-neutral-300">
+                <div
+                  id={descriptionId}
+                  className="mt-1 text-sm text-neutral-600 dark:text-neutral-300"
+                >
                   {description}
                 </div>
               )}
