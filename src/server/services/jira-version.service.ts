@@ -90,7 +90,7 @@ export class JiraVersionService {
         const startDate = obj.startDate != null ? String(obj.startDate as string) : null;
         return { id, name, description, released, archived, releaseDate, startDate };
       });
-      items.push(...mapped);
+      items.push(...mapped.filter((m) => m.id));
       isLast = Boolean((page as { isLast?: unknown }).isLast);
       const start = typeof (page as { startAt?: unknown }).startAt === "number" ? (page as { startAt?: number }).startAt : 0;
       const max = typeof (page as { maxResults?: unknown }).maxResults === "number" ? (page as { maxResults?: number }).maxResults : mapped.length;
