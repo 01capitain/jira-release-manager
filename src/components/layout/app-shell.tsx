@@ -109,7 +109,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   const parentActive = group.items?.some((it) =>
                     pathname.startsWith(it.href),
                   );
-                  const directActive = group.href ? pathname === group.href : false;
+                  const directActive =
+                    typeof group.href === "string" &&
+                    (pathname === group.href || pathname.startsWith(`${group.href}/`));
                   return (
                     <div key={group.id} className="mb-2">
                       {isExpandable ? (
