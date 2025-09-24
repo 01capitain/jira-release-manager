@@ -125,11 +125,12 @@ describe("SuccessorBuiltService.createSuccessorBuilt", () => {
   test("selecting all keeps rows on current and seeds successor", async () => {
     const { db, ids, componentVersions } = setupMockDb({ components: comps, currentBuiltName: "version 1.0", successorBuiltName: "version 1.1" });
     const svc = new SuccessorBuiltService(db as any);
-    await svc.createSuccessorBuilt(ids.BUILT_X as any, comps.map((c) => c.id), "user-1" as any);
+    const summary = await svc.createSuccessorBuilt(ids.BUILT_X as any, comps.map((c) => c.id), "user-1" as any);
     const onX = componentVersions.filter((cv) => cv.builtVersionId === ids.BUILT_X);
     const onY = componentVersions.filter((cv) => cv.builtVersionId === ids.BUILT_Y);
     expect(onX.map((r) => r.releaseComponentId).sort()).toEqual(["A", "B", "C"]);
     expect(onY.map((r) => r.releaseComponentId).sort()).toEqual(["A", "B", "C"]);
+    expect(summary).toMatchObject({ created: 3, updated: 0, moved: 0, successorBuiltId: ids.BUILT_Y });
   });
 
   test("unselected move to successor; selected remain and seed successor", async () => {
