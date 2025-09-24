@@ -31,6 +31,9 @@ export class SuccessorBuiltService {
         where: { id: builtVersionId },
         select: { id: true, name: true, versionId: true, createdAt: true },
       });
+      // ...
+      return successor.id;
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
 
       // Must be in_deployment
       const latestTransition = await tx.builtVersionTransition.findFirst({
