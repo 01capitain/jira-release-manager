@@ -123,7 +123,7 @@ export class SuccessorBuiltService {
             const computed = computeName(rcId, nextIncrement);
             const created = await tx.componentVersion.create({
               data: {
-                name: computed ?? (current?.name ?? `${successor.name}-${rcId}-0`),
+                name: computed ?? `${successor.name}-${rcId}-0`,
                 increment: nextIncrement,
                 releaseComponent: { connect: { id: rcId } },
                 builtVersion: { connect: { id: successor.id } },
