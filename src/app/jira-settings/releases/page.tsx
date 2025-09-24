@@ -20,7 +20,7 @@ export default function JiraReleasesPage() {
   const [page, setPage] = React.useState(1);
   const pageSize = 50;
   const listStored = api.jira.listStoredVersions.useQuery(
-    { page, pageSize },
+    { page, pageSize, includeReleased, includeUnreleased, includeArchived },
     { keepPreviousData: true },
   );
   const sync = api.jira.syncVersions.useMutation({
