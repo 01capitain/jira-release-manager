@@ -142,7 +142,7 @@ export const jiraRouter = createTRPCRouter({
       const url = `${baseUrl}/rest/api/3/myself`;
       const reproCurl = [
         "curl --request GET \\",
-        `  --url "${url}" \\\n+`,
+        `  --url "${url}" \\`,
         "  --user \"<YOUR_EMAIL>:<YOUR_API_TOKEN>\" \\",
         "  --header 'Accept: application/json'",
       ].join("\n");
