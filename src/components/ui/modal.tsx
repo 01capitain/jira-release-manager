@@ -47,8 +47,11 @@ export function Modal({ open, onOpenChange, title, description, children, footer
         className="fixed inset-0 z-50 flex items-center justify-center p-4"
         aria-hidden={!open}
       >
+        {/* biome-ignore lint/a11y/noStaticElementInteractions: Backdrop is intentionally non-focusable; keyboard users close via Escape. */}
+        {/* biome-ignore lint/a11y/useKeyWithClickEvents: Backdrop is hidden from the a11y tree; Escape provides keyboard parity. */}
         <div
           className="absolute inset-0 bg-black/20"
+          aria-hidden="true"
           onClick={() => onOpenChange(false)}
         />
         <div
