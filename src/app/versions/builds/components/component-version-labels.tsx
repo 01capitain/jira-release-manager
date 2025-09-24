@@ -138,9 +138,17 @@ export function ComponentVersionLabels({
     return m;
   }, [comps]);
 
-  if (!data || data.length === 0) {
+  const { data, isLoading } = api.componentVersion.listByBuilt.useQuery({
+    builtVersionId,
+  });
+
+  if (!isLoading && (!data || data.length === 0)) {
     return (
-      <div className="mt-2 text-sm text-amber-700 dark:text-amber-400">
+      <div
+        className="mt-2 text-sm text-amber-700 dark:text-amber-400"
+        role="status"
+        aria-atomic="true"
+      >
         No components for this build yet.
       </div>
     );
