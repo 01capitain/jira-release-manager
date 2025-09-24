@@ -50,7 +50,7 @@ export default function VersionsComponentsPage() {
       setColor("blue");
       await utils.releaseComponent.list.invalidate();
       setPhase("idle");
-    } catch (err) {
+    } catch {
       setPhase("idle");
       setError("Failed to create component. Please try again.");
     }

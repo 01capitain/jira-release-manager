@@ -60,7 +60,6 @@ export default function VersionsReleasesPage() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 disabled={saving}
-                autoFocus
                 aria-describedby={error ? "release-name-error" : undefined}
               />
             </div>

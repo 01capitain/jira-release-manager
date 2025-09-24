@@ -4,8 +4,7 @@ import * as React from "react";
 import { api } from "~/trpc/react";
 import type { ReleaseVersionWithBuildsDto } from "~/shared/types/release-version-with-builds";
 import BuiltVersionCard from "../../builds/components/built-version-card";
-import { Button } from "~/components/ui/button";
-import { RefreshCw, ChevronDown } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 
 function LatestActiveTag({
   builtVersionIds,
@@ -46,7 +45,6 @@ function LatestActiveTag({
 }
 
 export default function ReleasesAccordion() {
-  const utils = api.useUtils();
   const [hydrated, setHydrated] = React.useState(false);
   React.useEffect(() => setHydrated(true), []);
 
@@ -61,11 +59,11 @@ export default function ReleasesAccordion() {
     } catch {}
     return undefined;
   };
-  const writeCache = (payload: ReleaseVersionWithBuildsDto[]) => {
+  const writeCache = React.useCallback((payload: ReleaseVersionWithBuildsDto[]) => {
     try {
       localStorage.setItem(storageKey(), JSON.stringify(payload));
     } catch {}
-  };
+  }, []);
 
   const { data, isFetching } = api.builtVersion.listReleasesWithBuilds.useQuery(
     undefined,
@@ -78,8 +76,8 @@ export default function ReleasesAccordion() {
   );
 
   React.useEffect(() => {
-    if (data) writeCache(data as ReleaseVersionWithBuildsDto[]);
-  }, [data]);
+    if (data) writeCache(data);
+  }, [data, writeCache]);
 
   return (
     <div className="space-y-5">
