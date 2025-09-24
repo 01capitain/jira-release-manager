@@ -73,6 +73,28 @@ function setupMockDb({
         }
         return componentVersions;
       }),
+      upsert: jest.fn(async (args: any) => {
+        const where = args.where?.builtVersionId_releaseComponentId;
+        if (!where) throw new Error("mock upsert expects builtVersionId_releaseComponentId");
+        const idx = componentVersions.findIndex(
+          (cv) => cv.builtVersionId === where.builtVersionId && cv.releaseComponentId === where.releaseComponentId,
+        );
+        if (idx >= 0) {
+          componentVersions[idx] = { ...componentVersions[idx], ...(args.update ?? {}) };
+          const row = componentVersions[idx];
+          return args.select ? { id: row.id, increment: row.increment } : row;
+        }
+        const created: CV = {
+          id: `cv-${++cvAuto}`,
+          releaseComponentId: args.create.releaseComponent.connect.id,
+          builtVersionId: args.create.builtVersion.connect.id,
+          name: args.create.name,
+          increment: args.create.increment,
+          tokenValues: args.create.tokenValues,
+        };
+        componentVersions.push(created);
+        return args.select ? { id: created.id, increment: created.increment } : created;
+      }),
       create: jest.fn(async (args: any) => {
         const row: CV = {
           id: `cv-${++cvAuto}`,
