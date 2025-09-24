@@ -1,5 +1,4 @@
 import { z } from "zod";
-import type { Prisma } from "@prisma/client";
 import { ReleaseVersionSelectObjectSchema } from "./ReleaseVersionSelect.schema";
 import { ReleaseVersionIncludeObjectSchema } from "./ReleaseVersionInclude.schema";
 

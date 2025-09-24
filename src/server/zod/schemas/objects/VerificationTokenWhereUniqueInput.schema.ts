@@ -14,7 +14,8 @@ const makeSchema = () =>
     })
     .strict()
     .superRefine((obj, ctx) => {
-      const presentTop = (k: string) => (obj as any)[k] != null;
+      const top = obj as Record<string, unknown>;
+      const presentTop = (k: string) => top[k] != null;
       const singles: string[] = ["token"] as string[];
       const groups: string[][] = [["identifier", "token"]] as string[][];
 
@@ -30,13 +31,13 @@ const makeSchema = () =>
           obj as Record<string, unknown>,
         )) {
           if (!composite || typeof composite !== "object") continue;
-          for (const g of groups as string[][]) {
+          for (const g of groups) {
             if (!Array.isArray(g) || g.length === 0) continue;
             const presentInComposite = (k: string) =>
-              (composite as any)[k] != null;
-            const provided = (g as string[]).filter(presentInComposite).length;
+              (composite as Record<string, unknown>)[k] != null;
+            const provided = (g).filter(presentInComposite).length;
             if (provided > 0 && provided < g.length) {
-              for (const f of g as string[]) {
+              for (const f of g) {
                 if (!presentInComposite(f)) {
                   ctx.addIssue({
                     code: "custom",
@@ -63,3 +64,4 @@ const makeSchema = () =>
 export const VerificationTokenWhereUniqueInputObjectSchema: z.ZodType<Prisma.VerificationTokenWhereUniqueInput> =
   makeSchema() as unknown as z.ZodType<Prisma.VerificationTokenWhereUniqueInput>;
 export const VerificationTokenWhereUniqueInputObjectZodSchema = makeSchema();
+ 

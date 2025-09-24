@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-argument */
 import { SuccessorBuiltService } from "~/server/services/successor-built.service";
 
 type CV = {
@@ -119,7 +120,7 @@ describe("SuccessorBuiltService.createSuccessorBuilt", () => {
 
   test("selecting all keeps rows on current and seeds successor", async () => {
     const { db, ids, componentVersions } = setupMockDb({ components: comps, currentBuiltName: "version 1.0", successorBuiltName: "version 1.1" });
-    const svc = new SuccessorBuiltService(db as any);
+    const svc = new SuccessorBuiltService(db);
     const summary = await svc.createSuccessorBuilt(ids.BUILT_X as any, comps.map((c) => c.id), "user-1" as any);
     const onX = componentVersions.filter((cv) => cv.builtVersionId === ids.BUILT_X);
     const onY = componentVersions.filter((cv) => cv.builtVersionId === ids.BUILT_Y);
@@ -130,7 +131,7 @@ describe("SuccessorBuiltService.createSuccessorBuilt", () => {
 
   test("unselected move to successor; selected remain and seed successor", async () => {
     const { db, ids, componentVersions } = setupMockDb({ components: comps, currentBuiltName: "version 1.0", successorBuiltName: "version 1.1" });
-    const svc = new SuccessorBuiltService(db as any);
+    const svc = new SuccessorBuiltService(db);
     await svc.createSuccessorBuilt(ids.BUILT_X as any, ["A", "C"], "user-1" as any);
     const onX = componentVersions.filter((cv) => cv.builtVersionId === ids.BUILT_X);
     const onY = componentVersions.filter((cv) => cv.builtVersionId === ids.BUILT_Y);
@@ -142,8 +143,8 @@ describe("SuccessorBuiltService.createSuccessorBuilt", () => {
 
   test("validation: at least one component must be selected", async () => {
     const { db, ids } = setupMockDb({ components: comps, currentBuiltName: "version 1.0", successorBuiltName: "version 1.1" });
-    const svc = new SuccessorBuiltService(db as any);
+    const svc = new SuccessorBuiltService(db);
     await expect(svc.createSuccessorBuilt(ids.BUILT_X as any, [], "user-1" as any)).rejects.toMatchObject({ code: "VALIDATION_ERROR" });
   });
 });
-
+ 

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-argument */
 import { ReleaseVersionService } from "~/server/services/release-version.service";
 import { BuiltVersionService } from "~/server/services/built-version.service";
 import { BuiltVersionStatusService } from "~/server/services/built-version-status.service";
@@ -7,7 +8,7 @@ function makeMockDb() {
   const calls: Record<string, unknown[]> = {};
   const record = (key: string, payload: unknown) => {
     calls[key] = calls[key] ?? [];
-    calls[key]!.push(payload);
+    calls[key].push(payload);
   };
 
   const REL_ID = "11111111-1111-1111-1111-111111111111";
@@ -91,7 +92,7 @@ describe("ReleaseVersion and BuiltVersion behavior", () => {
     // Mock Release name when looked up by BuiltVersionService
     db.releaseVersion.findUniqueOrThrow = jest.fn(async () => ({ id: "11111111-1111-1111-1111-111111111111", name: "version 100" }));
 
-    const svc = new ReleaseVersionService(db as any);
+    const svc = new ReleaseVersionService(db);
     await svc.create("user-1" as any, "version 100");
 
     // builtVersion created alongside
@@ -107,7 +108,7 @@ describe("ReleaseVersion and BuiltVersion behavior", () => {
     const { db } = makeMockDb();
     const REL2 = "22222222-2222-2222-2222-222222222222";
     db.releaseVersion.findUniqueOrThrow = jest.fn(async () => ({ id: REL2, name: "version 200" }));
-    const bsvc = new BuiltVersionService(db as any);
+    const bsvc = new BuiltVersionService(db);
     await bsvc.create("user-1" as any, REL2 as any, "version 200.0");
     // Two components → two component versions
     expect(db.componentVersion.create).toHaveBeenCalledTimes(2);
@@ -120,7 +121,7 @@ describe("ReleaseVersion and BuiltVersion behavior", () => {
     db.releaseVersion.findUnique = jest.fn(async () => ({ id: "11111111-1111-1111-1111-111111111111", name: "version 300", lastUsedIncrement: 0 }));
     db.builtVersion.findFirst = jest.fn(async () => null); // no newer exists
 
-    const ssvc = new BuiltVersionStatusService(db as any);
+    const ssvc = new BuiltVersionStatusService(db);
     const res = await ssvc.transition("33333333-3333-3333-3333-333333333333" as any, "startDeployment", "user-1" as any);
     expect(res.status).toBe("in_deployment");
 
@@ -137,7 +138,7 @@ describe("ReleaseVersion and BuiltVersion behavior", () => {
     // Simulate a newer build existing
     db.builtVersion.findFirst = jest.fn(async () => ({ id: "built-NEWER" }));
 
-    const ssvc = new BuiltVersionStatusService(db as any);
+    const ssvc = new BuiltVersionStatusService(db);
     await ssvc.transition("44444444-4444-4444-4444-444444444444" as any, "startDeployment", "user-1" as any);
     // ensure builtVersion.create was NOT called
     expect(db.builtVersion.create).not.toHaveBeenCalled();
@@ -145,3 +146,4 @@ describe("ReleaseVersion and BuiltVersion behavior", () => {
     expect(db.componentVersion.create).not.toHaveBeenCalled();
   });
 });
+ 

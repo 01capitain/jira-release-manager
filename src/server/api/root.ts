@@ -1,4 +1,3 @@
-import { postRouter } from "~/server/api/routers/post";
 import { releaseVersionRouter } from "~/server/api/routers/release-version";
 import { builtVersionRouter } from "~/server/api/routers/built-version";
 import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
@@ -11,7 +10,6 @@ import { componentVersionRouter } from "~/server/api/routers/component-version";
  * All routers added in /api/routers should be manually added here.
  */
 export const appRouter = createTRPCRouter({
-  post: postRouter,
   releaseVersion: releaseVersionRouter,
   builtVersion: builtVersionRouter,
   releaseComponent: releaseComponentRouter,

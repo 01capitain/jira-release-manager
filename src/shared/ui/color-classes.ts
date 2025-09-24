@@ -118,7 +118,7 @@ export type ColorBase = keyof typeof MAP;
 
 // Map a set of base colors to safe class names for pills.
 // Uses neutral fallback if unknown.
-export function colorClasses(base: ColorBase | string): ColorClasses {
+export function colorClasses(base: string): ColorClasses {
   return MAP[base as keyof typeof MAP] ?? MAP.neutral;
 }
 

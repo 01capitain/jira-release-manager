@@ -1,4 +1,4 @@
-import type { PrismaClient, BuiltVersion, User } from "@prisma/client";
+import type { PrismaClient, BuiltVersion, User, Prisma } from "@prisma/client";
 
 import { validatePattern, expandPattern } from "~/server/services/component-version-naming.service";
 
@@ -26,14 +26,11 @@ export class SuccessorBuiltService {
 
     const summary: SuccessorBuiltSummary = { moved: 0, created: 0, updated: 0, successorBuiltId: "" };
 
-    const successorId = await this.db.$transaction(async (tx) => {
+    const successorId = await this.db.$transaction(async (tx): Promise<string> => {
       const built = await tx.builtVersion.findUniqueOrThrow({
         where: { id: builtVersionId },
         select: { id: true, name: true, versionId: true, createdAt: true },
       });
-      // ...
-      return successor.id;
-    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
 
       // Must be in_deployment
       const latestTransition = await tx.builtVersionTransition.findFirst({
@@ -72,7 +69,7 @@ export class SuccessorBuiltService {
           release_version: release.name,
           built_version: builtName,
           increment,
-        } as any);
+        });
 
       // Load all release components for this release
       const componentDefs = await tx.releaseComponent.findMany({
@@ -130,11 +127,11 @@ export class SuccessorBuiltService {
                 increment: nextIncrement,
                 releaseComponent: { connect: { id: rcId } },
                 builtVersion: { connect: { id: successor.id } },
-                tokenValues: makeTokens(successor.name, nextIncrement),
+                tokenValues: makeTokens(successor.name, nextIncrement) as Prisma.InputJsonValue,
               },
               update: {
                 ...(computed ? { name: computed } : {}),
-                tokenValues: makeTokens(successor.name, nextIncrement),
+                tokenValues: makeTokens(successor.name, nextIncrement) as Prisma.InputJsonValue,
               },
               select: { id: true, increment: true },
             });
@@ -164,11 +161,11 @@ export class SuccessorBuiltService {
                 increment: 0,
                 releaseComponent: { connect: { id: rcId } },
                 builtVersion: { connect: { id: built.id } },
-                tokenValues: makeTokens(built.name, 0),
+                tokenValues: makeTokens(built.name, 0) as Prisma.InputJsonValue,
               },
               update: {
                 name: nameX,
-                tokenValues: makeTokens(built.name, 0),
+                tokenValues: makeTokens(built.name, 0) as Prisma.InputJsonValue,
               },
             });
             // If it already existed, this counts as an update; keep summary simple and count as created only when missing in our snapshot
@@ -188,7 +185,7 @@ export class SuccessorBuiltService {
               data: {
                 builtVersionId: successor.id,
                 name,
-                tokenValues: makeTokens(successor.name, current.increment),
+                tokenValues: makeTokens(successor.name, current.increment) as Prisma.InputJsonValue,
               },
             });
             summary.moved += 1;
@@ -196,6 +193,7 @@ export class SuccessorBuiltService {
           // If current is missing, do nothing to avoid losing an existing successor row.
         }
       }
+
       return successor.id;
     });
 

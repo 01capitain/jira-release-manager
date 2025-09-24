@@ -3,12 +3,8 @@
 import * as React from "react";
 import { Card, CardContent } from "~/components/ui/card";
 import { api } from "~/trpc/react";
-import type {
-  BuiltVersionAction,
-  BuiltVersionStatus,
-} from "~/shared/types/built-version-status";
+import type { BuiltVersionAction } from "~/shared/types/built-version-status";
 import {
-  StatusBadgeColor,
   labelForAction,
   targetStatusForAction,
   labelForStatus,
@@ -17,7 +13,7 @@ import {
 import { Button } from "~/components/ui/button";
 import { ComponentVersionLabels } from "./component-version-labels";
 import { Separator } from "~/components/ui/separator";
-import { RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { ScrollArea } from "~/components/ui/scroll-area";
 import { Modal } from "~/components/ui/modal";
 import { colorClasses } from "~/shared/ui/color-classes";
@@ -25,7 +21,7 @@ import { colorClasses } from "~/shared/ui/color-classes";
 export default function BuiltVersionCard({
   id,
   name,
-  createdAt,
+  createdAt: _createdAt,
 }: {
   id: string;
   name: string;
@@ -43,7 +39,7 @@ export default function BuiltVersionCard({
 
   const { data: statusData, isFetching: fetchingStatus } =
     api.builtVersion.getStatus.useQuery({ builtVersionId: id });
-  const currentStatus = (statusData?.status ?? "in_development") as BuiltVersionStatus;
+  const currentStatus = (statusData?.status ?? "in_development");
   const utils = api.useUtils();
   const transition = api.builtVersion.transition.useMutation({
     onSuccess: async (_data, variables) => {
@@ -81,7 +77,7 @@ export default function BuiltVersionCard({
   React.useEffect(() => {
     if (!selecting) return;
     const ids = defaultSel.data?.selectedReleaseComponentIds;
-    if (ids && ids.length) {
+    if (ids?.length) {
       setSelectedIds(ids);
     }
   }, [selecting, defaultSel.data]);
@@ -134,7 +130,7 @@ export default function BuiltVersionCard({
       <CardContent className="flex h-full flex-col p-0">
         {/* Colored header by status */}
         {(() => {
-          const c = StatusBadgeColor[currentStatus];
+          // const c = StatusBadgeColor[currentStatus];
           // Determine adjacent actions
           const forward = (() => {
             switch (currentStatus) {
@@ -208,6 +204,12 @@ export default function BuiltVersionCard({
         {hydrated && (
           <span role="status" aria-atomic="true" className="sr-only">
             {fetchingStatus ? "Loading status" : `Status ${currentStatus}`}
+          </span>
+        )}
+        {/* Ephemeral action messages for AT users */}
+        {lastMessage && (
+          <span role="status" aria-atomic="true" className="sr-only">
+            {lastMessage}
           </span>
         )}
         {/* Pending state UI suppressed per UX request */}
