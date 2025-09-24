@@ -43,7 +43,7 @@ const NAV_GROUPS: NavGroup[] = [
     label: "Jira settings",
     icon: Settings,
     items: [
-      { href: "/jira-settings/connect", label: "Jira connect" },
+      { href: "/jira-settings/connect", label: "Jira Connect" },
       { href: "/jira-settings/releases", label: "Releases" },
     ],
   },
