@@ -60,6 +60,7 @@ From `deprecated`:
 
 - Releases page (`src/app/versions/releases/page.tsx`) invalidates and refetches the releases-with-builds list only after a successful `startDeployment` transition, ensuring the auto-created successor appears immediately. Other transitions do not trigger a list reload.
 - The page caches the releases-with-builds response in `localStorage` under `jrm:releases:accordion:releases-with-builds:v1` as placeholder data and refreshes on demand.
+- Default selection (no prior active build): selects all global `ReleaseComponent` entries (components are not release-scoped).
 
 ## Key Files
 

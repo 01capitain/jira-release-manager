@@ -71,7 +71,9 @@ export const builtVersionRouter = createTRPCRouter({
       const activeBuiltId = builds.find((b) => latestByBuild.get(b.id) === "active")?.id ?? null;
 
       if (!activeBuiltId) {
-        // No prior active build; default to all components
+        // No prior active build; default to all components.
+        // Note: ReleaseComponents are global (not per Release), so this intentionally
+        // does not filter by releaseId.
         const all = await ctx.db.releaseComponent.findMany({ select: { id: true } });
         return { selectedReleaseComponentIds: all.map((c) => c.id) } as const;
       }

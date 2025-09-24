@@ -104,25 +104,17 @@ export class SuccessorBuiltService {
         const succ = successorByComponent.get(rcId);
         if (selected.has(rcId)) {
           // Ensure a successor seed row exists
-          if (succ) {
-            const name = computeName(rcId, succ.increment) ?? undefined;
-            await tx.componentVersion.update({
-              where: { id: succ.id },
-              data: {
-                ...(name ? { name } : {}),
-                tokenValues: {
-                  release_version: release.name,
-                  built_version: successor.name,
-                  increment: succ.increment,
-                } as any,
+          {
+            const nextIncrement = succ?.increment ?? 0;
+            const computed = computeName(rcId, nextIncrement) ?? undefined;
+            const row = await tx.componentVersion.upsert({
+              where: {
+                builtVersionId_releaseComponentId: {
+                  builtVersionId: successor.id,
+                  releaseComponentId: rcId,
+                },
               },
-            });
-            summary.updated += 1;
-          } else {
-            const nextIncrement = 0;
-            const computed = computeName(rcId, nextIncrement);
-            const created = await tx.componentVersion.create({
-              data: {
+              create: {
                 name: computed ?? `${successor.name}-${rcId}-0`,
                 increment: nextIncrement,
                 releaseComponent: { connect: { id: rcId } },
@@ -133,9 +125,18 @@ export class SuccessorBuiltService {
                   increment: nextIncrement,
                 } as any,
               },
+              update: {
+                ...(computed ? { name: computed } : {}),
+                tokenValues: {
+                  release_version: release.name,
+                  built_version: successor.name,
+                  increment: nextIncrement,
+                } as any,
+              },
+              select: { id: true, increment: true },
             });
-            successorByComponent.set(rcId, { id: created.id, increment: nextIncrement });
-            summary.created += 1;
+            successorByComponent.set(rcId, { id: row.id, increment: row.increment });
+            if (succ) summary.updated += 1; else summary.created += 1;
           }
           // If the current row is missing (edge case), create one so the closed build shows selected comps
           if (!current) {
@@ -148,8 +149,14 @@ export class SuccessorBuiltService {
                 nextIncrement: 0,
               });
             }
-            await tx.componentVersion.create({
-              data: {
+            await tx.componentVersion.upsert({
+              where: {
+                builtVersionId_releaseComponentId: {
+                  builtVersionId: built.id,
+                  releaseComponentId: rcId,
+                },
+              },
+              create: {
                 name: nameX,
                 increment: 0,
                 releaseComponent: { connect: { id: rcId } },
@@ -160,8 +167,17 @@ export class SuccessorBuiltService {
                   increment: 0,
                 } as any,
               },
+              update: {
+                name: nameX,
+                tokenValues: {
+                  release_version: release.name,
+                  built_version: built.name,
+                  increment: 0,
+                } as any,
+              },
             });
-            summary.created += 1;
+            // If it already existed, this counts as an update; keep summary simple and count as created only when missing in our snapshot
+            summary.created += current ? 0 : 1;
           }
         } else {
           // Unselected: move current row to successor
