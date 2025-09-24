@@ -66,11 +66,8 @@ export default function JiraReleasesPage() {
         ) : null}
         {(!session || canSyncQuick.isLoading || !canSyncQuick.data) ? null : canSyncQuick.data.ok ? (
         <div className="mt-3 flex flex-wrap items-center gap-3">
-          <div
-            role="group"
-            aria-label="Filter statuses"
-            className="inline-flex overflow-hidden rounded-md border border-neutral-300 dark:border-neutral-700"
-          >
+          <fieldset className="inline-flex overflow-hidden rounded-md border border-neutral-300 dark:border-neutral-700">
+            <legend className="sr-only">Filter statuses</legend>
             <Button
               variant="outline"
               onClick={() => setIncludeUnreleased((v) => !v)}
@@ -95,7 +92,7 @@ export default function JiraReleasesPage() {
             >
               Archived
             </Button>
-          </div>
+          </fieldset>
           <Button
             onClick={() => void sync.mutateAsync({ includeArchived, includeReleased, includeUnreleased, pageSize: 50 })}
             disabled={!session || sync.isPending}
