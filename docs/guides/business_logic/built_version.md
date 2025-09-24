@@ -21,10 +21,10 @@ When a Built Version transitions to `in_deployment`, operators select which comp
 
 Behavior:
 - Successor creation: The successor Built Version (X+1) is auto-created on the status transition `startDeployment` (in_development → in_deployment) if no newer build exists yet.
-- Selected components: remain attached to the releasing Built (X). One row is ensured in the successor (X+1) per component (created if missing) using the naming helpers and token snapshots. Fresh successor component series start at increment `0`.
-- Unselected components: the current row is moved from X to X+1 (no new entity created). The name and token snapshot are recomputed using the successor’s name. Any placeholder row for that component in X+1 is deleted first to avoid duplicates.
-- Transactional: The entire operation is performed in a single transaction to ensure consistency and idempotency (no duplicates per component in the successor).
-
+- Selected components: remain attached to the releasing Built (X). Ensure exactly one successor row exists in (X+1) per component via an upsert using the naming helpers and token snapshots. Successor component series start at increment `0`.
+- Unselected components: move the existing row from X to X+1 (no new entity). Recompute name and token snapshot using the successor’s name. If a non-materialized placeholder exists in X+1 for that component, remove it before the move to avoid duplicates; otherwise perform the move idempotently.
+- Validation: at least one component must be selected; otherwise return a validation error.
+- Transactional and idempotent: perform the entire operation in a single transaction; enforce uniqueness on `(builtVersionId, releaseComponentId)` in the successor to prevent duplicates.
 Notes:
 - The selection step (`createSuccessorBuilt`) keeps the build in `in_deployment`. Marking a build `active` is a separate transition performed afterwards.
 - Naming uses `{release_version}`, `{built_version}`, `{increment}` with snapshots stored on both Built and Component rows.
