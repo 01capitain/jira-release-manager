@@ -58,20 +58,18 @@ export const builtVersionRouter = createTRPCRouter({
         orderBy: { createdAt: "desc" },
         select: { id: true },
       });
-      // Find most recent with status == active
-      let activeBuiltId: string | null = null;
-      for (const b of builds) {
-        const latest = await ctx.db.builtVersionTransition.findFirst({
-          where: { builtVersionId: b.id },
-          orderBy: { createdAt: "desc" },
-          select: { toStatus: true },
-        });
-        const status = latest?.toStatus ?? "in_development";
-        if (status === "active") {
-          activeBuiltId = b.id;
-          break;
-        }
+      const buildIds = builds.map((b) => b.id);
+      const transitions = await ctx.db.builtVersionTransition.findMany({
+        where: { builtVersionId: { in: buildIds } },
+        orderBy: { createdAt: "desc" },
+        select: { builtVersionId: true, toStatus: true, createdAt: true },
+      });
+      const latestByBuild = new Map<string, string>();
+      for (const t of transitions) {
+        if (!latestByBuild.has(t.builtVersionId)) latestByBuild.set(t.builtVersionId, t.toStatus);
       }
+      const activeBuiltId = builds.find((b) => latestByBuild.get(b.id) === "active")?.id ?? null;
+
       if (!activeBuiltId) {
         // No prior active build; default to all components
         const all = await ctx.db.releaseComponent.findMany({ select: { id: true } });
