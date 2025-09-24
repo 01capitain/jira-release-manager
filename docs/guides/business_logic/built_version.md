@@ -28,6 +28,9 @@ Behavior:
 Notes:
 - The selection step (`createSuccessorBuilt`) keeps the build in `in_deployment`. Marking a build `active` is a separate transition performed afterwards.
 - Naming uses `{release_version}`, `{built_version}`, `{increment}` with snapshots stored on both Built and Component rows.
+- Allowed only when the current status is `in_deployment`.
+- Retries of `createSuccessorBuilt` must be idempotent (no duplicate successor rows, no name regressions) and should handle existing placeholders gracefully.
+- Terminology: a “placeholder” ComponentVersion is a pre-created, non-materialized row that can be safely replaced/removed during selection.
 
 ## Lifecycle & Status Derivation (History-Driven)
 
