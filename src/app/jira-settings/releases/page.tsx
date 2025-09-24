@@ -128,7 +128,7 @@ export default function JiraReleasesPage() {
                     </div>
                     {v.releaseDate ? (
                       <div className="text-xs text-neutral-500 dark:text-neutral-400">
-                        Release date: {String(v.releaseDate).slice(0, 10)}
+                        Release date: {new Date(v.releaseDate).toISOString().slice(0, 10)}
                       </div>
                     ) : null}
                   </div>
