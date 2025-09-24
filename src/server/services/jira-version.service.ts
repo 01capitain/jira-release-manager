@@ -68,7 +68,9 @@ export class JiraVersionService {
     let isLast = false;
 
     while (!isLast) {
-      const url = `${baseUrl}/rest/api/3/project/${projectKey}/version?startAt=${startAt}&maxResults=${pageSize}`;
+      const url = `${String(baseUrl).replace(/\/+$/, "")}/rest/api/3/project/${encodeURIComponent(
+        String(projectKey)
+      )}/version?startAt=${startAt}&maxResults=${pageSize}`;
       const res = await fetch(url, { headers, cache: "no-store" });
       if (!res.ok) {
         const text = await res.text().catch(() => "");
