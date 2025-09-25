@@ -177,10 +177,10 @@ model ComponentVersion {
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
 
-    @@index([releaseComponentId])
-    @@index([builtVersionId])
     /// Ensure at most one ComponentVersion exists per (builtVersion, releaseComponent)
     @@unique([builtVersionId, releaseComponentId])
+    @@index([releaseComponentId])
+    @@index([builtVersionId])
     @@schema("app")
 }
 
@@ -204,11 +204,11 @@ model BuiltVersionTransition {
 
 // Stores per-user Jira Cloud credentials
 model JiraCredential {
-    id        String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
-    user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-    userId    String   @unique @db.Uuid
-    email     String
-    apiToken  String
+    id       String @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+    user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+    userId   String @unique @db.Uuid
+    email    String
+    apiToken String
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
@@ -217,22 +217,29 @@ model JiraCredential {
     @@schema("app")
 }
 
+enum JiraReleaseStatus {
+    Released
+    Unreleased
+    Archived
+
+    @@schema("app")
+}
+
 // Stores Jira versions fetched from the API for local use
 model JiraVersion {
-    id          String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
-    jiraId      String   // Jira version id from API
-    name        String
-    description String?
-    released    Boolean  @default(false)
-    archived    Boolean  @default(false)
-    releaseDate DateTime?
-    startDate   DateTime?
-    projectKey  String?
+    id            String            @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+    jiraId        String // Jira version id from API
+    name          String
+    description   String?
+    releaseStatus JiraReleaseStatus @default(Unreleased)
+    releaseDate   DateTime?
+    startDate     DateTime?
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
 
     @@unique([jiraId])
-    @@index([projectKey])
+    @@index([releaseStatus])
+    @@index([releaseStatus, name])
     @@schema("app")
 }
