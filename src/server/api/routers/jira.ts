@@ -331,11 +331,9 @@ export const jiraRouter = createTRPCRouter({
       if (!res.configured) {
         throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Jira not configured" });
       }
-      // Upsert versions
-      const tx = anyDb as any;
-      let upserts = 0;
-      for (const v of res.items) {
-        await versModel.upsert({
+      // Upsert versions atomically
+      const ops = res.items.map((v: any) =>
+        versModel.upsert({
           where: { jiraId: v.id },
           update: {
             name: v.name,
@@ -356,9 +354,10 @@ export const jiraRouter = createTRPCRouter({
             startDate: v.startDate ? new Date(v.startDate) : null,
             projectKey: env.JIRA_PROJECT_KEY ?? null,
           },
-        });
-        upserts += 1;
-      }
-      return { saved: upserts } as const;
+        })
+      );
+      const client: any = (ctx as any).db;
+      const results = client?.$transaction ? await client.$transaction(ops) : await Promise.all(ops);
+      return { saved: results.length } as const;
     }),
 });
