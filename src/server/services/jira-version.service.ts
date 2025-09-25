@@ -38,8 +38,8 @@ export class JiraVersionService {
   }): Promise<{ configured: boolean; items: JiraVersion[] }> {
     const baseUrl = options?.baseUrl ?? this.baseUrl;
     const projectKey = options?.projectKey ?? this.projectKey;
-    const email = options?.email ?? this.email;
-    const token = options?.apiToken ?? this.token;
+    const email = options?.email;
+    const token = options?.apiToken;
     const configured = Boolean(baseUrl && projectKey && email && token);
     if (!configured) return { configured: false, items: [] };
 
