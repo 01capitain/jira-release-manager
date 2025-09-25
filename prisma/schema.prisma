@@ -179,6 +179,8 @@ model ComponentVersion {
 
     @@index([releaseComponentId])
     @@index([builtVersionId])
+    /// Ensure at most one ComponentVersion exists per (builtVersion, releaseComponent)
+    @@unique([builtVersionId, releaseComponentId])
     @@schema("app")
 }
 

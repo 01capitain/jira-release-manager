@@ -66,6 +66,7 @@ export function ColorSwatchPicker({
     <div
       ref={ref}
       role="radiogroup"
+      tabIndex={0}
       aria-label={ariaLabel}
       className={cn("flex flex-wrap gap-2", className)}
       onKeyDown={onKeyDown}
@@ -96,4 +97,3 @@ export function ColorSwatchPicker({
     </div>
   );
 }
-

@@ -1,11 +1,26 @@
-import type { Prisma, PrismaClient, BuiltVersion, User } from "@prisma/client";
+import type { PrismaClient } from "@prisma/client";
 import type {
   BuiltVersionAction as ApiAction,
   BuiltVersionStatus,
 } from "~/shared/types/built-version-status";
 
-// Map API action (camelCase) to Prisma enum (snake_case)
-const ActionToPrisma: Record<ApiAction, Prisma.BuiltVersionAction> = {
+// Local copies of DB enum shapes to avoid Prisma type dependency during lint/type analysis
+type DbBuiltVersionAction =
+  | "start_deployment"
+  | "cancel_deployment"
+  | "mark_active"
+  | "revert_to_deployment"
+  | "deprecate"
+  | "reactivate";
+
+type DbBuiltVersionStatus =
+  | "in_development"
+  | "in_deployment"
+  | "active"
+  | "deprecated";
+
+// Map API action (camelCase) to DB enum (snake_case)
+const ActionToPrisma: Record<ApiAction, DbBuiltVersionAction> = {
   startDeployment: "start_deployment",
   cancelDeployment: "cancel_deployment",
   markActive: "mark_active",
@@ -15,8 +30,8 @@ const ActionToPrisma: Record<ApiAction, Prisma.BuiltVersionAction> = {
 };
 
 type TransitionRule = {
-  from: Prisma.BuiltVersionStatus;
-  to: Prisma.BuiltVersionStatus;
+  from: DbBuiltVersionStatus;
+  to: DbBuiltVersionStatus;
 };
 
 const Rules = {
@@ -26,12 +41,12 @@ const Rules = {
   revert_to_deployment: { from: "active", to: "in_deployment" },
   deprecate: { from: "active", to: "deprecated" },
   reactivate: { from: "deprecated", to: "active" },
-} satisfies Record<Prisma.BuiltVersionAction, TransitionRule>;
+} satisfies Record<DbBuiltVersionAction, TransitionRule>;
 
 export class BuiltVersionStatusService {
   constructor(private readonly db: PrismaClient) {}
 
-  async getHistory(builtVersionId: BuiltVersion["id"]) {
+  async getHistory(builtVersionId: string) {
     return this.db.builtVersionTransition.findMany({
       where: { builtVersionId },
       orderBy: { createdAt: "asc" },
@@ -46,7 +61,7 @@ export class BuiltVersionStatusService {
     });
   }
 
-  async getCurrentStatus(builtVersionId: BuiltVersion["id"]): Promise<BuiltVersionStatus> {
+  async getCurrentStatus(builtVersionId: string): Promise<BuiltVersionStatus> {
     const latest = await this.db.builtVersionTransition.findFirst({
       where: { builtVersionId },
       orderBy: { createdAt: "desc" },
@@ -56,9 +71,9 @@ export class BuiltVersionStatusService {
   }
 
   async transition(
-    builtVersionId: BuiltVersion["id"],
+    builtVersionId: string,
     action: ApiAction,
-    userId: User["id"],
+    userId: string,
   ): Promise<{ status: BuiltVersionStatus }>
   {
     const prismaAction = ActionToPrisma[action];
@@ -76,7 +91,7 @@ export class BuiltVersionStatusService {
         orderBy: { createdAt: "desc" },
         select: { toStatus: true },
       });
-      const currentStatus = (current?.toStatus ?? "in_development") as Prisma.BuiltVersionStatus;
+      const currentStatus = (current?.toStatus ?? "in_development") as DbBuiltVersionStatus;
 
       if (currentStatus !== rule.from) {
         // Provide a precise error for clients
@@ -96,11 +111,9 @@ export class BuiltVersionStatusService {
         },
       });
 
-      // Hooks: onExit/onEnter. Intentionally placed after write.
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const onExit = async (_s: Prisma.BuiltVersionStatus) => {};
+      // Hook: onEnter. Intentionally placed after write.
       // When entering a new status, perform side effects.
-      const onEnter = async (s: Prisma.BuiltVersionStatus) => {
+      const onEnter = async (s: DbBuiltVersionStatus) => {
         // When a built version moves to in_deployment, auto-create a successor
         if (s !== "in_deployment") return;
         // Fetch the built version to obtain its release version
@@ -130,15 +143,14 @@ export class BuiltVersionStatusService {
             version: { connect: { id: release.id } },
             createdBy: { connect: { id: userId } },
             // tokenValues: store tokens actually used for this built-version name
-            // Cast to any to avoid type issues before prisma generate
-            tokenValues: ({} as any),
-          } as any,
+            tokenValues: {},
+          },
           select: { id: true, name: true },
         });
         // Update last used increment on the release
         await tx.releaseVersion.update({
           where: { id: release.id },
-          data: { lastUsedIncrement: nextBuiltIncrement } as any,
+          data: { lastUsedIncrement: nextBuiltIncrement },
         });
         // Persist token snapshot now that we have final values
         await tx.builtVersion.update({
@@ -148,45 +160,12 @@ export class BuiltVersionStatusService {
               release_version: release.name,
               increment: nextBuiltIncrement,
             },
-          } as any,
+          },
         });
-        // Create initial component versions for this successor built
-        const components = await tx.releaseComponent.findMany({
-          select: { id: true, namingPattern: true },
-        });
-        if (components.length > 0) {
-          // Lazy import naming helpers to avoid circular deps
-          const { validatePattern, expandPattern } = await import(
-            "~/server/services/component-version-naming.service"
-          );
-          for (const comp of components) {
-            if (!comp.namingPattern?.trim()) continue;
-            const { valid } = validatePattern(comp.namingPattern);
-            if (!valid) continue;
-            // For a fresh built, component increments start at 0
-            const nextIncrement = 0;
-            const computedName = expandPattern(comp.namingPattern, {
-              releaseVersion: release.name,
-              builtVersion: successor.name,
-              nextIncrement,
-            });
-            await tx.componentVersion.create({
-              data: {
-                name: computedName,
-                increment: nextIncrement,
-                releaseComponent: { connect: { id: comp.id } },
-                builtVersion: { connect: { id: successor.id } },
-                tokenValues: {
-                  release_version: release.name,
-                  built_version: successor.name,
-                  increment: nextIncrement,
-                },
-              } as any,
-            });
-          }
-        }
+        // Do not pre-create ComponentVersions for the successor here.
+        // ComponentVersions will now be created/moved during deployment finalization
+        // based on user-selected components (see DeploymentService).
       };
-      await onExit(rule.from);
       await onEnter(rule.to);
 
       return { status: rule.to as BuiltVersionStatus };
@@ -194,22 +173,22 @@ export class BuiltVersionStatusService {
   }
 
   // Convenience explicit methods for improved DX
-  startDeployment(builtVersionId: BuiltVersion["id"], userId: User["id"]) {
+  startDeployment(builtVersionId: string, userId: string) {
     return this.transition(builtVersionId, "startDeployment", userId);
   }
-  cancelDeployment(builtVersionId: BuiltVersion["id"], userId: User["id"]) {
+  cancelDeployment(builtVersionId: string, userId: string) {
     return this.transition(builtVersionId, "cancelDeployment", userId);
   }
-  markActive(builtVersionId: BuiltVersion["id"], userId: User["id"]) {
+  markActive(builtVersionId: string, userId: string) {
     return this.transition(builtVersionId, "markActive", userId);
   }
-  revertToDeployment(builtVersionId: BuiltVersion["id"], userId: User["id"]) {
+  revertToDeployment(builtVersionId: string, userId: string) {
     return this.transition(builtVersionId, "revertToDeployment", userId);
   }
-  deprecate(builtVersionId: BuiltVersion["id"], userId: User["id"]) {
+  deprecate(builtVersionId: string, userId: string) {
     return this.transition(builtVersionId, "deprecate", userId);
   }
-  reactivate(builtVersionId: BuiltVersion["id"], userId: User["id"]) {
+  reactivate(builtVersionId: string, userId: string) {
     return this.transition(builtVersionId, "reactivate", userId);
   }
 }

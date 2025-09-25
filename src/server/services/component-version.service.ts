@@ -1,19 +1,11 @@
 import type { PrismaClient } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 import { validatePattern, expandPattern } from "~/server/services/component-version-naming.service";
 
 export class ComponentVersionService {
   constructor(private readonly db: PrismaClient) {}
 
-  export type ComponentVersionCreateInput = {
-    builtId: string;
-    builtName: string;
-    releaseName: string;
-    componentId: string;
-    namingPattern: string | null;
-    increment: number;
-  };
-
-  async create(input: ComponentVersionService.ComponentVersionCreateInput) {
+  async create(input: ComponentVersionCreateInput) {
     const { builtId, builtName, releaseName, componentId, namingPattern, increment } = input;
     if (!namingPattern?.trim()) return null;
     const { valid } = validatePattern(namingPattern);
@@ -33,8 +25,17 @@ export class ComponentVersionService {
           release_version: releaseName,
           built_version: builtName,
           increment,
-        } as any,
+        } as Prisma.InputJsonValue,
       },
     });
   }
 }
+
+export type ComponentVersionCreateInput = {
+  builtId: string;
+  builtName: string;
+  releaseName: string;
+  componentId: string;
+  namingPattern: string | null;
+  increment: number;
+};

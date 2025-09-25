@@ -1,4 +1,4 @@
-import type { PrismaClient, User } from "@prisma/client";
+import type { Prisma, PrismaClient, User } from "@prisma/client";
 import { mapToBuiltVersionDtos } from "~/server/zod/dto/built-version.dto";
 import {
   mapToReleaseVersionDtos,
@@ -50,15 +50,15 @@ export class ReleaseVersionService {
           tokenValues: {
             release_version: release.name,
             increment: builtIncrement,
-          },
-        } as any,
+          } as Prisma.InputJsonValue,
+        },
         select: { id: true, name: true },
       });
 
       // Update release's lastUsedIncrement to 0
       await tx.releaseVersion.update({
         where: { id: release.id },
-        data: { lastUsedIncrement: builtIncrement } as any,
+        data: { lastUsedIncrement: builtIncrement },
       });
 
       // Create initial component versions for this built
@@ -89,8 +89,8 @@ export class ReleaseVersionService {
                 release_version: release.name,
                 built_version: built.name,
                 increment: componentIncrement,
-              },
-            } as any,
+              } as Prisma.InputJsonValue,
+            },
           });
         }
       }

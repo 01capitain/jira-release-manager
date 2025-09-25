@@ -1,5 +1,4 @@
 import { z } from "zod";
-import type { Prisma } from "@prisma/client";
 import { UserSelectObjectSchema } from "./UserSelect.schema";
 import { UserIncludeObjectSchema } from "./UserInclude.schema";
 

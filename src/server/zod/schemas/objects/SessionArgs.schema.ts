@@ -1,5 +1,4 @@
 import { z } from "zod";
-import type { Prisma } from "@prisma/client";
 import { SessionSelectObjectSchema } from "./SessionSelect.schema";
 import { SessionIncludeObjectSchema } from "./SessionInclude.schema";
 
