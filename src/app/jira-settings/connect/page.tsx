@@ -87,7 +87,7 @@ export default function JiraConnectPage() {
 
   return (
     <div className="mx-auto w-full max-w-3xl">
-      <h1 className="text-2xl font-semibold tracking-tight">Jira connect</h1>
+      <h1 className="text-2xl font-semibold tracking-tight">Jira Connect</h1>
       <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
         Configure Jira connection. Base URL and Project Key are environment settings; Email and API token are stored per user in the database.
       </p>
