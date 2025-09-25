@@ -153,14 +153,10 @@ export default function JiraConnectPage() {
               id="token"
               type="password"
               value={token}
-             <Input
-               id="token"
-               type="password"
-               value={token}
-               onChange={(e) => setToken(e.target.value)}
-               autoComplete="new-password"
-               placeholder={cred.data?.hasToken ? "Token is set; enter to replace" : "Enter API token"}
-             />
+              onChange={(e) => setToken(e.target.value)}
+              autoComplete="new-password"
+              placeholder={cred.data?.hasToken ? "Token is set; enter to replace" : "Enter API token"}
+            />
           </div>
           <div className="flex items-center gap-3">
             <Button
