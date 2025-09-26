@@ -81,4 +81,4 @@ $DOCKER_CMD run -d \
   -e POSTGRES_DB="$DB_NAME" \
   -p "$DB_PORT":5432 \
   -v ./init.sql:/docker-entrypoint-initdb.d/init.sql \
-  ghcr.io/fboulnois/pg_uuidv7 && echo "Database container '$DB_CONTAINER_NAME' was successfully created"
+  postgres:18 && echo "Database container '$DB_CONTAINER_NAME' was successfully created"

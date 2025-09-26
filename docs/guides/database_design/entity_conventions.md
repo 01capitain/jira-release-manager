@@ -8,7 +8,7 @@ Keep default Prisma model names for NextAuth: User, Account, Session, Verificati
 
 Every entity must include the following columns:
 
-- id String @id @db.Uuid @default(dbgenerated("uuid_generate_v7()"))
+- id String @id @db.Uuid @default(dbgenerated("uuidv7()"))
 - createdAt DateTime @default(now())
 - updatedAt DateTime @updatedAt
 

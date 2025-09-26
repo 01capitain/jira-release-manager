@@ -1,1 +1,1 @@
-CREATE EXTENSION IF NOT EXISTS pg_uuidv7;
+-- Intentionally left blank; PostgreSQL 18 includes uuidv7() by default.

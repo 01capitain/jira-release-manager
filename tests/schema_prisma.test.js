@@ -113,7 +113,7 @@ describe("Prisma schema structure", () => {
     }
   });
 
-  it("defines a PostgreSQL datasource with DATABASE_URL and pg_uuidv7 extension", () => {
+  it("defines a PostgreSQL datasource with DATABASE_URL", () => {
     const dss = blockNames(schemaText, "datasource");
     expect(dss.length).toBeGreaterThanOrEqual(1);
 
@@ -124,10 +124,7 @@ describe("Prisma schema structure", () => {
       if (dsBlock) {
         expect(dsBlock).toMatch(/provider\s*=\s*"postgresql"/);
         expect(dsBlock).toMatch(/url\s*=\s*env\("DATABASE_URL"\)/);
-        // extension list includes pg_uuidv7
-        expect(dsBlock.replace(/\s+/g, " ")).toMatch(
-          /extensions\s*=\s*\[[^\]]*pg_uuidv7[^\}\]]*\]/,
-        );
+        expect(dsBlock).not.toMatch(/extensions\s*=/);
       }
     }
   });
@@ -146,7 +143,7 @@ describe("Prisma schema structure", () => {
     if (account) {
       // Account basics
       expect(account.replace(/\s+/g, " ")).toMatch(
-        /id\s+String\s+@id\s+@default\(dbgenerated\(\"uuid_generate_v7\(\)\"\)\)\s+@db.Uuid/,
+        /id\s+String\s+@id\s+@default\(dbgenerated\(\"uuidv7\(\)\"\)\)\s+@db.Uuid/,
       );
       expect(account).toMatch(/@@unique\(\[provider,\s*providerAccountId\]\)/);
       expect(account).toMatch(/@@index\(\[userId\]\)/);
@@ -158,7 +155,7 @@ describe("Prisma schema structure", () => {
     if (session) {
       // Session basics
       expect(session.replace(/\s+/g, " ")).toMatch(
-        /id\s+String\s+@id\s+@default\(dbgenerated\(\"uuid_generate_v7\(\)\"\)\)\s+@db.Uuid/,
+        /id\s+String\s+@id\s+@default\(dbgenerated\(\"uuidv7\(\)\"\)\)\s+@db.Uuid/,
       );
       expect(session).toMatch(/sessionToken\s+String\s+@unique/);
       expect(session).toMatch(/@@index\(\[userId\]\)/);
@@ -167,7 +164,7 @@ describe("Prisma schema structure", () => {
     if (user) {
       // User basics
       expect(user.replace(/\s+/g, " ")).toMatch(
-        /id\s+String\s+@id\s+@default\(dbgenerated\(\"uuid_generate_v7\(\)\"\)\)\s+@db.Uuid/,
+        /id\s+String\s+@id\s+@default\(dbgenerated\(\"uuidv7\(\)\"\)\)\s+@db.Uuid/,
       );
       expect(user).toMatch(/email\s+String\?\s+@unique/);
     }

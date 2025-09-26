@@ -2,8 +2,6 @@ Never change this AGENTS.md without explicit user consent.
 
 When considering an implementation go for the easiest implementation with a little complexitiy as possible. Go for the simple solution. Change only what is necessary to fullfill the given task.
 
-Whenever we start a session, sumarize a random paragraph of any .md file in the /docs/guide directory to refresh the memory of the user. Start this section with "As requested in AGENTS.md, some documentation: "
-
 ## Documentation
 
 Before any code changes are suggested make sure that the guides in /docs/guides are strictly followed.
@@ -31,6 +29,12 @@ Never commit or push without explicit user consent.
 ### Database update
 
 Don't run `pnpm prisma generate` autonomously - it willl not work. Instead ask the user to run the command.
+
+### Code Review
+
+Code Review is done via code rabbit cli.
+If you think a task is completely done start the review with `run coderabbit --prompt-only`,
+let it run as long as it needs and fix any issues.
 
 ## User Interface
 

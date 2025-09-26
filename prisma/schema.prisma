@@ -2,8 +2,7 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-    provider        = "prisma-client-js"
-    previewFeatures = ["postgresqlExtensions"]
+    provider = "prisma-client-js"
 }
 
 // Generate Zod schemas from Prisma models to keep server/client types in sync
@@ -23,7 +22,6 @@ datasource db {
     url        = env("DATABASE_URL")
     // Allow multi-schema setup for auth and app
     schemas    = ["app", "auth"]
-    extensions = [pg_uuidv7]
 }
 
 // --- Built Version lifecycle enums ---
@@ -48,7 +46,7 @@ enum BuiltVersionAction {
 }
 
 model ReleaseVersion {
-    id                String         @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+    id                String         @id @default(dbgenerated("uuidv7()")) @db.Uuid
     name              String         @unique
     // componentVersions ComponentVersion[]
     builtVersions     BuiltVersion[]
@@ -67,7 +65,7 @@ model ReleaseVersion {
 }
 
 model User {
-    id                     String                   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+    id                     String                   @id @default(dbgenerated("uuidv7()")) @db.Uuid
     name                   String?
     // TODO: Remove
     email                  String?                  @unique
@@ -87,7 +85,7 @@ model User {
 // Necessary for Next auth
 // AUTH MODELS (mapped to auth schema)
 model Account {
-    id                       String  @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+    id                       String  @id @default(dbgenerated("uuidv7()")) @db.Uuid
     userId                   String  @db.Uuid
     type                     String
     provider                 String
@@ -108,7 +106,7 @@ model Account {
 }
 
 model Session {
-    id           String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+    id           String   @id @default(dbgenerated("uuidv7()")) @db.Uuid
     sessionToken String   @unique
     userId       String   @db.Uuid
     expires      DateTime
@@ -128,7 +126,7 @@ model VerificationToken {
 }
 
 model BuiltVersion {
-    id                String             @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+    id                String             @id @default(dbgenerated("uuidv7()")) @db.Uuid
     name              String
     version           ReleaseVersion     @relation(fields: [versionId], references: [id])
     versionId         String             @db.Uuid
@@ -148,7 +146,7 @@ model BuiltVersion {
 }
 
 model ReleaseComponent {
-    id                String             @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+    id                String             @id @default(dbgenerated("uuidv7()")) @db.Uuid
     name              String             @unique
     color             String
     namingPattern     String
@@ -164,7 +162,7 @@ model ReleaseComponent {
 }
 
 model ComponentVersion {
-    id                 String           @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+    id                 String           @id @default(dbgenerated("uuidv7()")) @db.Uuid
     releaseComponent   ReleaseComponent @relation(fields: [releaseComponentId], references: [id])
     releaseComponentId String           @db.Uuid
     builtVersion       BuiltVersion     @relation(fields: [builtVersionId], references: [id])
@@ -186,7 +184,7 @@ model ComponentVersion {
 
 // History of state transitions for Releases (Built Versions).
 model BuiltVersionTransition {
-    id             String             @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+    id             String             @id @default(dbgenerated("uuidv7()")) @db.Uuid
     builtVersion   BuiltVersion       @relation(fields: [builtVersionId], references: [id])
     builtVersionId String             @db.Uuid
     fromStatus     BuiltVersionStatus
@@ -204,7 +202,7 @@ model BuiltVersionTransition {
 
 // Stores per-user Jira Cloud credentials
 model JiraCredential {
-    id       String @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+    id       String @id @default(dbgenerated("uuidv7()")) @db.Uuid
     user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
     userId   String @unique @db.Uuid
     email    String
@@ -227,7 +225,7 @@ enum JiraReleaseStatus {
 
 // Stores Jira versions fetched from the API for local use
 model JiraVersion {
-    id            String            @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+    id            String            @id @default(dbgenerated("uuidv7()")) @db.Uuid
     jiraId        String // Jira version id from API
     name          String
     description   String?
