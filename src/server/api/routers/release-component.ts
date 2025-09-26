@@ -5,46 +5,20 @@ import {
 } from "~/server/api/trpc";
 import { ReleaseComponentCreateSchema } from "~/shared/schemas/release-component";
 import type { ReleaseComponentDto } from "~/shared/types/release-component";
-import {
-  mapToReleaseComponentDtos,
-  toReleaseComponentDto,
-} from "~/server/zod/dto/release-component.dto";
+import { ReleaseComponentService } from "~/server/services/release-component.service";
 
 export const releaseComponentRouter = createTRPCRouter({
   list: publicProcedure.query(
     async ({ ctx }): Promise<ReleaseComponentDto[]> => {
-      const rows = await ctx.db.releaseComponent.findMany({
-        orderBy: { createdAt: "desc" },
-        select: {
-          id: true,
-          name: true,
-          color: true,
-          namingPattern: true,
-          createdAt: true,
-        },
-      });
-      return mapToReleaseComponentDtos(rows);
+      const svc = new ReleaseComponentService(ctx.db);
+      return svc.list();
     },
   ),
 
   create: protectedProcedure
     .input(ReleaseComponentCreateSchema)
     .mutation(async ({ ctx, input }): Promise<ReleaseComponentDto> => {
-      const created = await ctx.db.releaseComponent.create({
-        data: {
-          name: input.name.trim(),
-          color: input.color,
-          namingPattern: input.namingPattern.trim(),
-          createdBy: { connect: { id: ctx.session.user.id } },
-        },
-        select: {
-          id: true,
-          name: true,
-          color: true,
-          namingPattern: true,
-          createdAt: true,
-        },
-      });
-      return toReleaseComponentDto(created);
+      const svc = new ReleaseComponentService(ctx.db);
+      return svc.create(ctx.session.user.id, input);
     }),
 });

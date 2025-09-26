@@ -1,6 +1,16 @@
-import type { PrismaClient, User, ReleaseVersion } from "@prisma/client";
+import type {
+  PrismaClient,
+  User,
+  ReleaseVersion,
+  BuiltVersion,
+} from "@prisma/client";
+import { BuiltVersionDefaultSelectionSchema } from "~/shared/schemas/built-version-selection";
 import type { BuiltVersionDto } from "~/shared/types/built-version";
-import { toBuiltVersionDto } from "~/server/zod/dto/built-version.dto";
+import type { BuiltVersionDefaultSelectionDto } from "~/shared/types/built-version-selection";
+import {
+  mapToBuiltVersionDtos,
+  toBuiltVersionDto,
+} from "~/server/zod/dto/built-version.dto";
 import {
   validatePattern,
   expandPattern,
@@ -66,5 +76,69 @@ export class BuiltVersionService {
       return built;
     });
     return toBuiltVersionDto(created);
+  }
+
+  async listByRelease(
+    versionId: ReleaseVersion["id"],
+  ): Promise<BuiltVersionDto[]> {
+    const rows = await this.db.builtVersion.findMany({
+      where: { versionId },
+      orderBy: { createdAt: "desc" },
+      select: { id: true, name: true, versionId: true, createdAt: true },
+    });
+    return mapToBuiltVersionDtos(rows);
+  }
+
+  async getDefaultSelection(
+    builtVersionId: BuiltVersion["id"],
+  ): Promise<BuiltVersionDefaultSelectionDto> {
+    const built = await this.db.builtVersion.findUniqueOrThrow({
+      where: { id: builtVersionId },
+      select: { id: true, versionId: true },
+    });
+
+    const builds = await this.db.builtVersion.findMany({
+      where: { versionId: built.versionId },
+      orderBy: { createdAt: "desc" },
+      select: { id: true },
+    });
+    const buildIds = builds.map((b) => b.id);
+
+    const transitions = await this.db.builtVersionTransition.findMany({
+      where: { builtVersionId: { in: buildIds } },
+      orderBy: { createdAt: "desc" },
+      select: { builtVersionId: true, toStatus: true, createdAt: true },
+    });
+
+    const latestByBuild = new Map<string, string>();
+    for (const transition of transitions) {
+      if (!latestByBuild.has(transition.builtVersionId)) {
+        latestByBuild.set(transition.builtVersionId, transition.toStatus);
+      }
+    }
+
+    const activeBuiltId =
+      builds.find((entry) => latestByBuild.get(entry.id) === "active")?.id ?? null;
+
+    if (!activeBuiltId) {
+      const components = await this.db.releaseComponent.findMany({
+        select: { id: true },
+      });
+      return BuiltVersionDefaultSelectionSchema.parse({
+        selectedReleaseComponentIds: components.map((component) => component.id),
+      });
+    }
+
+    const selectedRows = await this.db.componentVersion.findMany({
+      where: { builtVersionId: activeBuiltId },
+      select: { releaseComponentId: true },
+    });
+    const uniqueComponentIds = Array.from(
+      new Set(selectedRows.map((row) => row.releaseComponentId)),
+    );
+
+    return BuiltVersionDefaultSelectionSchema.parse({
+      selectedReleaseComponentIds: uniqueComponentIds,
+    });
   }
 }

@@ -1,5 +1,6 @@
-import type { PrismaClient } from "@prisma/client";
-import type { Prisma } from "@prisma/client";
+import type { PrismaClient, Prisma, BuiltVersion } from "@prisma/client";
+import type { ComponentVersionDto } from "~/shared/types/component-version";
+import { mapToComponentVersionDtos } from "~/server/zod/dto/component-version.dto";
 import { validatePattern, expandPattern } from "~/server/services/component-version-naming.service";
 
 export class ComponentVersionService {
@@ -28,6 +29,24 @@ export class ComponentVersionService {
         } as Prisma.InputJsonValue,
       },
     });
+  }
+
+  async listByBuilt(
+    builtVersionId: BuiltVersion["id"],
+  ): Promise<ComponentVersionDto[]> {
+    const rows = await this.db.componentVersion.findMany({
+      where: { builtVersionId },
+      orderBy: [{ releaseComponentId: "asc" }, { increment: "asc" }],
+      select: {
+        id: true,
+        releaseComponentId: true,
+        builtVersionId: true,
+        name: true,
+        increment: true,
+        createdAt: true,
+      },
+    });
+    return mapToComponentVersionDtos(rows);
   }
 }
 
