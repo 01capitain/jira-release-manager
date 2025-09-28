@@ -1,4 +1,3 @@
-import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import {
   createTRPCRouter,
@@ -12,9 +11,13 @@ import {
 } from "~/shared/schemas/built-version";
 import { ReleaseVersionService } from "~/server/services/release-version.service";
 import { BuiltVersionService } from "~/server/services/built-version.service";
+import {
+  BuiltVersionCreateSuccessorInputSchema,
+  BuiltVersionStatusInputSchema,
+  BuiltVersionTransitionInputSchema,
+} from "~/server/api/schemas";
 import { BuiltVersionStatusService } from "~/server/services/built-version-status.service";
 import { SuccessorBuiltService } from "~/server/services/successor-built.service";
-import type { BuiltVersionAction } from "~/shared/types/built-version-status";
 import type { ReleaseVersionWithBuildsDto } from "~/shared/types/release-version-with-builds";
 import type { BuiltVersionDto } from "~/shared/types/built-version";
 import type { BuiltVersionDefaultSelectionDto } from "~/shared/types/built-version-selection";
@@ -51,7 +54,7 @@ export const builtVersionRouter = createTRPCRouter({
 
   // Derive current status and return full history for a Built Version
   getStatus: publicProcedure
-    .input(z.object({ builtVersionId: z.string().uuid() }))
+    .input(BuiltVersionStatusInputSchema)
     .query(async ({ ctx, input }) => {
       const svc = new BuiltVersionStatusService(ctx.db);
       const [status, history] = await Promise.all([
@@ -63,17 +66,7 @@ export const builtVersionRouter = createTRPCRouter({
 
   // Perform a transition; only allowed actions from current state succeed
   transition: protectedProcedure
-    .input(z.object({
-      builtVersionId: z.string().uuid(),
-      action: z.enum([
-        "startDeployment",
-        "cancelDeployment",
-        "markActive",
-        "revertToDeployment",
-        "deprecate",
-        "reactivate",
-      ]) as unknown as z.ZodType<BuiltVersionAction>,
-    }))
+    .input(BuiltVersionTransitionInputSchema)
     .mutation(async ({ ctx, input }) => {
       const svc = new BuiltVersionStatusService(ctx.db);
       try {
@@ -98,10 +91,7 @@ export const builtVersionRouter = createTRPCRouter({
 
   // Apply selection to create the successor built arrangement (no status change)
   createSuccessorBuilt: protectedProcedure
-    .input(z.object({
-      builtVersionId: z.string().uuid(),
-      selectedReleaseComponentIds: z.array(z.string().uuid()).min(1),
-    }))
+    .input(BuiltVersionCreateSuccessorInputSchema)
     .mutation(async ({ ctx, input }) => {
       const svc = new SuccessorBuiltService(ctx.db);
       const statusSvc = new BuiltVersionStatusService(ctx.db);

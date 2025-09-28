@@ -1,7 +1,11 @@
-import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, publicProcedure, protectedProcedure } from "~/server/api/trpc";
 import { JiraVersionService } from "~/server/services/jira-version.service";
+import {
+  JiraCredentialsSchema,
+  JiraFetchVersionsInputSchema,
+  JiraVerifyConnectionSchema,
+} from "~/server/api/schemas";
 import { env } from "~/env";
 
 export const jiraRouter = createTRPCRouter({
@@ -28,12 +32,7 @@ export const jiraRouter = createTRPCRouter({
   }),
 
   saveCredentials: protectedProcedure
-    .input(
-      z.object({
-        email: z.string().trim().email(),
-        apiToken: z.string().min(1).optional(),
-      }),
-    )
+    .input(JiraCredentialsSchema)
     .mutation(async ({ ctx, input }) => {
       const anyDb = ctx.db as unknown as { jiraCredential?: { upsert?: Function } };
       const model = anyDb?.jiraCredential;
@@ -64,16 +63,7 @@ export const jiraRouter = createTRPCRouter({
     }),
 
   fetchVersions: protectedProcedure
-    .input(
-      z
-        .object({
-          pageSize: z.number().int().min(1).max(100).optional(),
-          includeReleased: z.boolean().optional(),
-          includeUnreleased: z.boolean().optional(),
-          includeArchived: z.boolean().optional(),
-        })
-        .optional(),
-    )
+    .input(JiraFetchVersionsInputSchema)
     .query(async ({ ctx, input }) => {
       const svc = new JiraVersionService();
       // Read user-scoped credentials if model exists
@@ -102,12 +92,7 @@ export const jiraRouter = createTRPCRouter({
     }),
 
   verifyConnection: protectedProcedure
-    .input(
-      z.object({
-        email: z.string().trim().email(),
-        apiToken: z.string().min(1).optional(),
-      }),
-    )
+    .input(JiraVerifyConnectionSchema)
     .mutation(async ({ ctx, input }) => {
       const baseUrl = env.JIRA_BASE_URL;
       if (!baseUrl) {
