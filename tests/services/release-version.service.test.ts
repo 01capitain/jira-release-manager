@@ -3,6 +3,12 @@ import { ReleaseVersionService } from "~/server/services/release-version.service
 import { BuiltVersionService } from "~/server/services/built-version.service";
 import { BuiltVersionStatusService } from "~/server/services/built-version-status.service";
 
+const COMPONENT_A_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
+const COMPONENT_B_ID = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb";
+const BUILT_VERSION_LIST_ID = "cccccccc-cccc-cccc-cccc-cccccccccccc";
+const ACTIVE_BUILT_ID = "dddddddd-dddd-dddd-dddd-dddddddddddd";
+const NEWER_BUILT_ID = "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee";
+
 // Minimal Prisma-like client mock with only fields used in tests
 function makeMockDb() {
   const calls: Record<string, unknown[]> = {};
@@ -59,8 +65,8 @@ function makeMockDb() {
       findMany: jest.fn(async () => {
         record("releaseComponent.findMany", {});
         return [
-          { id: "comp-a", namingPattern: "{release_version}-{built_version}-{increment}" },
-          { id: "comp-b", namingPattern: "{release_version}-{built_version}-{increment}" },
+          { id: COMPONENT_A_ID, namingPattern: "{release_version}-{built_version}-{increment}" },
+          { id: COMPONENT_B_ID, namingPattern: "{release_version}-{built_version}-{increment}" },
         ];
       }),
     },
@@ -68,7 +74,7 @@ function makeMockDb() {
     componentVersion: {
       create: jest.fn(async (args: any) => {
         record("componentVersion.create", args);
-        const id = `cv-${(calls["componentVersion.create"]?.length ?? 0)}`;
+        const id = makeUuid(2000 + (calls["componentVersion.create"]?.length ?? 0));
         return { id, name: args.data.name, increment: args.data.increment };
       }),
       findFirst: jest.fn(async () => null),
@@ -136,7 +142,7 @@ describe("ReleaseVersion and BuiltVersion behavior", () => {
     db.builtVersion.findUnique = jest.fn(async () => ({ id: "44444444-4444-4444-4444-444444444444", name: "version 400.0", versionId: "11111111-1111-1111-1111-111111111111", createdAt }));
     db.releaseVersion.findUnique = jest.fn(async () => ({ id: "11111111-1111-1111-1111-111111111111", name: "version 400", lastUsedIncrement: 1 }));
     // Simulate a newer build existing
-    db.builtVersion.findFirst = jest.fn(async () => ({ id: "built-NEWER" }));
+    db.builtVersion.findFirst = jest.fn(async () => ({ id: NEWER_BUILT_ID }));
 
     const ssvc = new BuiltVersionStatusService(db);
     await ssvc.transition("44444444-4444-4444-4444-444444444444" as any, "startDeployment", "user-1" as any);
@@ -144,6 +150,81 @@ describe("ReleaseVersion and BuiltVersion behavior", () => {
     expect(db.builtVersion.create).not.toHaveBeenCalled();
     // ensure no component versions were created either
     expect(db.componentVersion.create).not.toHaveBeenCalled();
+  });
+
+  test("listByRelease maps rows to DTOs", async () => {
+    const { db } = makeMockDb();
+    const versionId = "55555555-5555-5555-5555-555555555555";
+    const createdAt = new Date("2024-02-01T00:00:00Z");
+    db.builtVersion.findMany = jest.fn(async () => [
+      { id: BUILT_VERSION_LIST_ID, name: "v100.1", versionId, createdAt },
+    ]);
+
+    const svc = new BuiltVersionService(db);
+    const rows = await svc.listByRelease(versionId as any);
+
+    expect(db.builtVersion.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { versionId } }),
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ id: BUILT_VERSION_LIST_ID, name: "v100.1", versionId });
+    expect(rows[0].createdAt).toBe(createdAt.toISOString());
+  });
+
+  test("default selection returns components from latest active built", async () => {
+    const { db } = makeMockDb();
+    const builtVersionId = "66666666-6666-6666-6666-666666666666";
+    const versionId = "77777777-7777-7777-7777-777777777777";
+    const activeBuiltId = ACTIVE_BUILT_ID;
+
+    db.builtVersion.findUniqueOrThrow = jest.fn(async () => ({
+      id: builtVersionId,
+      versionId,
+    }));
+    db.builtVersion.findMany = jest.fn(async () => [
+      { id: activeBuiltId },
+      { id: builtVersionId },
+    ]);
+    db.builtVersionTransition.findMany = jest.fn(async () => [
+      { builtVersionId: activeBuiltId, toStatus: "active", createdAt: new Date() },
+      { builtVersionId, toStatus: "in_development", createdAt: new Date() },
+    ]);
+    db.componentVersion.findMany = jest.fn(async () => [
+      { releaseComponentId: COMPONENT_A_ID },
+      { releaseComponentId: COMPONENT_B_ID },
+      { releaseComponentId: COMPONENT_A_ID },
+    ]);
+
+    const svc = new BuiltVersionService(db);
+    const res = await svc.getDefaultSelection(builtVersionId as any);
+
+    expect(res.selectedReleaseComponentIds).toEqual([COMPONENT_A_ID, COMPONENT_B_ID]);
+    expect(db.componentVersion.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { builtVersionId: activeBuiltId } }),
+    );
+  });
+
+  test("default selection falls back to all components when none active", async () => {
+    const { db } = makeMockDb();
+    const builtVersionId = "88888888-8888-8888-8888-888888888888";
+    const versionId = "99999999-9999-9999-9999-999999999999";
+
+    db.builtVersion.findUniqueOrThrow = jest.fn(async () => ({
+      id: builtVersionId,
+      versionId,
+    }));
+    db.builtVersion.findMany = jest.fn(async () => [{ id: builtVersionId }]);
+    db.builtVersionTransition.findMany = jest.fn(async () => []);
+    db.releaseComponent.findMany = jest.fn(async () => [
+      { id: COMPONENT_A_ID },
+      { id: COMPONENT_B_ID },
+    ]);
+
+    const svc = new BuiltVersionService(db);
+    const res = await svc.getDefaultSelection(builtVersionId as any);
+
+    expect(res.selectedReleaseComponentIds).toEqual([COMPONENT_A_ID, COMPONENT_B_ID]);
+    expect(db.releaseComponent.findMany).toHaveBeenCalled();
   });
 });
  

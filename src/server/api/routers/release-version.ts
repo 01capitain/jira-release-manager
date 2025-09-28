@@ -1,4 +1,3 @@
-import { z } from "zod";
 import type { ReleaseVersionDto } from "~/shared/types/release-version";
 import {
   createTRPCRouter,
@@ -6,18 +5,12 @@ import {
   publicProcedure,
 } from "~/server/api/trpc";
 import { ReleaseVersionService } from "~/server/services/release-version.service";
+import { ReleaseVersionListInputSchema } from "~/server/api/schemas";
 import { ReleaseVersionCreateSchema } from "~/shared/schemas/release-version";
 
 export const releaseVersionRouter = createTRPCRouter({
   list: publicProcedure
-    .input(
-      z
-        .object({
-          page: z.number().int().min(1).optional(),
-          pageSize: z.number().int().min(1).max(100).optional(),
-        })
-        .optional(),
-    )
+    .input(ReleaseVersionListInputSchema)
     .query(
       async ({
         ctx,
