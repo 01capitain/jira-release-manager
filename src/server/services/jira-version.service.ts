@@ -77,16 +77,30 @@ export class JiraVersionService {
           string,
           unknown
         >;
-        const id = obj.id != null ? String(obj.id) : "";
-        const name = obj.name != null ? String(obj.name) : "";
+        const rawId = obj.id;
+        const id =
+          typeof rawId === "string"
+            ? rawId
+            : typeof rawId === "number"
+              ? rawId.toString()
+              : "";
+        const rawName = obj.name;
+        const name = typeof rawName === "string" ? rawName : "";
+        const rawDescription = obj.description;
         const description =
-          obj.description != null ? String(obj.description as string) : null;
+          typeof rawDescription === "string" && rawDescription.length > 0
+            ? rawDescription
+            : null;
         const released = Boolean((obj as { released?: unknown }).released);
         const archived = Boolean((obj as { archived?: unknown }).archived);
         const releaseDate =
-          obj.releaseDate != null ? String(obj.releaseDate as string) : null;
+          typeof obj.releaseDate === "string" && obj.releaseDate.length > 0
+            ? obj.releaseDate
+            : null;
         const startDate =
-          obj.startDate != null ? String(obj.startDate as string) : null;
+          typeof obj.startDate === "string" && obj.startDate.length > 0
+            ? obj.startDate
+            : null;
         return {
           id,
           name,
