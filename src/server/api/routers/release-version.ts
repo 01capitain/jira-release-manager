@@ -3,6 +3,7 @@ import {
   createTRPCRouter,
   protectedProcedure,
   publicProcedure,
+  requireUserId,
 } from "~/server/api/trpc";
 import { ReleaseVersionService } from "~/server/services/release-version.service";
 import { ReleaseVersionListInputSchema } from "~/server/api/schemas";
@@ -27,6 +28,6 @@ export const releaseVersionRouter = createTRPCRouter({
     .input(ReleaseVersionCreateSchema)
     .mutation(async ({ ctx, input }): Promise<ReleaseVersionDto> => {
       const svc = new ReleaseVersionService(ctx.db);
-      return svc.create(ctx.session.user.id, input.name);
+      return svc.create(requireUserId(ctx.session), input.name);
     }),
 });

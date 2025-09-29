@@ -4,8 +4,24 @@ import * as React from "react";
 import { useSession, signIn } from "next-auth/react";
 import { Button } from "~/components/ui/button";
 import { Label } from "~/components/ui/label";
-import { api } from "~/trpc/react";
+import { api, type RouterOutputs } from "~/trpc/react";
 import { Pagination } from "~/components/ui/pagination";
+
+type StoredVersionsResponse = RouterOutputs["jira"]["listStoredVersions"];
+type StoredVersion = StoredVersionsResponse["items"][number];
+type ReleaseVersionsResponse = RouterOutputs["releaseVersion"]["list"];
+type ReleaseVersionItem = ReleaseVersionsResponse["items"][number];
+
+const formatReleaseDate = (value: StoredVersion["releaseDate"]): string | null => {
+  if (value instanceof Date) {
+    return value.toISOString().slice(0, 10);
+  }
+  if (typeof value === "string" && value.length > 0) {
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString().slice(0, 10);
+  }
+  return null;
+};
 
 export default function JiraReleasesPage() {
   const [includeReleased, setIncludeReleased] = React.useState(true);
@@ -28,6 +44,11 @@ export default function JiraReleasesPage() {
       await listStored.refetch();
     },
   });
+
+  const storedData = listStored.data;
+  const storedItems: StoredVersion[] = storedData?.items ?? [];
+  const releaseItems: ReleaseVersionItem[] = releases.data?.items ?? [];
+  const hasStoredItems = storedItems.length > 0;
 
   // No connection check here beyond presence; handled by canSyncQuick query
 
@@ -94,7 +115,14 @@ export default function JiraReleasesPage() {
             </Button>
           </fieldset>
           <Button
-            onClick={() => void sync.mutateAsync({ includeArchived, includeReleased, includeUnreleased, pageSize: 50 })}
+            onClick={() =>
+              void sync.mutateAsync({
+                includeArchived,
+                includeReleased,
+                includeUnreleased,
+                pageSize,
+              })
+            }
             disabled={!session || sync.isPending}
             aria-label="Sync releases from Jira"
             title="Sync releases from Jira"
@@ -110,58 +138,61 @@ export default function JiraReleasesPage() {
         <h2 className="text-lg font-medium">Stored Jira versions</h2>
         {listStored.isLoading ? (
           <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">Loading…</p>
-        ) : (listStored.data?.items ?? []).length === 0 ? (
+        ) : !hasStoredItems ? (
           <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
-            No versions loaded. Click "Sync releases from Jira" to fetch.
+            No versions loaded. Click “Sync releases from Jira” to fetch.
           </p>
         ) : (
           <ul className="mt-3 divide-y divide-neutral-200 dark:divide-neutral-800">
-            {(listStored.data?.items ?? []).map((v) => (
-              <li key={`${v.id}:${v.name}`} className="py-3">
-                <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                  <div>
-                    <div className="font-medium">
-                      {v.name}
-                      <span className="ml-2 text-xs font-normal text-neutral-500 dark:text-neutral-400">
-                        {v.released ? "Released" : v.archived ? "Archived" : "Unreleased"}
-                      </span>
-                    </div>
-                    {v.releaseDate ? (
-                      <div className="text-xs text-neutral-500 dark:text-neutral-400">
-                        Release date: {new Date(v.releaseDate).toISOString().slice(0, 10)}
+            {storedItems.map((v) => {
+              const formattedReleaseDate = formatReleaseDate(v.releaseDate);
+              return (
+                <li key={`${v.id}:${v.name}`} className="py-3">
+                  <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                    <div>
+                      <div className="font-medium">
+                        {v.name}
+                        <span className="ml-2 text-xs font-normal text-neutral-500 dark:text-neutral-400">
+                          {v.released ? "Released" : v.archived ? "Archived" : "Unreleased"}
+                        </span>
                       </div>
-                    ) : null}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Label htmlFor={`map-${v.id}`} className="text-xs">Map to internal</Label>
-                    <select
-                      id={`map-${v.id}`}
-                      className="h-9 min-w-52 rounded-md border border-neutral-300 bg-transparent px-3 text-sm dark:border-neutral-700"
-                      defaultValue=""
-                      aria-label={`Map Jira version ${v.name} to internal release`}
-                    >
-                      <option value="" disabled>
-                        Select release…
-                      </option>
-                      {((releases.data?.items ?? []) as Array<{ id: string; name: string }>).map((r) => (
-                        <option key={r.id} value={r.id}>
-                          {r.name}
+                      {formattedReleaseDate ? (
+                        <div className="text-xs text-neutral-500 dark:text-neutral-400">
+                          Release date: {formattedReleaseDate}
+                        </div>
+                      ) : null}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor={`map-${v.id}`} className="text-xs">Map to internal</Label>
+                      <select
+                        id={`map-${v.id}`}
+                        className="h-9 min-w-52 rounded-md border border-neutral-300 bg-transparent px-3 text-sm dark:border-neutral-700"
+                        defaultValue=""
+                        aria-label={`Map Jira version ${v.name} to internal release`}
+                      >
+                        <option value="" disabled>
+                          Select release…
                         </option>
-                      ))}
-                    </select>
-                    <Button variant="secondary" disabled title="Save mapping (coming soon)">
-                      Save
-                    </Button>
+                        {releaseItems.map((r) => (
+                          <option key={r.id} value={r.id}>
+                            {r.name}
+                          </option>
+                        ))}
+                      </select>
+                      <Button variant="secondary" disabled title="Save mapping (coming soon)">
+                        Save
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              </li>
-            ))}
+                </li>
+              );
+            })}
           </ul>
         )}
-        {listStored.data && listStored.data.total > pageSize ? (
+        {storedData && storedData.total > pageSize ? (
           <div className="mt-3">
             <Pagination
-              total={listStored.data.total}
+              total={storedData.total}
               pageSize={pageSize}
               page={page}
               onPageChange={(p) => setPage(p)}

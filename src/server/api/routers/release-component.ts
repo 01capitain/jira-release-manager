@@ -2,6 +2,7 @@ import {
   createTRPCRouter,
   protectedProcedure,
   publicProcedure,
+  requireUserId,
 } from "~/server/api/trpc";
 import { ReleaseComponentCreateSchema } from "~/shared/schemas/release-component";
 import type { ReleaseComponentDto } from "~/shared/types/release-component";
@@ -19,6 +20,6 @@ export const releaseComponentRouter = createTRPCRouter({
     .input(ReleaseComponentCreateSchema)
     .mutation(async ({ ctx, input }): Promise<ReleaseComponentDto> => {
       const svc = new ReleaseComponentService(ctx.db);
-      return svc.create(ctx.session.user.id, input);
+      return svc.create(requireUserId(ctx.session), input);
     }),
 });

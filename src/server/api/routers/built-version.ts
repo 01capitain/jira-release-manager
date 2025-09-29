@@ -3,6 +3,7 @@ import {
   createTRPCRouter,
   protectedProcedure,
   publicProcedure,
+  requireUserId,
 } from "~/server/api/trpc";
 import {
   BuiltVersionCreateSchema,
@@ -41,7 +42,8 @@ export const builtVersionRouter = createTRPCRouter({
     .input(BuiltVersionCreateSchema)
     .mutation(async ({ ctx, input }): Promise<BuiltVersionDto> => {
       const svc = new BuiltVersionService(ctx.db);
-      return svc.create(ctx.session.user.id, input.versionId, input.name);
+      const userId = requireUserId(ctx.session);
+      return svc.create(userId, input.versionId, input.name);
     }),
 
   // Determine default selection for deployment based on the most recent active build in the same release
@@ -73,7 +75,7 @@ export const builtVersionRouter = createTRPCRouter({
         const res = await svc.transition(
           input.builtVersionId,
           input.action,
-          ctx.session.user.id,
+          requireUserId(ctx.session),
         );
         const history = await svc.getHistory(input.builtVersionId);
         return { ...res, history } as const;
@@ -99,7 +101,7 @@ export const builtVersionRouter = createTRPCRouter({
         const summary = await svc.createSuccessorBuilt(
           input.builtVersionId,
           input.selectedReleaseComponentIds,
-          ctx.session.user.id,
+          requireUserId(ctx.session),
         );
         // Do not change status here; keep build in `in_deployment`.
         const status = await statusSvc.getCurrentStatus(input.builtVersionId);

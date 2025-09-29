@@ -1,6 +1,12 @@
+import type { PrismaClient } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { createTRPCRouter, publicProcedure, protectedProcedure } from "~/server/api/trpc";
+import {
+  createTRPCRouter,
+  publicProcedure,
+  protectedProcedure,
+  requireUserId,
+} from "~/server/api/trpc";
 import { JiraVersionService } from "~/server/services/jira-version.service";
 import {
   JiraCredentialsSchema,
@@ -8,6 +14,17 @@ import {
   JiraVerifyConnectionSchema,
 } from "~/server/api/schemas";
 import { env } from "~/env";
+
+type DelegateKey = keyof PrismaClient;
+
+const getDelegate = <K extends DelegateKey>(
+  client: PrismaClient,
+  key: K,
+): PrismaClient[K] | null => {
+  const partial = client as Partial<Pick<PrismaClient, K>>;
+  const delegate = partial[key];
+  return delegate ?? null;
+};
 
 export const jiraRouter = createTRPCRouter({
   getConfig: publicProcedure.query(() => ({
@@ -17,39 +34,43 @@ export const jiraRouter = createTRPCRouter({
   } as const)),
 
   getCredentials: protectedProcedure.query(async ({ ctx }) => {
-    const anyDb = ctx.db as unknown as { jiraCredential?: { findUnique?: Function } };
-    const model = anyDb?.jiraCredential;
-    if (!model?.findUnique) return { email: null, hasToken: false } as const;
+    const credentialModel = getDelegate(ctx.db, "jiraCredential");
+    if (!credentialModel?.findUnique) {
+      return { email: null, hasToken: false } as const;
+    }
+    const userId = requireUserId(ctx.session);
     const row =
-      (await model
+      (await credentialModel
         .findUnique({
-          where: { userId: ctx.session.user.id },
+          where: { userId },
           select: { email: true, apiToken: true },
         })
         .catch(() => null)) ?? null;
-    return row
-      ? ({ email: row.email as string, hasToken: Boolean((row as any).apiToken) } as const)
-      : ({ email: null, hasToken: false } as const);
+    if (!row) {
+      return { email: null, hasToken: false } as const;
+    }
+    const email = typeof row.email === "string" ? row.email : null;
+    const hasToken = typeof row.apiToken === "string" && row.apiToken.length > 0;
+    return { email, hasToken } as const;
   }),
 
   saveCredentials: protectedProcedure
     .input(JiraCredentialsSchema)
     .mutation(async ({ ctx, input }) => {
-      const anyDb = ctx.db as unknown as { jiraCredential?: { upsert?: Function } };
-      const model = anyDb?.jiraCredential;
-      if (!model?.upsert) {
+      const credentialModel = getDelegate(ctx.db, "jiraCredential");
+      if (!credentialModel?.upsert) {
         throw new TRPCError({
           code: "PRECONDITION_FAILED",
           message:
             "JiraCredential model not available. Please run database migration and prisma generate.",
         });
       }
-      const userId = ctx.session.user.id;
+      const userId = requireUserId(ctx.session);
       const updateData: Record<string, unknown> = { email: input.email };
       if (typeof input.apiToken === "string" && input.apiToken.length > 0) {
         updateData.apiToken = input.apiToken;
       }
-      await model.upsert({
+      await credentialModel.upsert({
         where: { userId },
         // if the record exists and token not supplied, keep existing token
         update: updateData,
@@ -68,12 +89,12 @@ export const jiraRouter = createTRPCRouter({
     .query(async ({ ctx, input }) => {
       const svc = new JiraVersionService();
       // Read user-scoped credentials if model exists
-      const anyDb = ctx.db as unknown as { jiraCredential?: { findUnique?: Function } };
-      const model = anyDb?.jiraCredential;
-      const cred = model?.findUnique
-        ? await model
+      const credentialModel = getDelegate(ctx.db, "jiraCredential");
+      const userId = requireUserId(ctx.session);
+      const cred = credentialModel?.findUnique
+        ? await credentialModel
             .findUnique({
-              where: { userId: ctx.session.user.id },
+              where: { userId },
               select: { email: true, apiToken: true },
             })
             .catch(() => null)
@@ -86,8 +107,11 @@ export const jiraRouter = createTRPCRouter({
         includeArchived: input?.includeArchived,
         baseUrl: env.JIRA_BASE_URL ?? undefined,
         projectKey: env.JIRA_PROJECT_KEY ?? undefined,
-        email: cred?.email ?? undefined,
-        apiToken: (cred as any)?.apiToken ?? undefined,
+        email: typeof cred?.email === "string" ? cred.email : undefined,
+        apiToken:
+          typeof cred?.apiToken === "string" && cred.apiToken.length > 0
+            ? cred.apiToken
+            : undefined,
       });
       return res;
     }),
@@ -107,13 +131,17 @@ export const jiraRouter = createTRPCRouter({
       // Resolve token: prefer provided, else stored for user
       let token = input.apiToken;
       if (!token) {
-        const anyDb = ctx.db as unknown as { jiraCredential?: { findUnique?: Function } };
-        const model = anyDb?.jiraCredential;
-        if (model?.findUnique) {
-          const row = await model
-            .findUnique({ where: { userId: ctx.session.user.id }, select: { apiToken: true } })
+        const credentialModel = getDelegate(ctx.db, "jiraCredential");
+        if (credentialModel?.findUnique) {
+          const userId = requireUserId(ctx.session);
+          const row = await credentialModel
+            .findUnique({ where: { userId }, select: { apiToken: true } })
             .catch(() => null);
-          token = (row as any)?.apiToken as string | undefined;
+          const storedToken =
+            typeof row?.apiToken === "string" && row.apiToken.length > 0
+              ? row.apiToken
+              : undefined;
+          token = storedToken;
         }
       }
       if (!token) {
@@ -170,16 +198,21 @@ export const jiraRouter = createTRPCRouter({
   canSync: protectedProcedure.mutation(async ({ ctx }) => {
     const baseUrl = env.JIRA_BASE_URL;
     const projectKey = env.JIRA_PROJECT_KEY;
-    const anyDb = ctx.db as unknown as { jiraCredential?: { findUnique?: Function } };
-    const model = anyDb?.jiraCredential;
+    const credentialModel = getDelegate(ctx.db, "jiraCredential");
+    const userId = requireUserId(ctx.session);
     let token: string | undefined;
     let email: string | undefined;
-    if (model?.findUnique) {
-      const row = (await model
-        .findUnique({ where: { userId: ctx.session.user.id }, select: { email: true, apiToken: true } })
-        .catch(() => null)) as { email?: string; apiToken?: string } | null;
-      token = row?.apiToken;
-      email = row?.email;
+    if (credentialModel?.findUnique) {
+      const row = await credentialModel
+        .findUnique({ where: { userId }, select: { email: true, apiToken: true } })
+        .catch(() => null);
+      if (row) {
+        email = typeof row.email === "string" && row.email.length > 0 ? row.email : undefined;
+        token =
+          typeof row.apiToken === "string" && row.apiToken.length > 0
+            ? row.apiToken
+            : undefined;
+      }
     }
     // Check presence first
     if (!baseUrl || !projectKey || !email || !token) {
@@ -211,16 +244,21 @@ export const jiraRouter = createTRPCRouter({
   canSyncQuick: protectedProcedure.query(async ({ ctx }) => {
     const baseUrl = env.JIRA_BASE_URL;
     const projectKey = env.JIRA_PROJECT_KEY;
-    const anyDb = ctx.db as unknown as { jiraCredential?: { findUnique?: Function } };
-    const model = anyDb?.jiraCredential;
+    const credentialModel = getDelegate(ctx.db, "jiraCredential");
+    const userId = requireUserId(ctx.session);
     let email: string | undefined;
     let token: string | undefined;
-    if (model?.findUnique) {
-      const row = (await model
-        .findUnique({ where: { userId: ctx.session.user.id }, select: { email: true, apiToken: true } })
-        .catch(() => null)) as { email?: string; apiToken?: string } | null;
-      email = row?.email ?? undefined;
-      token = row?.apiToken ?? undefined;
+    if (credentialModel?.findUnique) {
+      const row = await credentialModel
+        .findUnique({ where: { userId }, select: { email: true, apiToken: true } })
+        .catch(() => null);
+      if (row) {
+        email = typeof row.email === "string" && row.email.length > 0 ? row.email : undefined;
+        token =
+          typeof row.apiToken === "string" && row.apiToken.length > 0
+            ? row.apiToken
+            : undefined;
+      }
     }
     if (!baseUrl) return { ok: false as const, reason: "Missing JIRA_BASE_URL" };
     if (!projectKey) return { ok: false as const, reason: "Missing JIRA_PROJECT_KEY" };
@@ -247,9 +285,10 @@ export const jiraRouter = createTRPCRouter({
       const includeArchived = input?.includeArchived ?? false;
       const page = input?.page ?? 1;
       const pageSize = input?.pageSize ?? 50;
-      const anyDb = ctx.db as unknown as { jiraVersion?: any };
-      const model = anyDb?.jiraVersion;
-      if (!model?.findMany) return { total: 0, items: [] as any[] };
+      const jiraVersionModel = getDelegate(ctx.db, "jiraVersion");
+      if (!jiraVersionModel?.findMany) {
+        return { total: 0, items: [] as const };
+      }
       const where = {
         OR: [
           includeReleased ? { released: true } : undefined,
@@ -258,8 +297,8 @@ export const jiraRouter = createTRPCRouter({
         ].filter(Boolean),
       };
       const [total, rows] = await Promise.all([
-        model.count({ where }),
-        model.findMany({
+        jiraVersionModel.count({ where }),
+        jiraVersionModel.findMany({
           where,
           orderBy: [{ released: "asc" }, { name: "asc" }],
           skip: (page - 1) * pageSize,
@@ -291,17 +330,17 @@ export const jiraRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx, input }) => {
       const svc = new JiraVersionService();
-      const anyDb = ctx.db as unknown as { jiraCredential?: any; jiraVersion?: any };
-      const credModel = anyDb?.jiraCredential;
-      const versModel = anyDb?.jiraVersion;
-      if (!credModel?.findUnique || !versModel?.upsert) {
+      const credentialModel = getDelegate(ctx.db, "jiraCredential");
+      const versionModel = getDelegate(ctx.db, "jiraVersion");
+      if (!credentialModel?.findUnique || !versionModel?.upsert) {
         throw new TRPCError({
           code: "PRECONDITION_FAILED",
           message: "Database models missing. Please run migration and prisma generate.",
         });
       }
-      const cred = await credModel.findUnique({
-        where: { userId: ctx.session.user.id },
+      const userId = requireUserId(ctx.session);
+      const cred = await credentialModel.findUnique({
+        where: { userId },
         select: { email: true, apiToken: true },
       });
       const res = await svc.fetchProjectVersions({
@@ -311,39 +350,41 @@ export const jiraRouter = createTRPCRouter({
         includeArchived: input?.includeArchived,
         baseUrl: env.JIRA_BASE_URL ?? undefined,
         projectKey: env.JIRA_PROJECT_KEY ?? undefined,
-        email: cred?.email ?? undefined,
-        apiToken: cred?.apiToken ?? undefined,
+        email: typeof cred?.email === "string" ? cred.email : undefined,
+        apiToken:
+          typeof cred?.apiToken === "string" && cred.apiToken.length > 0
+            ? cred.apiToken
+            : undefined,
       });
       if (!res.configured) {
         throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Jira not configured" });
       }
       // Upsert versions atomically
-      const ops = res.items.map((v: any) =>
-        versModel.upsert({
-          where: { jiraId: v.id },
+      const ops = res.items.map((version) =>
+        versionModel.upsert({
+          where: { jiraId: version.id },
           update: {
-            name: v.name,
-            description: v.description ?? null,
-            released: v.released,
-            archived: v.archived,
-            releaseDate: v.releaseDate ? new Date(v.releaseDate) : null,
-            startDate: v.startDate ? new Date(v.startDate) : null,
+            name: version.name,
+            description: version.description ?? null,
+            released: version.released,
+            archived: version.archived,
+            releaseDate: version.releaseDate ? new Date(version.releaseDate) : null,
+            startDate: version.startDate ? new Date(version.startDate) : null,
             projectKey: env.JIRA_PROJECT_KEY ?? null,
           },
           create: {
-            jiraId: v.id,
-            name: v.name,
-            description: v.description ?? null,
-            released: v.released,
-            archived: v.archived,
-            releaseDate: v.releaseDate ? new Date(v.releaseDate) : null,
-            startDate: v.startDate ? new Date(v.startDate) : null,
+            jiraId: version.id,
+            name: version.name,
+            description: version.description ?? null,
+            released: version.released,
+            archived: version.archived,
+            releaseDate: version.releaseDate ? new Date(version.releaseDate) : null,
+            startDate: version.startDate ? new Date(version.startDate) : null,
             projectKey: env.JIRA_PROJECT_KEY ?? null,
           },
         })
       );
-      const client: any = (ctx as any).db;
-      const results = client?.$transaction ? await client.$transaction(ops) : await Promise.all(ops);
+      const results = await ctx.db.$transaction(ops);
       return { saved: results.length } as const;
     }),
 });

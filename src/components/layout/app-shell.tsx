@@ -104,14 +104,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <nav className="flex-1 overflow-auto px-2 py-3">
                 {NAV_GROUPS.map((group) => {
                   const Icon = group.icon;
-                  const isExpandable = group.items && group.items.length > 0;
+                  const isExpandable = Boolean(group.items && group.items.length > 0);
                   const isOpen = expanded[group.id] ?? false;
-                  const parentActive = group.items?.some((it) =>
+                  const parentActive = (group.items ?? []).some((it) =>
                     pathname.startsWith(it.href),
                   );
                   const directActive =
                     typeof group.href === "string" &&
                     (pathname === group.href || pathname.startsWith(`${group.href}/`));
+                  const isHighlighted = parentActive ? true : directActive;
                   return (
                     <div key={group.id} className="mb-2">
                       {isExpandable ? (
@@ -122,7 +123,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                           }
                           className={cn(
                             "flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm hover:bg-neutral-100 dark:hover:bg-neutral-800",
-                            (parentActive || directActive) &&
+                            isHighlighted &&
                               "bg-neutral-100 font-medium dark:bg-neutral-800",
                           )}
                           aria-expanded={isOpen}
