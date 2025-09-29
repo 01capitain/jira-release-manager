@@ -1,6 +1,7 @@
 import type { PrismaClient, BuiltVersion, User, Prisma } from "@prisma/client";
 
 import { validatePattern, expandPattern } from "~/server/services/component-version-naming.service";
+import type { ActionLogger } from "~/server/services/action-history.service";
 
 export type SuccessorBuiltSummary = {
   moved: number;
@@ -17,6 +18,7 @@ export class SuccessorBuiltService {
     builtVersionId: BuiltVersion["id"],
     selectedReleaseComponentIds: string[],
     _userId: User["id"],
+    options?: { logger?: ActionLogger },
   ): Promise<SuccessorBuiltSummary> {
     if (!selectedReleaseComponentIds?.length) {
       throw Object.assign(new Error("At least one component must be selected"), {
@@ -197,6 +199,19 @@ export class SuccessorBuiltService {
       return successor.id;
     });
 
-    return { ...summary, successorBuiltId: successorId };
+    const result = { ...summary, successorBuiltId: successorId };
+    if (options?.logger) {
+      await options.logger.subaction({
+        subactionType: "successorBuilt.arrange",
+        message: `Rebalanced successor components for ${builtVersionId}`,
+        metadata: {
+          moved: result.moved,
+          created: result.created,
+          updated: result.updated,
+          successorBuiltId: result.successorBuiltId,
+        },
+      });
+    }
+    return result;
   }
 }

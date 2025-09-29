@@ -15,6 +15,10 @@ import {
   validatePattern,
   expandPattern,
 } from "~/server/services/component-version-naming.service";
+import type {
+  ActionLogger,
+  SubactionInput,
+} from "~/server/services/action-history.service";
 
 export class BuiltVersionService {
   constructor(private readonly db: PrismaClient) {}
@@ -23,7 +27,9 @@ export class BuiltVersionService {
     userId: User["id"],
     versionId: ReleaseVersion["id"],
     name: string,
+    options?: { logger?: ActionLogger },
   ): Promise<BuiltVersionDto> {
+    const auditTrail: SubactionInput[] = [];
     const created = await this.db.$transaction(async (tx) => {
       const built = await tx.builtVersion.create({
         data: {
@@ -32,6 +38,11 @@ export class BuiltVersionService {
           createdBy: { connect: { id: userId } },
         },
         select: { id: true, name: true, versionId: true, createdAt: true },
+      });
+      auditTrail.push({
+        subactionType: "builtVersion.persist",
+        message: `Built version ${built.name} created`,
+        metadata: { id: built.id, versionId: built.versionId },
       });
 
       // Fetch the release version for token expansion
@@ -70,11 +81,21 @@ export class BuiltVersionService {
               builtVersion: { connect: { id: built.id } },
             },
           });
+          auditTrail.push({
+            subactionType: "componentVersion.populate",
+            message: `Component ${comp.id} snapshot for ${built.name}`,
+            metadata: { releaseComponentId: comp.id, builtVersionId: built.id },
+          });
         }
       }
 
       return built;
     });
+    if (options?.logger) {
+      for (const entry of auditTrail) {
+        await options.logger.subaction(entry);
+      }
+    }
     return toBuiltVersionDto(created);
   }
 

@@ -20,6 +20,12 @@ This guide defines patterns for implementing domain services, with a focus on se
   - Example: `BuiltVersionStatusService` owns lifecycle transitions and transition history.
 - Compose services in routers/controllers when orchestration is necessary. Avoid injecting services into each other unless a hard dependency exists.
 
+### Action History Hooks
+
+- Service methods that perform user-triggered mutations accept an optional `{ logger?: ActionLogger }` parameter.
+- When provided, push deterministic subaction entries (e.g., `builtVersion.persist`, `componentVersion.populate`) after successful operations so the session history renders in order.
+- Do not wrap history writes in the same Prisma transaction as the domain change; collect metadata inside the transaction and emit subactions after commit to keep logs even when the transaction aborts later.
+
 ## Transitions & DX Pattern
 
 - For state machines, provide both:

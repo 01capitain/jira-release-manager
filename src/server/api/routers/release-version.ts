@@ -8,6 +8,7 @@ import {
 import { ReleaseVersionService } from "~/server/services/release-version.service";
 import { ReleaseVersionListInputSchema } from "~/server/api/schemas";
 import { ReleaseVersionCreateSchema } from "~/shared/schemas/release-version";
+import { ActionHistoryService } from "~/server/services/action-history.service";
 
 export const releaseVersionRouter = createTRPCRouter({
   list: publicProcedure
@@ -28,6 +29,30 @@ export const releaseVersionRouter = createTRPCRouter({
     .input(ReleaseVersionCreateSchema)
     .mutation(async ({ ctx, input }): Promise<ReleaseVersionDto> => {
       const svc = new ReleaseVersionService(ctx.db);
-      return svc.create(requireUserId(ctx.session), input.name);
+      const userId = requireUserId(ctx.session);
+      const history = new ActionHistoryService(ctx.db);
+      const trimmed = input.name.trim();
+      const action = await history.startAction({
+        actionType: "releaseVersion.create",
+        message: `Create release ${trimmed}`,
+        userId,
+        sessionToken: ctx.sessionToken ?? null,
+      });
+      try {
+        const result = await svc.create(userId, trimmed, { logger: action });
+        await action.complete("success", {
+          message: `Release ${result.name} created`,
+          metadata: { id: result.id },
+        });
+        return result;
+      } catch (err) {
+        await action.complete("failed", {
+          message: `Failed to create release ${trimmed}`,
+          metadata: {
+            error: err instanceof Error ? err.message : String(err),
+          },
+        });
+        throw err;
+      }
     }),
 });

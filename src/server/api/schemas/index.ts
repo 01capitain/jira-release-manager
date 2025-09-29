@@ -76,3 +76,11 @@ export const JiraFetchVersionsInputSchema = z
 export type JiraFetchVersionsInput = z.infer<typeof JiraFetchVersionsInputSchema>;
 
 export const JiraVerifyConnectionSchema = JiraCredentialsSchema;
+
+export const ActionHistoryListInputSchema = z
+  .object({
+    limit: z.number().int().min(1).max(200).optional(),
+  })
+  .optional();
+
+export type ActionHistoryListInput = z.infer<typeof ActionHistoryListInputSchema>;

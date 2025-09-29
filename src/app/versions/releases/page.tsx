@@ -41,60 +41,62 @@ export default function VersionsReleasesPage() {
 
   return (
     <div className="mx-auto w-full max-w-6xl space-y-6">
-      <div className="flex items-end justify-start gap-2">
-        {!open ? (
-          <Button onClick={() => setOpen(true)}>New Release</Button>
-        ) : (
-          <form
-            onSubmit={createRelease}
-            className="flex w-full max-w-xl items-end gap-2"
-            aria-busy={saving}
-          >
-            <div className="flex-1">
-              <Label htmlFor="release-name" className="sr-only">
-                Release name
-              </Label>
-              <Input
-                id="release-name"
-                placeholder="e.g., 1.2.0"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
+      <section className="space-y-6 rounded-lg border border-neutral-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+        <div className="flex items-end justify-start gap-2">
+          {!open ? (
+            <Button onClick={() => setOpen(true)}>New Release</Button>
+          ) : (
+            <form
+              onSubmit={createRelease}
+              className="flex w-full max-w-xl items-end gap-2"
+              aria-busy={saving}
+            >
+              <div className="flex-1">
+                <Label htmlFor="release-name" className="sr-only">
+                  Release name
+                </Label>
+                <Input
+                  id="release-name"
+                  placeholder="e.g., 1.2.0"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  disabled={saving}
+                  aria-describedby={error ? "release-name-error" : undefined}
+                />
+              </div>
+              <Button
+                type="submit"
+                disabled={saving || name.trim().length === 0}
+              >
+                {saving ? "Creating…" : "Create"}
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => {
+                  setOpen(false);
+                  setName("");
+                  setError(null);
+                }}
                 disabled={saving}
-                aria-describedby={error ? "release-name-error" : undefined}
-              />
-            </div>
-            <Button
-              type="submit"
-              disabled={saving || name.trim().length === 0}
-            >
-              {saving ? "Creating…" : "Create"}
-            </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => {
-                setOpen(false);
-                setName("");
-                setError(null);
-              }}
-              disabled={saving}
-            >
-              Cancel
-            </Button>
-          </form>
-        )}
-      </div>
-      {error ? (
-        <output
-          id="release-name-error"
-          aria-atomic="true"
-          className="-mt-4 block text-xs text-red-600 dark:text-red-400"
-        >
-          {error}
-        </output>
-      ) : null}
+              >
+                Cancel
+              </Button>
+            </form>
+          )}
+        </div>
+        {error ? (
+          <output
+            id="release-name-error"
+            aria-atomic="true"
+            className="-mt-4 block text-xs text-red-600 dark:text-red-400"
+          >
+            {error}
+          </output>
+        ) : null}
 
-      <ReleasesAccordion />
+        <ReleasesAccordion />
+      </section>
     </div>
   );
 }

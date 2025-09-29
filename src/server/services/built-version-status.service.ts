@@ -3,6 +3,10 @@ import type {
   BuiltVersionAction as ApiAction,
   BuiltVersionStatus,
 } from "~/shared/types/built-version-status";
+import type {
+  ActionLogger,
+  SubactionInput,
+} from "~/server/services/action-history.service";
 
 // Local copies of DB enum shapes to avoid Prisma type dependency during lint/type analysis
 type DbBuiltVersionAction =
@@ -74,6 +78,7 @@ export class BuiltVersionStatusService {
     builtVersionId: string,
     action: ApiAction,
     userId: string,
+    options?: { logger?: ActionLogger },
   ): Promise<{ status: BuiltVersionStatus }>
   {
     const prismaAction = ActionToPrisma[action];
@@ -82,9 +87,19 @@ export class BuiltVersionStatusService {
       throw new Error(`Unsupported action: ${action}`);
     }
 
-    return this.db.$transaction(async (tx) => {
+    const auditTrail: SubactionInput[] = [];
+
+    const result = await this.db.$transaction(async (tx) => {
       // Ensure BuiltVersion exists
-      await tx.builtVersion.findUniqueOrThrow({ where: { id: builtVersionId }, select: { id: true } });
+      const builtRecord = await tx.builtVersion.findUniqueOrThrow({
+        where: { id: builtVersionId },
+        select: { id: true, name: true, versionId: true },
+      });
+      auditTrail.push({
+        subactionType: "builtVersion.transition.verify",
+        message: `Transition ${builtRecord.name} via ${prismaAction}`,
+        metadata: { builtVersionId, action: prismaAction },
+      });
 
       const current = await tx.builtVersionTransition.findFirst({
         where: { builtVersionId },
@@ -109,6 +124,11 @@ export class BuiltVersionStatusService {
           action: prismaAction,
           createdById: userId,
         },
+      });
+      auditTrail.push({
+        subactionType: "builtVersion.transition.persist",
+        message: `Recorded transition ${prismaAction}`,
+        metadata: { from: rule.from, to: rule.to, builtVersionId },
       });
 
       // Hook: onEnter. Intentionally placed after write.
@@ -147,6 +167,11 @@ export class BuiltVersionStatusService {
           },
           select: { id: true, name: true },
         });
+        auditTrail.push({
+          subactionType: "builtVersion.successor.create",
+          message: `Auto-created successor ${successor.name}`,
+          metadata: { successorId: successor.id, releaseId: release.id },
+        });
         // Update last used increment on the release
         await tx.releaseVersion.update({
           where: { id: release.id },
@@ -170,6 +195,14 @@ export class BuiltVersionStatusService {
 
       return { status: rule.to as BuiltVersionStatus };
     });
+
+    if (options?.logger) {
+      for (const entry of auditTrail) {
+        await options.logger.subaction(entry);
+      }
+    }
+
+    return result;
   }
 
   // Convenience explicit methods for improved DX

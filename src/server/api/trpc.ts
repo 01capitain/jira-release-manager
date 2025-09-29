@@ -14,6 +14,26 @@ import { ZodError } from "zod";
 import { auth } from "~/server/auth";
 import { db } from "~/server/db";
 
+const sessionCookieNames = [
+  "next-auth.session-token",
+  "__Secure-next-auth.session-token",
+] as const;
+
+const extractSessionToken = (headers: Headers): string | null => {
+  const raw = headers.get("cookie");
+  if (!raw) return null;
+  const parts = raw.split(";");
+  for (const part of parts) {
+    const trimmed = part.trim();
+    for (const name of sessionCookieNames) {
+      if (trimmed.startsWith(`${name}=`)) {
+        return decodeURIComponent(trimmed.slice(name.length + 1));
+      }
+    }
+  }
+  return null;
+};
+
 /**
  * 1. CONTEXT
  *
@@ -40,6 +60,7 @@ export const createTRPCContext = async (opts: { headers: Headers }) => {
   return {
     db,
     session,
+    sessionToken: extractSessionToken(opts.headers),
     ...opts,
   };
 };
