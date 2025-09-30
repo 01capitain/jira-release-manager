@@ -4,7 +4,6 @@ import type {
   ActionExecutionStatus,
   ActionHistoryEntryDto,
   ActionHistorySubentryDto,
-  ActionHistoryUserDto,
 } from "~/shared/types/action-history";
 import { IsoTimestampSchema } from "~/shared/types/iso8601";
 
@@ -70,7 +69,7 @@ export function toActionHistoryEntryDto(model: unknown): ActionHistoryEntryDto {
     id: parsed.id,
     actionType: parsed.actionType,
     message: parsed.message,
-    status: parsed.status,
+    status: parsed.status as ActionExecutionStatus,
     createdAt:
       parsed.createdAt.toISOString() as ActionHistoryEntryDto["createdAt"],
     createdBy: parsed.createdBy
@@ -79,13 +78,17 @@ export function toActionHistoryEntryDto(model: unknown): ActionHistoryEntryDto {
           name: parsed.createdBy.name ?? null,
           email: parsed.createdBy.email ?? null,
         }
-      : ({ id: "unknown" } as ActionHistoryUserDto),
+      : {
+          id: "00000000-0000-0000-0000-000000000000", // sentinel UUID for system/unknown
+          name: "System",
+          email: null,
+        },
     metadata: parsed.metadata as Record<string, unknown> | null | undefined,
     subactions: parsed.subactions.map((sub) => ({
       id: sub.id,
       subactionType: sub.subactionType,
       message: sub.message,
-      status: sub.status,
+      status: sub.status as ActionExecutionStatus,
       createdAt:
         sub.createdAt.toISOString() as ActionHistorySubentryDto["createdAt"],
       metadata: sub.metadata as Record<string, unknown> | null | undefined,
