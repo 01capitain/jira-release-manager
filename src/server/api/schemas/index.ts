@@ -80,6 +80,7 @@ export const JiraVerifyConnectionSchema = JiraCredentialsSchema;
 export const ActionHistoryListInputSchema = z
   .object({
     limit: z.number().int().min(1).max(200).optional(),
+    cursor: z.string().uuid("Invalid action history cursor").optional(),
   })
   .optional();
 

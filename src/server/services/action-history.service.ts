@@ -185,20 +185,37 @@ export class ActionHistoryService {
     sessionToken: string | null | undefined,
     userId: string | null | undefined,
     limit = 50,
-  ): Promise<ActionHistoryEntryDto[]> {
+    cursor?: string | null,
+  ): Promise<{
+    items: ActionHistoryEntryDto[];
+    nextCursor: string | null;
+    hasMore: boolean;
+  }> {
     const delegates = getDelegates(this.db);
     if (!delegates) {
-      return [];
+      return {
+        items: [],
+        nextCursor: null,
+        hasMore: false,
+      };
     }
     if (!sessionToken && !userId) {
-      return [];
+      return {
+        items: [],
+        nextCursor: null,
+        hasMore: false,
+      };
     }
 
+    const where = sessionToken ? { sessionToken } : { createdById: userId };
+    const take = limit + 1;
+
     const rows = await delegates.actionLog.findMany({
-      where: sessionToken
-        ? { sessionToken }
-        : { createdById: userId },
-      orderBy: { createdAt: "asc" },
+      where,
+      orderBy: [
+        { createdAt: "desc" },
+        { id: "desc" },
+      ],
       include: {
         createdBy: {
           select: {
@@ -211,8 +228,24 @@ export class ActionHistoryService {
           orderBy: { createdAt: "asc" },
         },
       },
-      take: limit,
+      take,
+      ...(cursor
+        ? {
+            cursor: { id: cursor },
+            skip: 1,
+          }
+        : {}),
     });
-    return mapToActionHistoryEntryDtos(rows);
+
+    const hasMore = rows.length > limit;
+    const slice = hasMore ? rows.slice(0, limit) : rows;
+    const items = mapToActionHistoryEntryDtos(slice);
+    const nextCursor = hasMore ? slice[slice.length - 1]?.id ?? null : null;
+
+    return {
+      items,
+      nextCursor,
+      hasMore,
+    };
   }
 }

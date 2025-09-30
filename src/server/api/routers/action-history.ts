@@ -12,8 +12,9 @@ export const actionHistoryRouter = createTRPCRouter({
     .query(async ({ ctx, input }) => {
       const svc = new ActionHistoryService(ctx.db);
       const limit = input?.limit ?? 50;
+      const cursor = input?.cursor ?? null;
       const sessionToken = ctx.sessionToken ?? null;
       const userId = requireUserId(ctx.session);
-      return svc.listBySession(sessionToken, userId, limit);
+      return svc.listBySession(sessionToken, userId, limit, cursor);
     }),
 });

@@ -1,7 +1,9 @@
 "use client";
 
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { UIEvent } from "react";
 import { TRPCClientError } from "@trpc/client";
-import { CheckCircle2, MinusCircle, XCircle } from "lucide-react";
+import { CheckCircle2, Clock3, MinusCircle, UserRound, XCircle } from "lucide-react";
 
 import { ScrollArea } from "~/components/ui/scroll-area";
 import type { ActionExecutionStatus, ActionHistoryEntryDto } from "~/shared/types/action-history";
@@ -10,24 +12,35 @@ import { api } from "~/trpc/react";
 const renderStatusIcon = (status: ActionExecutionStatus) => {
   switch (status) {
     case "success":
-      return <CheckCircle2 className="h-4 w-4 text-emerald-400" aria-hidden="true" />;
+      return <CheckCircle2 aria-hidden="true" className="h-4 w-4 text-emerald-400" />;
     case "failed":
-      return <XCircle className="h-4 w-4 text-red-400" aria-hidden="true" />;
+      return <XCircle aria-hidden="true" className="h-4 w-4 text-red-400" />;
     case "cancelled":
-      return <MinusCircle className="h-4 w-4 text-amber-300" aria-hidden="true" />;
+      return <MinusCircle aria-hidden="true" className="h-4 w-4 text-amber-300" />;
   }
+  return null;
 };
 
-const formatTimestamp = (iso: string): string => {
+const formatTimestampWithDate = (iso: string): string => {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const year = String(date.getFullYear()).slice(-2);
+  const hh = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  const ss = String(date.getSeconds()).padStart(2, "0");
+  return `${day}.${month}.${year} ${hh}:${minutes}:${ss}`;
+};
+
+const formatTime = (iso: string): string => {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return iso;
   const hh = String(date.getHours()).padStart(2, "0");
-  const mm = String(date.getMinutes()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
   const ss = String(date.getSeconds()).padStart(2, "0");
-  const microsRaw = String(date.getMilliseconds() * 1000).padStart(6, "0");
-  const micros = microsRaw.endsWith("000") ? microsRaw.slice(0, -3) : microsRaw;
-  const fraction = micros.length > 0 ? `.${micros}` : "";
-  return `${hh}:${mm}:${ss}${fraction}`;
+  const ms = String(date.getMilliseconds()).padStart(3, "0");
+  return `${hh}:${minutes}:${ss}.${ms}`;
 };
 
 const displayUser = (entry: ActionHistoryEntryDto): string => {
@@ -53,9 +66,19 @@ function EmptyState({ loading, unauthorized }: { loading: boolean; unauthorized:
 }
 
 export function ActionHistoryLog() {
-  const { data, isLoading, isFetching, error } = api.actionHistory.current.useQuery(
-    undefined,
+  const {
+    data,
+    isLoading,
+    isFetching,
+    isFetchingNextPage,
+    fetchNextPage,
+    hasNextPage,
+    error,
+  } = api.actionHistory.current.useInfiniteQuery(
+    { limit: 50 },
     {
+      getNextPageParam: (lastPage) =>
+        lastPage.hasMore ? lastPage.nextCursor ?? undefined : undefined,
       refetchOnWindowFocus: false,
       staleTime: 10_000,
       retry: (failureCount, err) => {
@@ -67,8 +90,82 @@ export function ActionHistoryLog() {
     },
   );
 
-  const unauthorized = error instanceof TRPCClientError && error.data?.code === "UNAUTHORIZED";
-  const entries = unauthorized ? [] : data ?? [];
+  const unauthorized =
+    error instanceof TRPCClientError && error.data?.code === "UNAUTHORIZED";
+
+  const rawEntries = useMemo(() => {
+    if (unauthorized) {
+      return [];
+    }
+    return data?.pages.flatMap((page) => page.items) ?? [];
+  }, [data, unauthorized]);
+
+  const entries = useMemo(() => {
+    if (rawEntries.length === 0) {
+      return [];
+    }
+    const sorted = [...rawEntries];
+    sorted.sort(
+      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+    );
+    return sorted;
+  }, [rawEntries]);
+
+  const viewportRef = useRef<HTMLDivElement | null>(null);
+  const [stickToBottom, setStickToBottom] = useState(true);
+  const pendingPrependRef =
+    useRef<{ scrollHeight: number; scrollTop: number } | null>(null);
+
+  const handleScroll = useCallback(
+    (event: UIEvent<HTMLDivElement>) => {
+      const target = event.currentTarget;
+      const remaining = target.scrollHeight - target.clientHeight - target.scrollTop;
+      const nearBottom = remaining <= 32;
+      if (nearBottom !== stickToBottom) {
+        setStickToBottom(nearBottom);
+      }
+
+      if (target.scrollTop <= 32 && hasNextPage && !isFetchingNextPage && !unauthorized) {
+        pendingPrependRef.current = {
+          scrollHeight: target.scrollHeight,
+          scrollTop: target.scrollTop,
+        };
+        fetchNextPage().catch(() => {
+          pendingPrependRef.current = null;
+        });
+      }
+    },
+    [fetchNextPage, hasNextPage, isFetchingNextPage, stickToBottom, unauthorized],
+  );
+
+  useEffect(() => {
+    const viewport = viewportRef.current;
+    if (!viewport) {
+      return;
+    }
+    if (pendingPrependRef.current) {
+      const { scrollHeight: previousHeight, scrollTop: previousTop } =
+        pendingPrependRef.current;
+      const heightDelta = viewport.scrollHeight - previousHeight;
+      viewport.scrollTop = previousTop + heightDelta;
+      pendingPrependRef.current = null;
+      return;
+    }
+    if (stickToBottom) {
+      viewport.scrollTop = Math.max(
+        viewport.scrollHeight - viewport.clientHeight,
+        0,
+      );
+    }
+  }, [entries, stickToBottom]);
+
+  const statusMessage = unauthorized
+    ? "Sign in to view"
+    : isLoading
+    ? "Loading…"
+    : null;
+
+  const isBackgroundRefreshing = isFetching && !isLoading && !isFetchingNextPage;
 
   return (
     <section aria-labelledby="action-history-heading" className="space-y-2">
@@ -79,71 +176,101 @@ export function ActionHistoryLog() {
         >
           Session Action History
         </h2>
-        <span
-          role="status"
-          aria-atomic="true"
-          className="text-xs font-medium text-neutral-500 dark:text-neutral-400"
-        >
-          {unauthorized
-            ? "Sign in to view"
-            : isLoading
-            ? "Loading…"
-            : `${entries.length} entr${entries.length === 1 ? "y" : "ies"}`}
-        </span>
+        {statusMessage ? (
+          <span
+            role="status"
+            aria-atomic="true"
+            className="text-xs font-medium text-neutral-500 dark:text-neutral-400"
+          >
+            {statusMessage}
+          </span>
+        ) : null}
       </div>
 
       <div className="overflow-hidden rounded-lg border border-neutral-200 bg-neutral-900 text-neutral-100 shadow-inner dark:border-neutral-800 dark:bg-neutral-950">
-        <ScrollArea className="max-h-80">
+        <ScrollArea
+          className="max-h-80"
+          viewportRef={viewportRef}
+          onViewportScroll={handleScroll}
+        >
           <ol className="divide-y divide-neutral-800/60 font-mono text-xs">
             {entries.length === 0 ? (
               <li>
                 <EmptyState loading={isLoading && !unauthorized} unauthorized={unauthorized} />
               </li>
             ) : (
-              entries.map((entry) => (
-                <li key={entry.id} className="px-4 py-3">
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-neutral-100">
-                    <span className="text-neutral-500 dark:text-neutral-400">
-                      [{formatTimestamp(entry.createdAt)}]
-                    </span>
-                    {renderStatusIcon(entry.status)}
-                    <span className="truncate">
-                      {entry.message}
-                    </span>
-                    <span className="text-neutral-400 dark:text-neutral-500">
-                      — {displayUser(entry)}
-                    </span>
-                  </div>
-                  {entry.subactions.length > 0 ? (
-                    <div className="mt-2 space-y-1">
-                      {entry.subactions.map((sub) => (
-                        <div
-                          key={sub.id}
-                          className="flex flex-wrap items-center gap-x-2 gap-y-1 pl-6 text-neutral-300"
-                        >
-                          <span className="text-neutral-500">↳</span>
-                          <span className="text-neutral-500 dark:text-neutral-400">
-                            [{formatTimestamp(sub.createdAt)}]
-                          </span>
-                          <span className="flex items-center gap-1">
-                            {renderStatusIcon(sub.status)}
-                          </span>
-                          <span className="truncate text-neutral-200">
-                            {sub.message}
-                          </span>
-                        </div>
-                      ))}
+              <>
+                {isFetchingNextPage ? (
+                  <li className="px-4 py-2 text-center text-xs text-neutral-400">
+                    Loading older actions…
+                  </li>
+                ) : null}
+                {entries.map((entry) => (
+                  <li key={entry.id} className="px-4 py-3">
+                    <div className="flex flex-wrap items-center gap-2 text-neutral-100 sm:flex-nowrap">
+                      <span className="flex shrink-0 items-center gap-2 text-neutral-300">
+                        <UserRound aria-hidden="true" className="h-4 w-4" />
+                        <span className="font-semibold text-neutral-100">
+                          {displayUser(entry)}
+                        </span>
+                        <span aria-hidden="true">:</span>
+                      </span>
+                      <span className="min-w-0 flex-1 truncate text-neutral-200">
+                        {entry.message}
+                      </span>
+                      <span aria-hidden="true" className="hidden flex-1 items-center sm:flex">
+                        <span className="w-full border-t border-dashed border-neutral-700" />
+                      </span>
+                      <span className="ml-auto flex shrink-0 items-center gap-2 text-xs text-neutral-300">
+                        <span className="flex items-center gap-1">
+                          {renderStatusIcon(entry.status)}
+                          <span className="sr-only">{entry.status}</span>
+                        </span>
+                        <span className="text-neutral-400">
+                          at {formatTimestampWithDate(entry.createdAt)}
+                        </span>
+                        <Clock3 aria-hidden="true" className="h-4 w-4 text-neutral-500" />
+                      </span>
                     </div>
-                  ) : null}
-                </li>
-              ))
+                    {entry.subactions.length > 0 ? (
+                      <div className="mt-3 space-y-2 pl-8">
+                        {entry.subactions.map((sub) => (
+                          <div
+                            key={sub.id}
+                            className="flex flex-wrap items-center gap-2 text-neutral-300 sm:flex-nowrap"
+                          >
+                            <span className="flex shrink-0 items-center gap-2 text-neutral-500">
+                              <span aria-hidden="true">↳</span>
+                              <span className="text-neutral-300">{sub.message}</span>
+                            </span>
+                            <span aria-hidden="true" className="hidden flex-1 items-center sm:flex">
+                              <span className="w-full border-t border-dashed border-neutral-800" />
+                            </span>
+                            <span className="ml-auto flex shrink-0 items-center gap-2 text-xs text-neutral-400">
+                              <span className="flex items-center gap-1">
+                                {renderStatusIcon(sub.status)}
+                                <span className="sr-only">{sub.status}</span>
+                              </span>
+                              <span>{formatTime(sub.createdAt)}</span>
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
+                  </li>
+                ))}
+              </>
             )}
           </ol>
         </ScrollArea>
       </div>
 
-      {isFetching && !isLoading && !unauthorized ? (
-        <span role="status" aria-atomic="true" className="text-xs text-neutral-500 dark:text-neutral-400">
+      {isBackgroundRefreshing && !unauthorized ? (
+        <span
+          role="status"
+          aria-atomic="true"
+          className="text-xs text-neutral-500 dark:text-neutral-400"
+        >
           Refreshing…
         </span>
       ) : null}
