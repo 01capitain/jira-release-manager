@@ -8,6 +8,7 @@
  */
 
 import { initTRPC, TRPCError } from "@trpc/server";
+import { parse as parseCookie } from "cookie";
 import superjson from "superjson";
 import { ZodError } from "zod";
 
@@ -19,17 +20,28 @@ const sessionCookieNames = [
   "__Secure-next-auth.session-token",
 ] as const;
 
+const isValidSessionToken = (token: string) => {
+  if (token.length < 16 || token.length > 256) {
+    return false;
+  }
+  return /^[A-Za-z0-9._-]+$/.test(token);
+};
+
 const extractSessionToken = (headers: Headers): string | null => {
   const raw = headers.get("cookie");
   if (!raw) return null;
-  const parts = raw.split(";");
-  for (const part of parts) {
-    const trimmed = part.trim();
+  try {
+    const cookies = (parseCookie as (value: string) => Record<string, string | undefined>)(raw);
     for (const name of sessionCookieNames) {
-      if (trimmed.startsWith(`${name}=`)) {
-        return decodeURIComponent(trimmed.slice(name.length + 1));
+      const candidate = cookies[name];
+      if (typeof candidate !== "string") continue;
+      if (isValidSessionToken(candidate)) {
+        return candidate;
       }
+      return null;
     }
+  } catch {
+    return null;
   }
   return null;
 };
