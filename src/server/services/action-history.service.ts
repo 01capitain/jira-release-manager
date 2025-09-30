@@ -77,7 +77,10 @@ class PrismaActionLogger implements ActionLogger {
     client?: Prisma.TransactionClient,
   ): Promise<void> {
     const delegates = getDelegates(client ?? this.db);
-    if (!delegates) return;
+    if (!delegates) {
+      console.debug("Action history delegates unavailable, skipping subaction");
+      return;
+    }
     await delegates.actionSubactionLog.create({
       data: {
         actionId: this.actionId,
