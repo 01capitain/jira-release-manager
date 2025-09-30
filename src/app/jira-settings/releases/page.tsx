@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useSession, signIn } from "next-auth/react";
+import Link from "next/link";
 import { Button } from "~/components/ui/button";
 import { Label } from "~/components/ui/label";
 import { api, type RouterOutputs } from "~/trpc/react";
@@ -81,7 +82,7 @@ export default function JiraReleasesPage() {
               Jira connection incomplete: {canSyncQuick.data.reason ?? "Unknown reason"}
             </p>
             <p className="mt-1">
-              Go to <a className="underline" href="/jira-settings/connect">Jira connect</a> to configure connection before syncing.
+              Go to <Link className="underline" href="/jira-settings/connect">Jira connect</Link> to configure connection before syncing.
             </p>
           </div>
         ) : null}

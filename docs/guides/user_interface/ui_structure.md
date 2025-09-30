@@ -11,6 +11,23 @@ This document outlines patterns for the app shell, navigation, and breadcrumbs t
   - Add a link to `NAV_GROUPS` for discovery.
   - Ensure the parent group is expandable and auto-highlights when any child is active.
 
+### Navigation Components
+
+- **Internal Links**: Always use the `Link` component from `next/link` instead of HTML `<a>` tags for internal client-side navigation.
+  - This prevents full page reloads and maintains SPA behavior.
+  - Import: `import Link from 'next/link'`
+  - Usage: Replace `<a href="/internal-path">` with `<Link href="/internal-path">`
+  - Preserve `className` and other props on the Link component.
+  - Example:
+
+    ```tsx
+    // ❌ Don't use <a> for internal navigation
+    <a href="/settings" className="underline">Settings</a>
+
+    // ✅ Use Link component instead
+    <Link href="/settings" className="underline">Settings</Link>
+    ```
+
 ## Breadcrumbs
 
 - Breadcrumb labels come from a route segment → label map in `computeCrumbs`.
