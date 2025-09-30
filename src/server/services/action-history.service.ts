@@ -100,7 +100,10 @@ class PrismaActionLogger implements ActionLogger {
     },
   ): Promise<void> {
     const delegates = getDelegates(this.db);
-    if (!delegates) return;
+    if (!delegates) {
+      console.debug("Action history delegates unavailable, skipping complete");
+      return;
+    }
     const data: Record<string, unknown> = {
       status,
     };

@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { UIEvent } from "react";
 import { TRPCClientError } from "@trpc/client";
 import { CheckCircle2, Clock3, MinusCircle, UserRound, XCircle } from "lucide-react";
+import type { UIEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { ScrollArea } from "~/components/ui/scroll-area";
 import type { ActionExecutionStatus, ActionHistoryEntryDto } from "~/shared/types/action-history";
