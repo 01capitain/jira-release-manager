@@ -26,6 +26,28 @@ This guide defines patterns for implementing domain services, with a focus on se
 - When provided, push deterministic subaction entries (e.g., `builtVersion.persist`, `componentVersion.populate`) after successful operations so the session history renders in order.
 - Do not wrap history writes in the same Prisma transaction as the domain change; collect metadata inside the transaction and emit subactions after commit to keep logs even when the transaction aborts later.
 
+**Example:**
+
+```typescript
+async create(userId: string, data: Input, options?: { logger?: ActionLogger }) {
+  // Collect metadata during transaction
+  const result = await this.db.$transaction(async (tx) => {
+    const entity = await tx.entity.create({ data });
+    return { id: entity.id, name: entity.name };
+  });
+
+  // Emit subaction after commit
+  await options?.logger?.subaction({
+    service: "entity",
+    operation: "persist",
+    message: `Entity ${result.name} persisted`,
+    metadata: { id: result.id },
+  });
+
+  return result;
+}
+```
+
 ## Transitions & DX Pattern
 
 - For state machines, provide both:

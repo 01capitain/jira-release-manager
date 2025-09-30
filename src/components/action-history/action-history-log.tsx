@@ -1,14 +1,13 @@
 "use client";
 
-import * as React from "react";
 
 import { CheckCircle2, MinusCircle, XCircle } from "lucide-react";
 
-import { api } from "~/trpc/react";
 import { ScrollArea } from "~/components/ui/scroll-area";
-import type { ActionHistoryEntryDto, ActionHistoryStatus } from "~/shared/types/action-history";
+import type { ActionExecutionStatus, ActionHistoryEntryDto } from "~/shared/types/action-history";
+import { api } from "~/trpc/react";
 
-const renderStatusIcon = (status: ActionHistoryStatus) => {
+const renderStatusIcon = (status: ActionExecutionStatus) => {
   switch (status) {
     case "success":
       return <CheckCircle2 className="h-4 w-4 text-emerald-400" aria-hidden="true" />;

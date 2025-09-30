@@ -1,14 +1,18 @@
 import { z } from "zod";
 
-import { IsoTimestampSchema } from "~/shared/types/iso8601";
 import type {
+  ActionExecutionStatus,
   ActionHistoryEntryDto,
-  ActionHistoryStatus,
   ActionHistorySubentryDto,
   ActionHistoryUserDto,
 } from "~/shared/types/action-history";
+import { IsoTimestampSchema } from "~/shared/types/iso8601";
 
-const StatusSchema = z.enum(["success", "failed", "cancelled"] satisfies readonly ActionHistoryStatus[]);
+const StatusSchema = z.enum([
+  "success",
+  "failed",
+  "cancelled",
+] satisfies readonly ActionExecutionStatus[]);
 
 const ActionSubactionModelSchema = z.object({
   id: z.string().uuid(),
@@ -67,7 +71,8 @@ export function toActionHistoryEntryDto(model: unknown): ActionHistoryEntryDto {
     actionType: parsed.actionType,
     message: parsed.message,
     status: parsed.status,
-    createdAt: parsed.createdAt.toISOString() as ActionHistoryEntryDto["createdAt"],
+    createdAt:
+      parsed.createdAt.toISOString() as ActionHistoryEntryDto["createdAt"],
     createdBy: parsed.createdBy
       ? {
           id: parsed.createdBy.id,
@@ -81,13 +86,16 @@ export function toActionHistoryEntryDto(model: unknown): ActionHistoryEntryDto {
       subactionType: sub.subactionType,
       message: sub.message,
       status: sub.status,
-      createdAt: sub.createdAt.toISOString() as ActionHistorySubentryDto["createdAt"],
+      createdAt:
+        sub.createdAt.toISOString() as ActionHistorySubentryDto["createdAt"],
       metadata: sub.metadata as Record<string, unknown> | null | undefined,
     })),
   };
   return ActionHistoryEntryDtoSchema.parse(dto);
 }
 
-export function mapToActionHistoryEntryDtos(models: unknown[]): ActionHistoryEntryDto[] {
+export function mapToActionHistoryEntryDtos(
+  models: unknown[],
+): ActionHistoryEntryDto[] {
   return models.map((model) => toActionHistoryEntryDto(model));
 }
