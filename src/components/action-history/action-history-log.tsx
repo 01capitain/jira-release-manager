@@ -1,6 +1,6 @@
 "use client";
 
-
+import { TRPCClientError } from "@trpc/client";
 import { CheckCircle2, MinusCircle, XCircle } from "lucide-react";
 
 import { ScrollArea } from "~/components/ui/scroll-area";
@@ -53,24 +53,22 @@ function EmptyState({ loading, unauthorized }: { loading: boolean; unauthorized:
 }
 
 export function ActionHistoryLog() {
-import { TRPCClientError } from '@trpc/client';
-
   const { data, isLoading, isFetching, error } = api.actionHistory.current.useQuery(
     undefined,
     {
       refetchOnWindowFocus: false,
       staleTime: 10_000,
       retry: (failureCount, err) => {
-      if (err instanceof TRPCClientError && err.data?.code === "UNAUTHORIZED") {
-         return false;
-       }
-       return failureCount < 2;
-     },
-   },
- );
+        if (err instanceof TRPCClientError && err.data?.code === "UNAUTHORIZED") {
+          return false;
+        }
+        return failureCount < 2;
+      },
+    },
+  );
 
-const unauthorized = error instanceof TRPCClientError && error.data?.code === "UNAUTHORIZED";
- const entries = unauthorized ? [] : data ?? [];
+  const unauthorized = error instanceof TRPCClientError && error.data?.code === "UNAUTHORIZED";
+  const entries = unauthorized ? [] : data ?? [];
 
   return (
     <section aria-labelledby="action-history-heading" className="space-y-2">

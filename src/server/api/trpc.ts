@@ -8,7 +8,6 @@
  */
 
 import { initTRPC, TRPCError } from "@trpc/server";
-import { parse as parseCookie } from "cookie";
 import superjson from "superjson";
 import { ZodError } from "zod";
 
@@ -19,6 +18,38 @@ const sessionCookieNames = [
   "next-auth.session-token",
   "__Secure-next-auth.session-token",
 ] as const;
+
+const safeDecode = (value: string) => {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+};
+
+const parseCookies = (header: string): Record<string, string> => {
+  const pairs = header.split(";");
+  const cookies: Record<string, string> = {};
+
+  for (const pair of pairs) {
+    const separatorIndex = pair.indexOf("=");
+    if (separatorIndex === -1) continue;
+
+    const name = pair.slice(0, separatorIndex).trim();
+    if (!name) continue;
+
+    let rawValue = pair.slice(separatorIndex + 1).trim();
+    if (!rawValue) continue;
+
+    if (rawValue.startsWith("\"") && rawValue.endsWith("\"")) {
+      rawValue = rawValue.slice(1, -1);
+    }
+
+    cookies[name] = safeDecode(rawValue);
+  }
+
+  return cookies;
+};
 
 const isValidSessionToken = (token: string) => {
   if (token.length < 16 || token.length > 256) {
@@ -31,7 +62,7 @@ const extractSessionToken = (headers: Headers): string | null => {
   const raw = headers.get("cookie");
   if (!raw) return null;
   try {
-    const cookies = (parseCookie as (value: string) => Record<string, string | undefined>)(raw);
+    const cookies = parseCookies(raw);
     for (const name of sessionCookieNames) {
       const candidate = cookies[name];
       if (typeof candidate !== "string") continue;
