@@ -38,15 +38,14 @@ async create(userId: string, data: Input, options?: { logger?: ActionLogger }) {
 
   // Emit subaction after commit
   await options?.logger?.subaction({
-    service: "entity",
-    operation: "persist",
+    subactionType: "entity.persist",
+    status: "success",
     message: `Entity ${result.name} persisted`,
     metadata: { id: result.id },
   });
 
   return result;
 }
-```
 
 ## Transitions & DX Pattern
 
