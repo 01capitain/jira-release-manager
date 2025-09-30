@@ -19,6 +19,7 @@ This document outlines patterns for the app shell, navigation, and breadcrumbs t
   - Usage: Replace `<a href="/internal-path">` with `<Link href="/internal-path">`
   - Preserve `className` and other props on the Link component.
   - Example:
+
     ```tsx
     // ❌ Don't use <a> for internal navigation
     <a href="/settings" className="underline">Settings</a>
