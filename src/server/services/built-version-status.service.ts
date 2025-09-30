@@ -196,11 +196,16 @@ export class BuiltVersionStatusService {
       return { status: rule.to as BuiltVersionStatus };
     });
 
-    if (options?.logger) {
-      for (const entry of auditTrail) {
-        await options.logger.subaction(entry);
-      }
+if (options?.logger) {
+  for (const entry of auditTrail) {
+    try {
+      await options.logger.subaction(entry);
+    } catch (error) {
+      // Absorb logging failures to prevent breaking the transition workflow
+      console.error("Failed to log subaction:", error);
     }
+  }
+}
 
     return result;
   }
