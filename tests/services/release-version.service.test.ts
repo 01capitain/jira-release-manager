@@ -103,8 +103,10 @@ describe("ReleaseVersion and BuiltVersion behavior", () => {
 
     // builtVersion created alongside
     expect(db.builtVersion.create).toHaveBeenCalled();
-    const builtArgs = calls["builtVersion.create"][0] as any;
-    expect(builtArgs.data.name).toBe("version 100.0"); // ends with .0
+    const builtCalls = calls["builtVersion.create"] ?? [];
+    const builtArgs = builtCalls[0] as any;
+    expect(builtArgs).toBeDefined();
+    expect(builtArgs?.data?.name).toBe("version 100.0"); // ends with .0
 
     // component versions created for each existing release component (2)
     expect(db.componentVersion.create).toHaveBeenCalledTimes(2);
@@ -132,8 +134,10 @@ describe("ReleaseVersion and BuiltVersion behavior", () => {
     expect(res.status).toBe("in_deployment");
 
     // Successor created with next increment (1)
-    const succ = calls["builtVersion.create"][0] as any;
-    expect(succ.data.name).toBe("version 300.1");
+    const successorCalls = calls["builtVersion.create"] ?? [];
+    const succ = successorCalls[0] as any;
+    expect(succ).toBeDefined();
+    expect(succ?.data?.name).toBe("version 300.1");
   });
 
   test("no successor is created if a newer built already exists", async () => {

@@ -20,6 +20,8 @@ const makeSchema = () =>
       where: z.lazy(() => UserWhereInputObjectSchema).optional(),
     })
     .strict();
-export const UserUpsertWithoutReleaseVersionInputObjectSchema: z.ZodType<Prisma.UserUpsertWithoutReleaseVersionInput> =
-  makeSchema() as unknown as z.ZodType<Prisma.UserUpsertWithoutReleaseVersionInput>;
+type PrismaUserUpsertWithoutReleaseVersionsInput =
+  Prisma.UserUpsertWithoutReleaseVersionsInput;
+export const UserUpsertWithoutReleaseVersionInputObjectSchema: z.ZodType<PrismaUserUpsertWithoutReleaseVersionsInput> =
+  makeSchema() as unknown as z.ZodType<PrismaUserUpsertWithoutReleaseVersionsInput>;
 export const UserUpsertWithoutReleaseVersionInputObjectZodSchema = makeSchema();

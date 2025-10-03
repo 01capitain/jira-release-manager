@@ -7,6 +7,7 @@
  * need to use are documented accordingly near the end.
  */
 
+import type { Session } from "next-auth";
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import { ZodError } from "zod";
@@ -90,9 +91,10 @@ const extractSessionToken = (headers: Headers): string | null => {
  * @see https://trpc.io/docs/server/context
  */
 export const createTRPCContext = async (opts: { headers: Headers }) => {
-  let session: Awaited<ReturnType<typeof auth>> = null;
+  let session: Session | null = null;
   try {
-    session = await auth();
+    const getSession = auth as unknown as () => Promise<Session | null>;
+    session = await getSession();
   } catch (err) {
     // Avoid bubbling Auth.js errors to public procedures; surface as anonymous session
     if (process.env.NODE_ENV !== "production") {
@@ -200,6 +202,7 @@ export const protectedProcedure = t.procedure
     return next({
       ctx: {
         // infers the `session` as non-nullable
+        ...ctx,
         session,
       },
     });

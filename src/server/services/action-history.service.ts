@@ -34,9 +34,9 @@ type PrismaClientOrTx = PrismaClient | Prisma.TransactionClient;
 
 const jsonValue = (
   value: Record<string, unknown> | null | undefined,
-): Prisma.InputJsonValue | null | undefined => {
+): Prisma.InputJsonValue | Prisma.NullTypes.JsonNull | undefined => {
   if (value === undefined) return undefined;
-  if (value === null) return null;
+  if (value === null) return Prisma.JsonNull;
   return value as Prisma.InputJsonValue;
 };
 
@@ -210,7 +210,12 @@ export class ActionHistoryService {
       };
     }
 
-    const where = sessionToken ? { sessionToken } : { createdById: userId };
+    const where: Prisma.ActionLogWhereInput = {};
+    if (sessionToken) {
+      where.sessionToken = sessionToken;
+    } else if (typeof userId === "string" && userId.length > 0) {
+      where.createdById = userId;
+    }
     const take = limit + 1;
 
     const rows = await delegates.actionLog.findMany({
@@ -243,7 +248,8 @@ export class ActionHistoryService {
     const hasMore = rows.length > limit;
     const slice = hasMore ? rows.slice(0, limit) : rows;
     const items = mapToActionHistoryEntryDtos(slice);
-    const nextCursor = hasMore ? slice[slice.length - 1]?.id ?? null : null;
+    const last = slice.at(-1);
+    const nextCursor = hasMore && last ? last.id : null;
 
     return {
       items,

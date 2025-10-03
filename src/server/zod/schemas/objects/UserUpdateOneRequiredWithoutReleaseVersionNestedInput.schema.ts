@@ -41,7 +41,9 @@ const makeSchema = () =>
         .optional(),
     })
     .strict();
-export const UserUpdateOneRequiredWithoutReleaseVersionNestedInputObjectSchema: z.ZodType<Prisma.UserUpdateOneRequiredWithoutReleaseVersionNestedInput> =
-  makeSchema() as unknown as z.ZodType<Prisma.UserUpdateOneRequiredWithoutReleaseVersionNestedInput>;
+type PrismaUserUpdateOneRequiredWithoutReleaseVersionsNestedInput =
+  Prisma.UserUpdateOneRequiredWithoutReleaseVersionsNestedInput;
+export const UserUpdateOneRequiredWithoutReleaseVersionNestedInputObjectSchema: z.ZodType<PrismaUserUpdateOneRequiredWithoutReleaseVersionsNestedInput> =
+  makeSchema() as unknown as z.ZodType<PrismaUserUpdateOneRequiredWithoutReleaseVersionsNestedInput>;
 export const UserUpdateOneRequiredWithoutReleaseVersionNestedInputObjectZodSchema =
   makeSchema();

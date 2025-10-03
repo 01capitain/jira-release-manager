@@ -270,8 +270,11 @@ function computeCrumbs(pathname: string): Crumb[] {
   }
   // Mark last as current (no href)
   if (crumbs.length > 1) {
-    const last = crumbs[crumbs.length - 1];
-    crumbs[crumbs.length - 1] = { label: last.label };
+    const lastIndex = crumbs.length - 1;
+    const last = crumbs[lastIndex];
+    if (last) {
+      crumbs[lastIndex] = { label: last.label };
+    }
   }
   return crumbs;
 }

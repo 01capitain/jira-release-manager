@@ -7,11 +7,9 @@ import type {
 } from "~/shared/types/action-history";
 import { IsoTimestampSchema } from "~/shared/types/iso8601";
 
-const StatusSchema = z.enum([
-  "success",
-  "failed",
-  "cancelled",
-] satisfies readonly ActionExecutionStatus[]);
+const statusValues = ["success", "failed", "cancelled"] as const satisfies readonly ActionExecutionStatus[];
+type StatusValue = (typeof statusValues)[number];
+const StatusSchema = z.enum(statusValues);
 
 const ActionSubactionModelSchema = z.object({
   id: z.string().uuid(),
@@ -69,7 +67,7 @@ export function toActionHistoryEntryDto(model: unknown): ActionHistoryEntryDto {
     id: parsed.id,
     actionType: parsed.actionType,
     message: parsed.message,
-    status: parsed.status as ActionExecutionStatus,
+    status: parsed.status,
     createdAt:
       parsed.createdAt.toISOString() as ActionHistoryEntryDto["createdAt"],
     createdBy: parsed.createdBy
@@ -88,7 +86,7 @@ export function toActionHistoryEntryDto(model: unknown): ActionHistoryEntryDto {
       id: sub.id,
       subactionType: sub.subactionType,
       message: sub.message,
-      status: sub.status as ActionExecutionStatus,
+      status: sub.status,
       createdAt:
         sub.createdAt.toISOString() as ActionHistorySubentryDto["createdAt"],
       metadata: sub.metadata as Record<string, unknown> | null | undefined,

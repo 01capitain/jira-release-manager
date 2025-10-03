@@ -1,11 +1,12 @@
+import type { JiraReleaseStatus } from "@prisma/client";
+
 import { env } from "~/env";
 
 export type JiraVersion = {
   id: string;
   name: string;
   description?: string | null;
-  released: boolean;
-  archived: boolean;
+  releaseStatus: JiraReleaseStatus;
   releaseDate?: string | null; // YYYY-MM-DD
   startDate?: string | null; // YYYY-MM-DD
 };
@@ -101,12 +102,16 @@ export class JiraVersionService {
           typeof obj.startDate === "string" && obj.startDate.length > 0
             ? obj.startDate
             : null;
+        const releaseStatus: JiraReleaseStatus = archived
+          ? "Archived"
+          : released
+            ? "Released"
+            : "Unreleased";
         return {
           id,
           name,
           description,
-          released,
-          archived,
+          releaseStatus,
           releaseDate,
           startDate,
         };
@@ -130,14 +135,9 @@ export class JiraVersionService {
     const includeArchived = options?.includeArchived ?? false;
 
     const filtered = items.filter((v) => {
-      const isReleased = v.released === true;
-      const isArchived = v.archived === true;
-      const isUnreleased = !isReleased && !isArchived;
-      return (
-        (includeReleased && isReleased) ||
-        (includeUnreleased && isUnreleased) ||
-        (includeArchived && isArchived)
-      );
+      if (v.releaseStatus === "Released") return includeReleased;
+      if (v.releaseStatus === "Archived") return includeArchived;
+      return includeUnreleased;
     });
 
     return { configured: true, items: filtered };

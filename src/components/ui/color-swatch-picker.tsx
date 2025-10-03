@@ -73,22 +73,26 @@ export function ColorSwatchPicker({
     >
       {colors.map((c) => {
         const isSelected = c === value;
-        const m = COLOR_CLASS_MAP[c] ?? COLOR_CLASS_MAP.neutral;
+        const mapEntry = COLOR_CLASS_MAP[c] ?? COLOR_CLASS_MAP.neutral;
+        if (!mapEntry) {
+          return null;
+        }
+        const { bg, ring, label } = mapEntry;
         return (
           <button
             key={c}
             type="button"
             role="radio"
             aria-checked={isSelected}
-            aria-label={m.label}
-            title={m.label}
+            aria-label={label}
+            title={label}
             disabled={disabled}
             onClick={() => onChange(c)}
             tabIndex={isSelected ? 0 : -1}
             className={cn(
               "h-8 w-8 rounded-full border border-neutral-300 dark:border-neutral-700",
-              m.bg,
-              isSelected ? `ring-2 ${m.ring}` : "ring-0",
+              bg,
+              isSelected ? `ring-2 ${ring}` : "ring-0",
               disabled ? "opacity-60" : "hover:scale-105 transition-transform",
             )}
           />

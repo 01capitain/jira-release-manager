@@ -1,4 +1,5 @@
 import type {
+  Prisma,
   PrismaClient,
   User,
   ReleaseVersion,
@@ -31,11 +32,29 @@ export class BuiltVersionService {
   ): Promise<BuiltVersionDto> {
     const auditTrail: SubactionInput[] = [];
     const created = await this.db.$transaction(async (tx) => {
+      const trimmedName = name.trim();
+
+      const releaseVersion = await tx.releaseVersion.findUniqueOrThrow({
+        where: { id: versionId },
+        select: { name: true },
+      });
+
+      const parsedIncrement = (() => {
+        const parts = trimmedName.split(".");
+        const lastPart = parts.at(-1);
+        const maybeNumber = Number(lastPart);
+        return Number.isFinite(maybeNumber) ? maybeNumber : 0;
+      })();
+
       const built = await tx.builtVersion.create({
         data: {
-          name: name.trim(),
+          name: trimmedName,
           version: { connect: { id: versionId } },
           createdBy: { connect: { id: userId } },
+          tokenValues: {
+            release_version: releaseVersion.name,
+            increment: parsedIncrement,
+          } as Prisma.InputJsonValue,
         },
         select: { id: true, name: true, versionId: true, createdAt: true },
       });
@@ -43,12 +62,6 @@ export class BuiltVersionService {
         subactionType: "builtVersion.persist",
         message: `Built version ${built.name} created`,
         metadata: { id: built.id, versionId: built.versionId },
-      });
-
-      // Fetch the release version for token expansion
-      const releaseVersion = await tx.releaseVersion.findUniqueOrThrow({
-        where: { id: versionId },
-        select: { name: true },
       });
 
       // Fetch all release components
@@ -79,6 +92,11 @@ export class BuiltVersionService {
               increment: nextIncrement,
               releaseComponent: { connect: { id: comp.id } },
               builtVersion: { connect: { id: built.id } },
+              tokenValues: {
+                release_version: releaseVersion.name,
+                built_version: built.name,
+                increment: nextIncrement,
+              } as Prisma.InputJsonValue,
             },
           });
           auditTrail.push({
