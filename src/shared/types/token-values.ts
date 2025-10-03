@@ -3,6 +3,3 @@ export type TokenValues = {
   built_version?: string;
   increment: number;
 };
-
-export default TokenValues;
-

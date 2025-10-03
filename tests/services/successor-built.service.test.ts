@@ -81,9 +81,15 @@ function setupMockDb({
           (cv) => cv.builtVersionId === where.builtVersionId && cv.releaseComponentId === where.releaseComponentId,
         );
         if (idx >= 0) {
-          componentVersions[idx] = { ...componentVersions[idx], ...(args.update ?? {}) };
-          const row = componentVersions[idx];
-          return args.select ? { id: row.id, increment: row.increment } : row;
+          const existing = componentVersions[idx];
+          if (!existing) {
+            throw new Error("expected component version to exist");
+          }
+          const updated = { ...existing, ...(args.update ?? {}) };
+          componentVersions[idx] = updated;
+          return args.select
+            ? { id: updated.id, increment: updated.increment }
+            : updated;
         }
         const created: CV = {
           id: `cv-${++cvAuto}`,
@@ -111,8 +117,13 @@ function setupMockDb({
       update: jest.fn(async (args: any) => {
         const idx = componentVersions.findIndex((cv) => cv.id === args.where.id);
         if (idx >= 0) {
-          componentVersions[idx] = { ...componentVersions[idx], ...args.data };
-          return componentVersions[idx];
+          const current = componentVersions[idx];
+          if (!current) {
+            throw new Error("component version not found");
+          }
+          const next = { ...current, ...args.data };
+          componentVersions[idx] = next;
+          return next;
         }
         throw new Error("not found");
       }),
@@ -120,7 +131,7 @@ function setupMockDb({
         const idx = componentVersions.findIndex((cv) => cv.id === args.where.id);
         if (idx >= 0) {
           const [removed] = componentVersions.splice(idx, 1);
-          return removed;
+          return removed ?? { id: args.where.id };
         }
         throw new Error("not found");
       }),

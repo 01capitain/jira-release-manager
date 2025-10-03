@@ -22,7 +22,9 @@ const makeSchema = () =>
       connect: z.lazy(() => UserWhereUniqueInputObjectSchema).optional(),
     })
     .strict();
-export const UserCreateNestedOneWithoutReleaseVersionInputObjectSchema: z.ZodType<Prisma.UserCreateNestedOneWithoutReleaseVersionInput> =
-  makeSchema() as unknown as z.ZodType<Prisma.UserCreateNestedOneWithoutReleaseVersionInput>;
+type PrismaUserCreateNestedOneWithoutReleaseVersionsInput =
+  Prisma.UserCreateNestedOneWithoutReleaseVersionsInput;
+export const UserCreateNestedOneWithoutReleaseVersionInputObjectSchema: z.ZodType<PrismaUserCreateNestedOneWithoutReleaseVersionsInput> =
+  makeSchema() as unknown as z.ZodType<PrismaUserCreateNestedOneWithoutReleaseVersionsInput>;
 export const UserCreateNestedOneWithoutReleaseVersionInputObjectZodSchema =
   makeSchema();

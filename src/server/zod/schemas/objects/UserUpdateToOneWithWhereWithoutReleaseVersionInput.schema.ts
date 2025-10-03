@@ -14,7 +14,9 @@ const makeSchema = () =>
       ]),
     })
     .strict();
-export const UserUpdateToOneWithWhereWithoutReleaseVersionInputObjectSchema: z.ZodType<Prisma.UserUpdateToOneWithWhereWithoutReleaseVersionInput> =
-  makeSchema() as unknown as z.ZodType<Prisma.UserUpdateToOneWithWhereWithoutReleaseVersionInput>;
+type PrismaUserUpdateToOneWithWhereWithoutReleaseVersionsInput =
+  Prisma.UserUpdateToOneWithWhereWithoutReleaseVersionsInput;
+export const UserUpdateToOneWithWhereWithoutReleaseVersionInputObjectSchema: z.ZodType<PrismaUserUpdateToOneWithWhereWithoutReleaseVersionsInput> =
+  makeSchema() as unknown as z.ZodType<PrismaUserUpdateToOneWithWhereWithoutReleaseVersionsInput>;
 export const UserUpdateToOneWithWhereWithoutReleaseVersionInputObjectZodSchema =
   makeSchema();

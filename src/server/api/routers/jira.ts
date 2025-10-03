@@ -1,4 +1,4 @@
-import type { PrismaClient } from "@prisma/client";
+import type { Prisma, PrismaClient } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import {
@@ -289,26 +289,25 @@ export const jiraRouter = createTRPCRouter({
       if (!jiraVersionModel?.findMany) {
         return { total: 0, items: [] as const };
       }
-      const where = {
-        OR: [
-          includeReleased ? { released: true } : undefined,
-          includeArchived ? { archived: true } : undefined,
-          includeUnreleased ? { AND: [{ released: false }, { archived: false }] } : undefined,
-        ].filter(Boolean),
-      };
+      const statusFilters: Prisma.JiraVersionWhereInput[] = [];
+      if (includeReleased) statusFilters.push({ releaseStatus: "Released" });
+      if (includeArchived) statusFilters.push({ releaseStatus: "Archived" });
+      if (includeUnreleased) statusFilters.push({ releaseStatus: "Unreleased" });
+      const where: Prisma.JiraVersionWhereInput = statusFilters.length
+        ? { OR: statusFilters }
+        : {};
       const [total, rows] = await Promise.all([
         jiraVersionModel.count({ where }),
         jiraVersionModel.findMany({
           where,
-          orderBy: [{ released: "asc" }, { name: "asc" }],
+          orderBy: [{ releaseStatus: "asc" }, { name: "asc" }],
           skip: (page - 1) * pageSize,
           take: pageSize,
           select: {
             id: true,
             jiraId: true,
             name: true,
-            released: true,
-            archived: true,
+            releaseStatus: true,
             releaseDate: true,
             startDate: true,
           },
@@ -366,8 +365,7 @@ export const jiraRouter = createTRPCRouter({
           update: {
             name: version.name,
             description: version.description ?? null,
-            released: version.released,
-            archived: version.archived,
+            releaseStatus: version.releaseStatus,
             releaseDate: version.releaseDate ? new Date(version.releaseDate) : null,
             startDate: version.startDate ? new Date(version.startDate) : null,
             projectKey: env.JIRA_PROJECT_KEY ?? null,
@@ -376,8 +374,7 @@ export const jiraRouter = createTRPCRouter({
             jiraId: version.id,
             name: version.name,
             description: version.description ?? null,
-            released: version.released,
-            archived: version.archived,
+            releaseStatus: version.releaseStatus,
             releaseDate: version.releaseDate ? new Date(version.releaseDate) : null,
             startDate: version.startDate ? new Date(version.startDate) : null,
             projectKey: env.JIRA_PROJECT_KEY ?? null,

@@ -45,6 +45,14 @@ enum BuiltVersionAction {
     @@schema("app")
 }
 
+enum ActionExecutionStatus {
+    success
+    failed
+    cancelled
+
+    @@schema("app")
+}
+
 model ReleaseVersion {
     id                String         @id @default(dbgenerated("uuidv7()")) @db.Uuid
     name              String         @unique
@@ -78,6 +86,7 @@ model User {
     ReleaseComponents      ReleaseComponent[]
     BuiltVersionTransition BuiltVersionTransition[]
     jiraCredential         JiraCredential?
+    actionLogs             ActionLog[]
 
     @@schema("app")
 }
@@ -197,6 +206,43 @@ model BuiltVersionTransition {
     createdById String   @db.Uuid
 
     @@index([builtVersionId, createdAt])
+    @@schema("app")
+}
+
+model ActionLog {
+    id           String                @id @default(dbgenerated("uuidv7()")) @db.Uuid
+    actionType   String
+    message      String                @db.Text
+    status       ActionExecutionStatus @default(success)
+    sessionToken String?
+    workflowId   String?
+    metadata     Json?
+
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @updatedAt
+    createdBy   User     @relation(fields: [createdById], references: [id])
+    createdById String   @db.Uuid
+
+    subactions ActionSubactionLog[]
+
+    @@index([sessionToken, createdAt])
+    @@index([createdById, createdAt])
+    @@schema("app")
+}
+
+model ActionSubactionLog {
+    id            String                @id @default(dbgenerated("uuidv7()")) @db.Uuid
+    action        ActionLog             @relation(fields: [actionId], references: [id], onDelete: Cascade)
+    actionId      String                @db.Uuid
+    subactionType String
+    message       String                @db.Text
+    status        ActionExecutionStatus @default(success)
+    metadata      Json?
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@index([actionId, createdAt])
     @@schema("app")
 }
 

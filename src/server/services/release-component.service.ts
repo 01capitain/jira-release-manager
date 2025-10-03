@@ -5,6 +5,7 @@ import {
   mapToReleaseComponentDtos,
   toReleaseComponentDto,
 } from "~/server/zod/dto/release-component.dto";
+import type { ActionLogger } from "~/server/services/action-history.service";
 
 export class ReleaseComponentService {
   constructor(private readonly db: PrismaClient) {}
@@ -26,6 +27,7 @@ export class ReleaseComponentService {
   async create(
     userId: User["id"],
     input: ReleaseComponentCreateInput,
+    options?: { logger?: ActionLogger },
   ): Promise<ReleaseComponentDto> {
     const created = await this.db.releaseComponent.create({
       data: {
@@ -41,6 +43,11 @@ export class ReleaseComponentService {
         namingPattern: true,
         createdAt: true,
       },
+    });
+    await options?.logger?.subaction({
+      subactionType: "releaseComponent.persist",
+      message: `Component ${created.name} stored`,
+      metadata: { id: created.id, color: created.color },
     });
     return toReleaseComponentDto(created);
   }

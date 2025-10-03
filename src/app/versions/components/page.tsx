@@ -27,6 +27,14 @@ export default function VersionsComponentsPage() {
   const [phase, setPhase] = React.useState<Phase>("idle");
   const createMutation = api.releaseComponent.create.useMutation();
   const { data: components } = api.releaseComponent.list.useQuery();
+  const handleColorChange = React.useCallback(
+    (nextColor: string) => {
+      if (AllowedBaseColors.includes(nextColor as (typeof AllowedBaseColors)[number])) {
+        setColor(nextColor as (typeof AllowedBaseColors)[number]);
+      }
+    },
+    [],
+  );
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -97,7 +105,7 @@ export default function VersionsComponentsPage() {
               <ColorSwatchPicker
                 colors={[...AllowedBaseColors]}
                 value={color}
-                onChange={setColor}
+                onChange={handleColorChange}
                 ariaLabel="Choose base color"
               />
               <p className="text-xs text-neutral-500 dark:text-neutral-400">

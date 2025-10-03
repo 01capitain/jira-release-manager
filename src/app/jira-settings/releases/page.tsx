@@ -32,14 +32,17 @@ export default function JiraReleasesPage() {
   const { data: session } = useSession();
   // No auto-sync query; syncing happens only on explicit action
 
-  const releases = api.releaseVersion.list.useQuery({ page: 1, pageSize: 100 });
+const releases = api.releaseVersion.list.useQuery({ page: 1, pageSize: 100 });
   const canSyncQuick = api.jira.canSyncQuick.useQuery(undefined, { enabled: !!session });
   const [page, setPage] = React.useState(1);
   const pageSize = 50;
-  const listStored = api.jira.listStoredVersions.useQuery(
-    { page, pageSize, includeReleased, includeUnreleased, includeArchived },
-    { keepPreviousData: true },
-  );
+  const listStored = api.jira.listStoredVersions.useQuery({
+    page,
+    pageSize,
+    includeReleased,
+    includeUnreleased,
+    includeArchived,
+  });
   const sync = api.jira.syncVersions.useMutation({
     onSuccess: async () => {
       await listStored.refetch();
@@ -47,8 +50,12 @@ export default function JiraReleasesPage() {
   });
 
   const storedData = listStored.data;
-  const storedItems: StoredVersion[] = storedData?.items ?? [];
-  const releaseItems: ReleaseVersionItem[] = releases.data?.items ?? [];
+  const storedItems: StoredVersion[] = storedData?.items
+    ? [...storedData.items]
+    : [];
+  const releaseItems: ReleaseVersionItem[] = releases.data?.items
+    ? [...releases.data.items]
+    : [];
   const hasStoredItems = storedItems.length > 0;
 
   // No connection check here beyond presence; handled by canSyncQuick query
@@ -147,6 +154,12 @@ export default function JiraReleasesPage() {
           <ul className="mt-3 divide-y divide-neutral-200 dark:divide-neutral-800">
             {storedItems.map((v) => {
               const formattedReleaseDate = formatReleaseDate(v.releaseDate);
+              const statusLabel =
+                v.releaseStatus === "Released"
+                  ? "Released"
+                  : v.releaseStatus === "Archived"
+                    ? "Archived"
+                    : "Unreleased";
               return (
                 <li key={`${v.id}:${v.name}`} className="py-3">
                   <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
@@ -154,7 +167,7 @@ export default function JiraReleasesPage() {
                       <div className="font-medium">
                         {v.name}
                         <span className="ml-2 text-xs font-normal text-neutral-500 dark:text-neutral-400">
-                          {v.released ? "Released" : v.archived ? "Archived" : "Unreleased"}
+                          {statusLabel}
                         </span>
                       </div>
                       {formattedReleaseDate ? (
