@@ -187,7 +187,7 @@ export class ActionHistoryService {
   async listBySession(
     sessionToken: string | null | undefined,
     userId: string | null | undefined,
-    limit = 50,
+    limit = 5,
     cursor?: string | null,
   ): Promise<{
     items: ActionHistoryEntryDto[];

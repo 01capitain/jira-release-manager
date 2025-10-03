@@ -5,9 +5,10 @@ import { CheckCircle2, Clock3, MinusCircle, UserRound, XCircle } from "lucide-re
 import type { UIEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { ScrollArea } from "~/components/ui/scroll-area";
 import type { ActionExecutionStatus, ActionHistoryEntryDto } from "~/shared/types/action-history";
 import { api } from "~/trpc/react";
+
+const PAGE_SIZE = 5;
 
 const renderStatusIcon = (status: ActionExecutionStatus) => {
   switch (status) {
@@ -53,6 +54,21 @@ const displayUser = (entry: ActionHistoryEntryDto): string => {
   return info.id ?? "unknown";
 };
 
+const isUnauthorizedTrpcError = (error: unknown): boolean => {
+  if (!(error instanceof TRPCClientError)) {
+    return false;
+  }
+  const maybeData = (error as { data?: unknown }).data;
+  if (!maybeData || typeof maybeData !== "object") {
+    return false;
+  }
+  const code = (maybeData as { code?: unknown }).code;
+  if (typeof code !== "string") {
+    return false;
+  }
+  return code === "UNAUTHORIZED";
+};
+
 function EmptyState({ loading, unauthorized }: { loading: boolean; unauthorized: boolean }) {
   return (
     <div className="flex h-40 items-center justify-center text-xs text-neutral-400 dark:text-neutral-500">
@@ -75,14 +91,14 @@ export function ActionHistoryLog() {
     hasNextPage,
     error,
   } = api.actionHistory.current.useInfiniteQuery(
-    { limit: 50 },
+    { limit: PAGE_SIZE },
     {
       getNextPageParam: (lastPage) =>
         lastPage.hasMore ? lastPage.nextCursor ?? undefined : undefined,
       refetchOnWindowFocus: false,
       staleTime: 10_000,
       retry: (failureCount, err) => {
-        if (err instanceof TRPCClientError && err.data?.code === "UNAUTHORIZED") {
+        if (isUnauthorizedTrpcError(err)) {
           return false;
         }
         return failureCount < 2;
@@ -90,8 +106,7 @@ export function ActionHistoryLog() {
     },
   );
 
-  const unauthorized =
-    error instanceof TRPCClientError && error.data?.code === "UNAUTHORIZED";
+  const unauthorized = isUnauthorizedTrpcError(error);
 
   const rawEntries = useMemo(() => {
     if (unauthorized) {
@@ -112,9 +127,26 @@ export function ActionHistoryLog() {
   }, [rawEntries]);
 
   const viewportRef = useRef<HTMLDivElement | null>(null);
+  const topSentinelRef = useRef<HTMLDivElement | null>(null);
   const [stickToBottom, setStickToBottom] = useState(true);
   const pendingPrependRef =
     useRef<{ scrollHeight: number; scrollTop: number } | null>(null);
+
+  const fetchOlder = useCallback(() => {
+    if (!hasNextPage || isFetchingNextPage || unauthorized) {
+      return;
+    }
+    const viewport = viewportRef.current;
+    if (viewport) {
+      pendingPrependRef.current = {
+        scrollHeight: viewport.scrollHeight,
+        scrollTop: viewport.scrollTop,
+      };
+    }
+    fetchNextPage().catch(() => {
+      pendingPrependRef.current = null;
+    });
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage, unauthorized]);
 
   const handleScroll = useCallback(
     (event: UIEvent<HTMLDivElement>) => {
@@ -125,17 +157,11 @@ export function ActionHistoryLog() {
         setStickToBottom(nearBottom);
       }
 
-      if (target.scrollTop <= 32 && hasNextPage && !isFetchingNextPage && !unauthorized) {
-        pendingPrependRef.current = {
-          scrollHeight: target.scrollHeight,
-          scrollTop: target.scrollTop,
-        };
-        fetchNextPage().catch(() => {
-          pendingPrependRef.current = null;
-        });
+      if (target.scrollTop <= 32) {
+        fetchOlder();
       }
     },
-    [fetchNextPage, hasNextPage, isFetchingNextPage, stickToBottom, unauthorized],
+    [fetchOlder, stickToBottom],
   );
 
   useEffect(() => {
@@ -158,6 +184,57 @@ export function ActionHistoryLog() {
       );
     }
   }, [entries, stickToBottom]);
+
+  useEffect(() => {
+    const viewport = viewportRef.current;
+    const sentinel = topSentinelRef.current;
+    if (!viewport || !sentinel) {
+      return;
+    }
+    if (!hasNextPage || unauthorized) {
+      return;
+    }
+    if (typeof IntersectionObserver === "undefined") {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entriesList) => {
+        for (const entry of entriesList) {
+          if (entry.isIntersecting) {
+            fetchOlder();
+            break;
+          }
+        }
+      },
+      {
+        root: viewport,
+        rootMargin: "0px 0px 48px 0px",
+        threshold: 0,
+      },
+    );
+    observer.observe(sentinel);
+    return () => {
+      observer.disconnect();
+    };
+  }, [fetchOlder, hasNextPage, unauthorized]);
+
+  useEffect(() => {
+    if (unauthorized) {
+      return;
+    }
+    if (entries.length === 0) {
+      return;
+    }
+    if (entries.length >= PAGE_SIZE) {
+      return;
+    }
+    if (!hasNextPage) {
+      return;
+    }
+    fetchOlder();
+  }, [entries.length, fetchOlder, hasNextPage, unauthorized]);
+
 
   const statusMessage = unauthorized
     ? "Sign in to view"
@@ -188,11 +265,12 @@ export function ActionHistoryLog() {
       </div>
 
       <div className="overflow-hidden rounded-lg border border-neutral-200 bg-neutral-900 text-neutral-100 shadow-inner dark:border-neutral-800 dark:bg-neutral-950">
-        <ScrollArea
-          className="max-h-80"
-          viewportRef={viewportRef}
-          onViewportScroll={handleScroll}
+        <div
+          ref={viewportRef}
+          onScroll={handleScroll}
+          className="max-h-80 overflow-y-auto"
         >
+          <div ref={topSentinelRef} aria-hidden="true" className="h-0" />
           <ol className="divide-y divide-neutral-800/60 font-mono text-xs">
             {entries.length === 0 ? (
               <li>
@@ -262,7 +340,7 @@ export function ActionHistoryLog() {
               </>
             )}
           </ol>
-        </ScrollArea>
+        </div>
       </div>
 
       {isBackgroundRefreshing && !unauthorized ? (
