@@ -1,4 +1,4 @@
-import type { Prisma, PrismaClient, User } from "@prisma/client";
+import type { Prisma, PrismaClient, ReleaseVersion, User } from "@prisma/client";
 import { mapToBuiltVersionDtos } from "~/server/zod/dto/built-version.dto";
 import {
   mapToReleaseVersionDtos,
@@ -153,5 +153,36 @@ export class ReleaseVersionService {
       }),
       builtVersions: mapToBuiltVersionDtos(r.builtVersions),
     }));
+  }
+
+  async getById(
+    releaseId: ReleaseVersion["id"],
+  ): Promise<ReleaseVersionWithBuildsDto> {
+    const row = await this.db.releaseVersion.findUnique({
+      where: { id: releaseId },
+      select: {
+        id: true,
+        name: true,
+        createdAt: true,
+        builtVersions: {
+          orderBy: { createdAt: "desc" },
+          select: { id: true, name: true, versionId: true, createdAt: true },
+        },
+      },
+    });
+    if (!row) {
+      throw Object.assign(new Error(`Release version ${releaseId} not found`), {
+        code: "NOT_FOUND",
+        details: { releaseId },
+      });
+    }
+    return {
+      ...toReleaseVersionDto({
+        id: row.id,
+        name: row.name,
+        createdAt: row.createdAt,
+      }),
+      builtVersions: mapToBuiltVersionDtos(row.builtVersions),
+    };
   }
 }

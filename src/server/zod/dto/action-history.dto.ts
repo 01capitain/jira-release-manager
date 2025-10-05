@@ -49,13 +49,15 @@ const ActionModelSchema = z.object({
   subactions: z.array(ActionSubactionModelSchema),
 });
 
+const ActionMetadataSchema = z.object({}).catchall(z.unknown());
+
 const ActionSubactionDtoSchema = z.object({
   id: z.string(),
   subactionType: z.string(),
   message: z.string(),
   status: StatusSchema,
   createdAt: IsoTimestampSchema,
-  metadata: z.record(z.unknown()).nullable().optional(),
+  metadata: ActionMetadataSchema.nullable().optional(),
 });
 
 export const ActionHistoryEntryDtoSchema = z.object({
@@ -69,7 +71,7 @@ export const ActionHistoryEntryDtoSchema = z.object({
     name: z.string().nullable().optional(),
     email: z.string().nullable().optional(),
   }),
-  metadata: z.record(z.unknown()).nullable().optional(),
+  metadata: ActionMetadataSchema.nullable().optional(),
   subactions: z.array(ActionSubactionDtoSchema),
 });
 
