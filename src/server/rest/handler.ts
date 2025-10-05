@@ -47,6 +47,12 @@ export const parseJsonBody = async <T extends z.ZodTypeAny>(
   req: NextRequest,
   schema: T,
 ): Promise<z.infer<T>> => {
+  const MAX_BODY_SIZE = 1024 * 1024; // 1MB
+  const contentLength = req.headers.get('content-length');
+  if (contentLength && parseInt(contentLength, 10) > MAX_BODY_SIZE) {
+    throw new RestError(413, "PAYLOAD_TOO_LARGE", "Request body exceeds size limit");
+  }
+
   let data: unknown;
   try {
     data = await req.json();
