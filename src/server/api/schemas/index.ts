@@ -16,7 +16,9 @@ export const ReleaseVersionListInputSchema = z
   })
   .optional();
 
-export type ReleaseVersionListInput = z.infer<typeof ReleaseVersionListInputSchema>;
+export type ReleaseVersionListInput = z.infer<
+  typeof ReleaseVersionListInputSchema
+>;
 
 const builtVersionIdSchema = z.string().uuid("Invalid built version id");
 
@@ -24,7 +26,9 @@ export const BuiltVersionStatusInputSchema = z.object({
   builtVersionId: builtVersionIdSchema,
 });
 
-export type BuiltVersionStatusInput = z.infer<typeof BuiltVersionStatusInputSchema>;
+export type BuiltVersionStatusInput = z.infer<
+  typeof BuiltVersionStatusInputSchema
+>;
 
 const builtVersionActionValues = [
   "startDeployment",
@@ -73,7 +77,9 @@ export const JiraFetchVersionsInputSchema = z
   })
   .optional();
 
-export type JiraFetchVersionsInput = z.infer<typeof JiraFetchVersionsInputSchema>;
+export type JiraFetchVersionsInput = z.infer<
+  typeof JiraFetchVersionsInputSchema
+>;
 
 export const JiraVerifyConnectionSchema = JiraCredentialsSchema;
 
@@ -84,4 +90,6 @@ export const ActionHistoryListInputSchema = z
   })
   .optional();
 
-export type ActionHistoryListInput = z.infer<typeof ActionHistoryListInputSchema>;
+export type ActionHistoryListInput = z.infer<
+  typeof ActionHistoryListInputSchema
+>;

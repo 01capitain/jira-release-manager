@@ -120,7 +120,9 @@ export class JiraVersionService {
       isLast = Boolean((page as { isLast?: unknown }).isLast);
       const startValue = (page as { startAt?: unknown }).startAt;
       const start =
-        typeof startValue === "number" && Number.isFinite(startValue) ? startValue : 0;
+        typeof startValue === "number" && Number.isFinite(startValue)
+          ? startValue
+          : 0;
       const count = Array.isArray(page.values)
         ? (page.values as unknown[]).length
         : mapped.length;

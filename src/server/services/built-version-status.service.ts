@@ -79,8 +79,7 @@ export class BuiltVersionStatusService {
     action: ApiAction,
     userId: string,
     options?: { logger?: ActionLogger },
-  ): Promise<{ status: BuiltVersionStatus }>
-  {
+  ): Promise<{ status: BuiltVersionStatus }> {
     const prismaAction = ActionToPrisma[action];
     const rule = Rules[prismaAction];
     if (!rule) {
@@ -106,14 +105,20 @@ export class BuiltVersionStatusService {
         orderBy: { createdAt: "desc" },
         select: { toStatus: true },
       });
-      const currentStatus = (current?.toStatus ?? "in_development") as DbBuiltVersionStatus;
+      const currentStatus = (current?.toStatus ??
+        "in_development") as DbBuiltVersionStatus;
 
       if (currentStatus !== rule.from) {
         // Provide a precise error for clients
-        throw Object.assign(new Error(`Invalid transition from ${currentStatus} via ${prismaAction}`), {
-          code: "INVALID_TRANSITION",
-          details: { from: currentStatus, expected: rule.from, action },
-        });
+        throw Object.assign(
+          new Error(
+            `Invalid transition from ${currentStatus} via ${prismaAction}`,
+          ),
+          {
+            code: "INVALID_TRANSITION",
+            details: { from: currentStatus, expected: rule.from, action },
+          },
+        );
       }
 
       await tx.builtVersionTransition.create({
@@ -150,7 +155,10 @@ export class BuiltVersionStatusService {
         if (!release) return;
         // If there is already a newer built for this release, do NOT create a successor
         const newer = await tx.builtVersion.findFirst({
-          where: { versionId: current.versionId, createdAt: { gt: current.createdAt } },
+          where: {
+            versionId: current.versionId,
+            createdAt: { gt: current.createdAt },
+          },
           select: { id: true },
         });
         if (newer) return;
@@ -196,16 +204,16 @@ export class BuiltVersionStatusService {
       return { status: rule.to as BuiltVersionStatus };
     });
 
-if (options?.logger) {
-  for (const entry of auditTrail) {
-    try {
-      await options.logger.subaction(entry);
-    } catch (error) {
-      // Absorb logging failures to prevent breaking the transition workflow
-      console.error("Failed to log subaction:", error);
+    if (options?.logger) {
+      for (const entry of auditTrail) {
+        try {
+          await options.logger.subaction(entry);
+        } catch (error) {
+          // Absorb logging failures to prevent breaking the transition workflow
+          console.error("Failed to log subaction:", error);
+        }
+      }
     }
-  }
-}
 
     return result;
   }

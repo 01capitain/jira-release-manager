@@ -1,9 +1,16 @@
 import { z } from "zod";
 
-import type { ActionExecutionStatus, ActionHistoryEntryDto } from "~/shared/types/action-history";
+import type {
+  ActionExecutionStatus,
+  ActionHistoryEntryDto,
+} from "~/shared/types/action-history";
 import { IsoTimestampSchema } from "~/shared/types/iso8601";
 
-const statusValues = ["success", "failed", "cancelled"] as const satisfies readonly ActionExecutionStatus[];
+const statusValues = [
+  "success",
+  "failed",
+  "cancelled",
+] as const satisfies readonly ActionExecutionStatus[];
 const StatusSchema = z.enum(statusValues);
 
 const toMetadata = (

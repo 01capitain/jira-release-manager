@@ -12,5 +12,6 @@ export const ReleaseComponentModelSchema = z.object({
   createdById: z.string(),
 }).passthrough();
 
-export type ReleaseComponentModelType = z.infer<typeof ReleaseComponentModelSchema>;
-
+export type ReleaseComponentModelType = z.infer<
+  typeof ReleaseComponentModelSchema
+>;

@@ -33,6 +33,8 @@ export function toComponentVersionDto(model: unknown): ComponentVersionDto {
   return ComponentVersionDtoSchema.parse(dto);
 }
 
-export function mapToComponentVersionDtos(models: unknown[]): ComponentVersionDto[] {
+export function mapToComponentVersionDtos(
+  models: unknown[],
+): ComponentVersionDto[] {
   return models.map(toComponentVersionDto);
 }

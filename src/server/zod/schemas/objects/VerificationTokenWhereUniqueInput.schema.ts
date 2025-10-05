@@ -35,7 +35,7 @@ const makeSchema = () =>
             if (!Array.isArray(g) || g.length === 0) continue;
             const presentInComposite = (k: string) =>
               (composite as Record<string, unknown>)[k] != null;
-            const provided = (g).filter(presentInComposite).length;
+            const provided = g.filter(presentInComposite).length;
             if (provided > 0 && provided < g.length) {
               for (const f of g) {
                 if (!presentInComposite(f)) {
@@ -64,4 +64,3 @@ const makeSchema = () =>
 export const VerificationTokenWhereUniqueInputObjectSchema: z.ZodType<Prisma.VerificationTokenWhereUniqueInput> =
   makeSchema() as unknown as z.ZodType<Prisma.VerificationTokenWhereUniqueInput>;
 export const VerificationTokenWhereUniqueInputObjectZodSchema = makeSchema();
- 

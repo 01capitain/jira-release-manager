@@ -13,5 +13,6 @@ export const ComponentVersionModelSchema = z.object({
   builtVersion: z.unknown(),
 }).passthrough();
 
-export type ComponentVersionModelType = z.infer<typeof ComponentVersionModelSchema>;
-
+export type ComponentVersionModelType = z.infer<
+  typeof ComponentVersionModelSchema
+>;

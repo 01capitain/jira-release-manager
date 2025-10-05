@@ -1,11 +1,20 @@
 "use client";
 
 import { TRPCClientError } from "@trpc/client";
-import { CheckCircle2, Clock3, MinusCircle, UserRound, XCircle } from "lucide-react";
+import {
+  CheckCircle2,
+  Clock3,
+  MinusCircle,
+  UserRound,
+  XCircle,
+} from "lucide-react";
 import type { UIEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import type { ActionExecutionStatus, ActionHistoryEntryDto } from "~/shared/types/action-history";
+import type {
+  ActionExecutionStatus,
+  ActionHistoryEntryDto,
+} from "~/shared/types/action-history";
 import { api } from "~/trpc/react";
 
 const PAGE_SIZE = 5;
@@ -13,11 +22,15 @@ const PAGE_SIZE = 5;
 const renderStatusIcon = (status: ActionExecutionStatus) => {
   switch (status) {
     case "success":
-      return <CheckCircle2 aria-hidden="true" className="h-4 w-4 text-emerald-400" />;
+      return (
+        <CheckCircle2 aria-hidden="true" className="h-4 w-4 text-emerald-400" />
+      );
     case "failed":
       return <XCircle aria-hidden="true" className="h-4 w-4 text-red-400" />;
     case "cancelled":
-      return <MinusCircle aria-hidden="true" className="h-4 w-4 text-amber-300" />;
+      return (
+        <MinusCircle aria-hidden="true" className="h-4 w-4 text-amber-300" />
+      );
   }
   return null;
 };
@@ -69,14 +82,20 @@ const isUnauthorizedTrpcError = (error: unknown): boolean => {
   return code === "UNAUTHORIZED";
 };
 
-function EmptyState({ loading, unauthorized }: { loading: boolean; unauthorized: boolean }) {
+function EmptyState({
+  loading,
+  unauthorized,
+}: {
+  loading: boolean;
+  unauthorized: boolean;
+}) {
   return (
     <div className="flex h-40 items-center justify-center text-xs text-neutral-400 dark:text-neutral-500">
       {unauthorized
         ? "Sign in to record action history."
         : loading
-        ? "Loading history…"
-        : "No recent actions recorded yet."}
+          ? "Loading history…"
+          : "No recent actions recorded yet."}
     </div>
   );
 }
@@ -94,7 +113,7 @@ export function ActionHistoryLog() {
     { limit: PAGE_SIZE },
     {
       getNextPageParam: (lastPage) =>
-        lastPage.hasMore ? lastPage.nextCursor ?? undefined : undefined,
+        lastPage.hasMore ? (lastPage.nextCursor ?? undefined) : undefined,
       refetchOnWindowFocus: false,
       staleTime: 10_000,
       retry: (failureCount, err) => {
@@ -121,7 +140,8 @@ export function ActionHistoryLog() {
     }
     const sorted = [...rawEntries];
     sorted.sort(
-      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+      (a, b) =>
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
     );
     return sorted;
   }, [rawEntries]);
@@ -129,8 +149,10 @@ export function ActionHistoryLog() {
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const topSentinelRef = useRef<HTMLDivElement | null>(null);
   const [stickToBottom, setStickToBottom] = useState(true);
-  const pendingPrependRef =
-    useRef<{ scrollHeight: number; scrollTop: number } | null>(null);
+  const pendingPrependRef = useRef<{
+    scrollHeight: number;
+    scrollTop: number;
+  } | null>(null);
 
   const fetchOlder = useCallback(() => {
     if (!hasNextPage || isFetchingNextPage || unauthorized) {
@@ -151,7 +173,8 @@ export function ActionHistoryLog() {
   const handleScroll = useCallback(
     (event: UIEvent<HTMLDivElement>) => {
       const target = event.currentTarget;
-      const remaining = target.scrollHeight - target.clientHeight - target.scrollTop;
+      const remaining =
+        target.scrollHeight - target.clientHeight - target.scrollTop;
       const nearBottom = remaining <= 32;
       if (nearBottom !== stickToBottom) {
         setStickToBottom(nearBottom);
@@ -235,14 +258,14 @@ export function ActionHistoryLog() {
     fetchOlder();
   }, [entries.length, fetchOlder, hasNextPage, unauthorized]);
 
-
   const statusMessage = unauthorized
     ? "Sign in to view"
     : isLoading
-    ? "Loading…"
-    : null;
+      ? "Loading…"
+      : null;
 
-  const isBackgroundRefreshing = isFetching && !isLoading && !isFetchingNextPage;
+  const isBackgroundRefreshing =
+    isFetching && !isLoading && !isFetchingNextPage;
 
   return (
     <section aria-labelledby="action-history-heading" className="space-y-2">
@@ -274,7 +297,10 @@ export function ActionHistoryLog() {
           <ol className="divide-y divide-neutral-800/60 font-mono text-xs">
             {entries.length === 0 ? (
               <li>
-                <EmptyState loading={isLoading && !unauthorized} unauthorized={unauthorized} />
+                <EmptyState
+                  loading={isLoading && !unauthorized}
+                  unauthorized={unauthorized}
+                />
               </li>
             ) : (
               <>
@@ -296,7 +322,10 @@ export function ActionHistoryLog() {
                       <span className="min-w-0 flex-1 truncate text-neutral-200">
                         {entry.message}
                       </span>
-                      <span aria-hidden="true" className="hidden flex-1 items-center sm:flex">
+                      <span
+                        aria-hidden="true"
+                        className="hidden flex-1 items-center sm:flex"
+                      >
                         <span className="w-full border-t border-dashed border-neutral-700" />
                       </span>
                       <span className="ml-auto flex shrink-0 items-center gap-2 text-xs text-neutral-300">
@@ -307,7 +336,10 @@ export function ActionHistoryLog() {
                         <span className="text-neutral-400">
                           at {formatTimestampWithDate(entry.createdAt)}
                         </span>
-                        <Clock3 aria-hidden="true" className="h-4 w-4 text-neutral-500" />
+                        <Clock3
+                          aria-hidden="true"
+                          className="h-4 w-4 text-neutral-500"
+                        />
                       </span>
                     </div>
                     {entry.subactions.length > 0 ? (
@@ -319,9 +351,14 @@ export function ActionHistoryLog() {
                           >
                             <span className="flex shrink-0 items-center gap-2 text-neutral-500">
                               <span aria-hidden="true">↳</span>
-                              <span className="text-neutral-300">{sub.message}</span>
+                              <span className="text-neutral-300">
+                                {sub.message}
+                              </span>
                             </span>
-                            <span aria-hidden="true" className="hidden flex-1 items-center sm:flex">
+                            <span
+                              aria-hidden="true"
+                              className="hidden flex-1 items-center sm:flex"
+                            >
                               <span className="w-full border-t border-dashed border-neutral-800" />
                             </span>
                             <span className="ml-auto flex shrink-0 items-center gap-2 text-xs text-neutral-400">

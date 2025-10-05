@@ -18,7 +18,9 @@ export function validatePattern(pattern: string): {
   const tokenRegex = /\{[^}]+\}/g;
   const tokens = (pattern.match(tokenRegex) ?? []) as string[];
   const errors: string[] = [];
-  const unknown = tokens.filter((t): t is string => !AllowedTokens.includes(t as AllowedToken));
+  const unknown = tokens.filter(
+    (t): t is string => !AllowedTokens.includes(t as AllowedToken),
+  );
   if (unknown.length) {
     errors.push(...unknown.map((t) => `Unknown token: ${t}`));
   }

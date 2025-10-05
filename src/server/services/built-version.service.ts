@@ -157,14 +157,17 @@ export class BuiltVersionService {
     }
 
     const activeBuiltId =
-      builds.find((entry) => latestByBuild.get(entry.id) === "active")?.id ?? null;
+      builds.find((entry) => latestByBuild.get(entry.id) === "active")?.id ??
+      null;
 
     if (!activeBuiltId) {
       const components = await this.db.releaseComponent.findMany({
         select: { id: true },
       });
       return BuiltVersionDefaultSelectionSchema.parse({
-        selectedReleaseComponentIds: components.map((component) => component.id),
+        selectedReleaseComponentIds: components.map(
+          (component) => component.id,
+        ),
       });
     }
 

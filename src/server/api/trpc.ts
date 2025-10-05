@@ -42,7 +42,7 @@ const parseCookies = (header: string): Record<string, string> => {
     let rawValue = pair.slice(separatorIndex + 1).trim();
     if (!rawValue) continue;
 
-    if (rawValue.startsWith("\"") && rawValue.endsWith("\"")) {
+    if (rawValue.startsWith('"') && rawValue.endsWith('"')) {
       rawValue = rawValue.slice(1, -1);
     }
 

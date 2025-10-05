@@ -27,14 +27,15 @@ export default function VersionsComponentsPage() {
   const [phase, setPhase] = React.useState<Phase>("idle");
   const createMutation = api.releaseComponent.create.useMutation();
   const { data: components } = api.releaseComponent.list.useQuery();
-  const handleColorChange = React.useCallback(
-    (nextColor: string) => {
-      if (AllowedBaseColors.includes(nextColor as (typeof AllowedBaseColors)[number])) {
-        setColor(nextColor as (typeof AllowedBaseColors)[number]);
-      }
-    },
-    [],
-  );
+  const handleColorChange = React.useCallback((nextColor: string) => {
+    if (
+      AllowedBaseColors.includes(
+        nextColor as (typeof AllowedBaseColors)[number],
+      )
+    ) {
+      setColor(nextColor as (typeof AllowedBaseColors)[number]);
+    }
+  }, []);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -109,7 +110,8 @@ export default function VersionsComponentsPage() {
                 ariaLabel="Choose base color"
               />
               <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                Uses Tailwind base colors; contrast-friendly in light and dark mode.
+                Uses Tailwind base colors; contrast-friendly in light and dark
+                mode.
               </p>
             </div>
             <div className="flex items-end justify-between sm:col-span-3">

@@ -73,7 +73,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-neutral-900 dark:bg-neutral-100">
-      <div className="mx-auto w-full max-w-7xl p-4 md:p-6 lg:p-8 space-y-6">
+      <div className="mx-auto w-full max-w-7xl space-y-6 p-4 md:p-6 lg:p-8">
         {/* Floating container that includes sidebar + content */}
         <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-lg dark:border-neutral-800 dark:bg-neutral-900">
           <div className="flex min-h-[70vh]">
@@ -105,14 +105,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <nav className="flex-1 overflow-auto px-2 py-3">
                 {NAV_GROUPS.map((group) => {
                   const Icon = group.icon;
-                  const isExpandable = Boolean(group.items && group.items.length > 0);
+                  const isExpandable = Boolean(
+                    group.items && group.items.length > 0,
+                  );
                   const isOpen = expanded[group.id] ?? false;
                   const parentActive = (group.items ?? []).some((it) =>
                     pathname.startsWith(it.href),
                   );
                   const directActive =
                     typeof group.href === "string" &&
-                    (pathname === group.href || pathname.startsWith(`${group.href}/`));
+                    (pathname === group.href ||
+                      pathname.startsWith(`${group.href}/`));
                   const isHighlighted = parentActive ? true : directActive;
                   return (
                     <div key={group.id} className="mb-2">
@@ -303,7 +306,9 @@ function HeaderActions({ pathname }: { pathname: string }) {
       title="Reload releases"
       disabled={isFetching}
     >
-      <RefreshCw className={["h-5 w-5", isFetching ? "animate-spin" : ""].join(" ")} />
+      <RefreshCw
+        className={["h-5 w-5", isFetching ? "animate-spin" : ""].join(" ")}
+      />
       <output className="sr-only" aria-atomic="true">
         {isFetching ? "Refreshing releases" : "Releases up to date"}
       </output>

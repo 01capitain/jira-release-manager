@@ -23,7 +23,10 @@ export type SubactionInput = {
 
 export interface ActionLogger {
   readonly id: string | null;
-  subaction(input: SubactionInput, client?: Prisma.TransactionClient): Promise<void>;
+  subaction(
+    input: SubactionInput,
+    client?: Prisma.TransactionClient,
+  ): Promise<void>;
   complete(
     status: ActionStatus,
     options?: { message?: string; metadata?: Record<string, unknown> | null },
@@ -220,10 +223,7 @@ export class ActionHistoryService {
 
     const rows = await delegates.actionLog.findMany({
       where,
-      orderBy: [
-        { createdAt: "desc" },
-        { id: "desc" },
-      ],
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
       include: {
         createdBy: {
           select: {

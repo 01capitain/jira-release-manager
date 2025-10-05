@@ -21,7 +21,9 @@ const formatReleaseDate = (
   }
   if (typeof value === "string" && value.length > 0) {
     const parsed = new Date(value);
-    return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString().slice(0, 10);
+    return Number.isNaN(parsed.getTime())
+      ? null
+      : parsed.toISOString().slice(0, 10);
   }
   return null;
 };
@@ -34,8 +36,10 @@ export default function JiraReleasesPage() {
   const { data: session } = useSession();
   // No auto-sync query; syncing happens only on explicit action
 
-const releases = api.releaseVersion.list.useQuery({ page: 1, pageSize: 100 });
-  const canSyncQuick = api.jira.canSyncQuick.useQuery(undefined, { enabled: !!session });
+  const releases = api.releaseVersion.list.useQuery({ page: 1, pageSize: 100 });
+  const canSyncQuick = api.jira.canSyncQuick.useQuery(undefined, {
+    enabled: !!session,
+  });
   const [page, setPage] = React.useState(1);
   const pageSize = 50;
   const listStored = api.jira.listStoredVersions.useQuery({
@@ -62,7 +66,6 @@ const releases = api.releaseVersion.list.useQuery({ page: 1, pageSize: 100 });
 
   // No connection check here beyond presence; handled by canSyncQuick query
 
-
   return (
     <div className="mx-auto w-full max-w-6xl">
       <h1 className="text-2xl font-semibold tracking-tight">Jira releases</h1>
@@ -88,66 +91,89 @@ const releases = api.releaseVersion.list.useQuery({ page: 1, pageSize: 100 });
         {session && canSyncQuick.data && canSyncQuick.data.ok === false ? (
           <div className="mt-3 text-sm">
             <p className="text-red-600 dark:text-red-400">
-              Jira connection incomplete: {canSyncQuick.data.reason ?? "Unknown reason"}
+              Jira connection incomplete:{" "}
+              {canSyncQuick.data.reason ?? "Unknown reason"}
             </p>
             <p className="mt-1">
-              Go to <Link className="underline" href="/jira-settings/connect">Jira connect</Link> to configure connection before syncing.
+              Go to{" "}
+              <Link className="underline" href="/jira-settings/connect">
+                Jira connect
+              </Link>{" "}
+              to configure connection before syncing.
             </p>
           </div>
         ) : null}
-        {(!session || canSyncQuick.isLoading || !canSyncQuick.data) ? null : canSyncQuick.data.ok ? (
-        <div className="mt-3 flex flex-wrap items-center gap-3">
-          <fieldset className="inline-flex overflow-hidden rounded-md border border-neutral-300 dark:border-neutral-700">
-            <legend className="sr-only">Filter statuses</legend>
+        {!session ||
+        canSyncQuick.isLoading ||
+        !canSyncQuick.data ? null : canSyncQuick.data.ok ? (
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <fieldset className="inline-flex overflow-hidden rounded-md border border-neutral-300 dark:border-neutral-700">
+              <legend className="sr-only">Filter statuses</legend>
+              <Button
+                variant="outline"
+                onClick={() => setIncludeUnreleased((v) => !v)}
+                aria-pressed={includeUnreleased}
+                className={
+                  "rounded-none " +
+                  (includeUnreleased
+                    ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
+                    : "")
+                }
+              >
+                Unreleased
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setIncludeReleased((v) => !v)}
+                aria-pressed={includeReleased}
+                className={
+                  "rounded-none " +
+                  (includeReleased
+                    ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
+                    : "")
+                }
+              >
+                Released
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setIncludeArchived((v) => !v)}
+                aria-pressed={includeArchived}
+                className={
+                  "rounded-none " +
+                  (includeArchived
+                    ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
+                    : "")
+                }
+              >
+                Archived
+              </Button>
+            </fieldset>
             <Button
-              variant="outline"
-              onClick={() => setIncludeUnreleased((v) => !v)}
-              aria-pressed={includeUnreleased}
-              className={"rounded-none " + (includeUnreleased ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300" : "")}
+              onClick={() =>
+                void sync.mutateAsync({
+                  includeArchived,
+                  includeReleased,
+                  includeUnreleased,
+                  pageSize,
+                })
+              }
+              disabled={!session || sync.isPending}
+              aria-label="Sync releases from Jira"
+              title="Sync releases from Jira"
             >
-              Unreleased
+              {sync.isPending ? "Syncing…" : "Sync releases from Jira"}
             </Button>
-            <Button
-              variant="outline"
-              onClick={() => setIncludeReleased((v) => !v)}
-              aria-pressed={includeReleased}
-              className={"rounded-none " + (includeReleased ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300" : "")}
-            >
-              Released
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => setIncludeArchived((v) => !v)}
-              aria-pressed={includeArchived}
-              className={"rounded-none " + (includeArchived ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300" : "")}
-            >
-              Archived
-            </Button>
-          </fieldset>
-          <Button
-            onClick={() =>
-              void sync.mutateAsync({
-                includeArchived,
-                includeReleased,
-                includeUnreleased,
-                pageSize,
-              })
-            }
-            disabled={!session || sync.isPending}
-            aria-label="Sync releases from Jira"
-            title="Sync releases from Jira"
-          >
-            {sync.isPending ? "Syncing…" : "Sync releases from Jira"}
-          </Button>
-        </div>
+          </div>
         ) : null}
-
       </section>
 
       <section className="mt-6 rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
         <h2 className="text-lg font-medium">Stored Jira versions</h2>
         {listStored.isLoading ? (
-          <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">Loading…</p>
+          <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
+            Loading…
+          </p>
         ) : !hasStoredItems ? (
           <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
             No versions loaded. Click “Sync releases from Jira” to fetch.
@@ -179,7 +205,9 @@ const releases = api.releaseVersion.list.useQuery({ page: 1, pageSize: 100 });
                       ) : null}
                     </div>
                     <div className="flex items-center gap-2">
-                      <Label htmlFor={`map-${v.id}`} className="text-xs">Map to internal</Label>
+                      <Label htmlFor={`map-${v.id}`} className="text-xs">
+                        Map to internal
+                      </Label>
                       <select
                         id={`map-${v.id}`}
                         className="h-9 min-w-52 rounded-md border border-neutral-300 bg-transparent px-3 text-sm dark:border-neutral-700"
@@ -195,7 +223,11 @@ const releases = api.releaseVersion.list.useQuery({ page: 1, pageSize: 100 });
                           </option>
                         ))}
                       </select>
-                      <Button variant="secondary" disabled title="Save mapping (coming soon)">
+                      <Button
+                        variant="secondary"
+                        disabled
+                        title="Save mapping (coming soon)"
+                      >
                         Save
                       </Button>
                     </div>

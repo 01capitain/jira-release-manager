@@ -54,7 +54,9 @@ export const builtVersionRouter = createTRPCRouter({
         metadata: { versionId: input.versionId },
       });
       try {
-        const result = await svc.create(userId, input.versionId, trimmed, { logger: action });
+        const result = await svc.create(userId, input.versionId, trimmed, {
+          logger: action,
+        });
         await action.complete("success", {
           message: `Built version ${result.name} created`,
           metadata: { id: result.id, versionId: result.versionId },
@@ -115,13 +117,18 @@ export const builtVersionRouter = createTRPCRouter({
         const history = await svc.getHistory(input.builtVersionId);
         await actionLog.complete("success", {
           message: `Built version ${input.builtVersionId} now ${res.status}`,
-          metadata: { builtVersionId: input.builtVersionId, action: input.action },
+          metadata: {
+            builtVersionId: input.builtVersionId,
+            action: input.action,
+          },
         });
         return { ...res, history } as const;
       } catch (err: unknown) {
         const e = err as { message?: string; code?: string; details?: unknown };
         const code =
-          e?.code === "INVALID_TRANSITION" ? "BAD_REQUEST" : "INTERNAL_SERVER_ERROR";
+          e?.code === "INVALID_TRANSITION"
+            ? "BAD_REQUEST"
+            : "INTERNAL_SERVER_ERROR";
         await actionLog.complete("failed", {
           message: `Failed to transition built version ${input.builtVersionId}`,
           metadata: {
@@ -171,7 +178,9 @@ export const builtVersionRouter = createTRPCRouter({
       } catch (err: unknown) {
         const e = err as { message?: string; code?: string; details?: unknown };
         const code =
-          e?.code === "VALIDATION_ERROR" || e?.code === "INVALID_STATE" || e?.code === "MISSING_SUCCESSOR"
+          e?.code === "VALIDATION_ERROR" ||
+          e?.code === "INVALID_STATE" ||
+          e?.code === "MISSING_SUCCESSOR"
             ? "BAD_REQUEST"
             : "INTERNAL_SERVER_ERROR";
         await actionLog.complete("failed", {

@@ -11,7 +11,9 @@ import { CheckCircle, AlertCircle } from "lucide-react";
 export default function JiraConnectPage() {
   const { data: session } = useSession();
   const cfg = api.jira.getConfig.useQuery();
-  const cred = api.jira.getCredentials.useQuery(undefined, { enabled: !!session });
+  const cred = api.jira.getCredentials.useQuery(undefined, {
+    enabled: !!session,
+  });
   const save = api.jira.saveCredentials.useMutation();
   const verify = api.jira.verifyConnection.useMutation();
 
@@ -32,10 +34,15 @@ export default function JiraConnectPage() {
     try {
       const trimmedEmail = email.trim();
       const trimmedToken = token.trim();
-      const payload: { email: string; apiToken?: string } = { email: trimmedEmail };
+      const payload: { email: string; apiToken?: string } = {
+        email: trimmedEmail,
+      };
       if (trimmedToken.length > 0) payload.apiToken = trimmedToken;
       await save.mutateAsync(payload);
-      setStatus({ kind: "success", text: "Saved. Token stored securely and not shown." });
+      setStatus({
+        kind: "success",
+        text: "Saved. Token stored securely and not shown.",
+      });
       // Emphasize Verify after successful save
       setVerifyPrimary(true);
     } catch (err) {
@@ -55,7 +62,10 @@ export default function JiraConnectPage() {
       });
       if (res.ok) {
         const who = res.displayName ?? res.accountId ?? "credentials";
-        setVerifyStatus({ kind: "success", text: `Connection verified (${who}).` });
+        setVerifyStatus({
+          kind: "success",
+          text: `Connection verified (${who}).`,
+        });
       } else {
         const reason = res.bodyText || res.statusText || `HTTP ${res.status}`;
         setVerifyStatus({ kind: "error", text: String(reason).slice(0, 800) });
@@ -89,7 +99,8 @@ export default function JiraConnectPage() {
     <div className="mx-auto w-full max-w-3xl">
       <h1 className="text-2xl font-semibold tracking-tight">Jira Connect</h1>
       <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
-        Configure Jira connection. Base URL and Project Key are environment settings; Email and API token are stored per user in the database.
+        Configure Jira connection. Base URL and Project Key are environment
+        settings; Email and API token are stored per user in the database.
       </p>
       {!session ? (
         <div className="mt-4 rounded-md border border-neutral-300 bg-neutral-50 p-3 text-sm dark:border-neutral-700 dark:bg-neutral-900">
@@ -103,7 +114,8 @@ export default function JiraConnectPage() {
       <section className="mt-6 rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
         <h2 className="text-lg font-medium">Environment configuration</h2>
         <p className="mt-1 text-xs text-neutral-600 dark:text-neutral-400">
-          Update JIRA_BASE_URL and JIRA_PROJECT_KEY in your .env. See docs/guides/Add an environment variable.md.
+          Update JIRA_BASE_URL and JIRA_PROJECT_KEY in your .env. See
+          docs/guides/Add an environment variable.md.
         </p>
         <div className="mt-3 grid gap-4 sm:grid-cols-2">
           <div>
@@ -114,7 +126,9 @@ export default function JiraConnectPage() {
               {cfg.data?.baseUrl ? (
                 <code className="break-all">{cfg.data.baseUrl}</code>
               ) : (
-                <span className="font-medium text-red-600 dark:text-red-400">NOT SET</span>
+                <span className="font-medium text-red-600 dark:text-red-400">
+                  NOT SET
+                </span>
               )}
             </div>
           </div>
@@ -126,7 +140,9 @@ export default function JiraConnectPage() {
               {cfg.data?.projectKey ? (
                 <code className="break-all">{cfg.data.projectKey}</code>
               ) : (
-                <span className="font-medium text-red-600 dark:text-red-400">NOT SET</span>
+                <span className="font-medium text-red-600 dark:text-red-400">
+                  NOT SET
+                </span>
               )}
             </div>
           </div>
@@ -155,7 +171,11 @@ export default function JiraConnectPage() {
               value={token}
               onChange={(e) => setToken(e.target.value)}
               autoComplete="new-password"
-              placeholder={cred.data?.hasToken ? "Token is set; enter to replace" : "Enter API token"}
+              placeholder={
+                cred.data?.hasToken
+                  ? "Token is set; enter to replace"
+                  : "Enter API token"
+              }
             />
           </div>
           <div className="flex items-center gap-3">
@@ -187,11 +207,15 @@ export default function JiraConnectPage() {
               <div
                 role="status"
                 aria-atomic="true"
-                className={{
-                  success: "flex items-center gap-2 text-sm text-green-600 dark:text-green-400",
-                  error: "flex items-center gap-2 text-sm text-red-600 dark:text-red-400",
-                  info: "flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-400",
-                }[status.kind]}
+                className={
+                  {
+                    success:
+                      "flex items-center gap-2 text-sm text-green-600 dark:text-green-400",
+                    error:
+                      "flex items-center gap-2 text-sm text-red-600 dark:text-red-400",
+                    info: "flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-400",
+                  }[status.kind]
+                }
               >
                 {status.kind === "success" ? (
                   <CheckCircle className="h-4 w-4" aria-hidden="true" />
@@ -205,11 +229,15 @@ export default function JiraConnectPage() {
               <div
                 role="status"
                 aria-atomic="true"
-                className={{
-                  success: "flex items-center gap-2 text-sm text-green-600 dark:text-green-400",
-                  error: "flex items-center gap-2 text-sm text-red-600 dark:text-red-400",
-                  info: "flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-400",
-                }[verifyStatus.kind]}
+                className={
+                  {
+                    success:
+                      "flex items-center gap-2 text-sm text-green-600 dark:text-green-400",
+                    error:
+                      "flex items-center gap-2 text-sm text-red-600 dark:text-red-400",
+                    info: "flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-400",
+                  }[verifyStatus.kind]
+                }
               >
                 {verifyStatus.kind === "success" ? (
                   <CheckCircle className="h-4 w-4" aria-hidden="true" />
