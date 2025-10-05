@@ -47,6 +47,13 @@ const Rules = {
   reactivate: { from: "deprecated", to: "active" },
 } satisfies Record<DbBuiltVersionAction, TransitionRule>;
 
+type BuiltVersionSummary = {
+  id: string;
+  name: string;
+  versionId: string;
+  createdAt: Date;
+};
+
 export class BuiltVersionStatusService {
   constructor(private readonly db: PrismaClient) {}
 
@@ -79,7 +86,7 @@ export class BuiltVersionStatusService {
     action: ApiAction,
     userId: string,
     options?: { logger?: ActionLogger },
-  ): Promise<{ status: BuiltVersionStatus }> {
+  ): Promise<{ status: BuiltVersionStatus; builtVersion: BuiltVersionSummary }> {
     const prismaAction = ActionToPrisma[action];
     const rule = Rules[prismaAction];
     if (!rule) {
@@ -92,7 +99,12 @@ export class BuiltVersionStatusService {
       // Ensure BuiltVersion exists
       const builtRecord = await tx.builtVersion.findUniqueOrThrow({
         where: { id: builtVersionId },
-        select: { id: true, name: true, versionId: true },
+        select: {
+          id: true,
+          name: true,
+          versionId: true,
+          createdAt: true,
+        },
       });
       auditTrail.push({
         subactionType: "builtVersion.transition.verify",
@@ -201,7 +213,25 @@ export class BuiltVersionStatusService {
       };
       await onEnter(rule.to);
 
-      return { status: rule.to as BuiltVersionStatus };
+      const builtVersion = await tx.builtVersion.findUnique({
+        where: { id: builtVersionId },
+        select: {
+          id: true,
+          name: true,
+          versionId: true,
+          createdAt: true,
+        },
+      });
+      if (!builtVersion) {
+        throw new Error(
+          `Built version ${builtVersionId} missing after transition persistence`,
+        );
+      }
+
+      return {
+        status: rule.to as BuiltVersionStatus,
+        builtVersion,
+      };
     });
 
     if (options?.logger) {

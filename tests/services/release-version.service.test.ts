@@ -41,7 +41,12 @@ function makeMockDb() {
           lastUsedIncrement: args.data.lastUsedIncrement,
         };
       }),
-      findUnique: jest.fn(),
+      findUnique: jest.fn(async (args: any = {}) => ({
+        id: args?.where?.id ?? REL_ID,
+        name: "version 100.0",
+        versionId: REL_ID,
+        createdAt: new Date(),
+      })),
       findUniqueOrThrow: jest.fn(),
       findMany: jest.fn(),
       count: jest.fn(),
@@ -59,7 +64,12 @@ function makeMockDb() {
         return { id: args.where.id, ...args.data };
       }),
       findUnique: jest.fn(),
-      findUniqueOrThrow: jest.fn(async (args: any) => ({ id: args.where.id })),
+      findUniqueOrThrow: jest.fn(async (args: any) => ({
+        id: args.where.id,
+        name: "version 100.0",
+        versionId: REL_ID,
+        createdAt: new Date(),
+      })),
       findFirst: jest.fn(),
       findMany: jest.fn(),
     },
@@ -162,6 +172,12 @@ describe("ReleaseVersion and BuiltVersion behavior", () => {
       "user-1" as any,
     );
     expect(res.status).toBe("in_deployment");
+    expect(res.builtVersion).toMatchObject({
+      id: "33333333-3333-3333-3333-333333333333",
+      name: "version 300.0",
+      versionId: "11111111-1111-1111-1111-111111111111",
+      createdAt,
+    });
 
     // Successor created with next increment (1)
     const successorCalls = calls["builtVersion.create"] ?? [];

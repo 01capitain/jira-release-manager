@@ -89,7 +89,7 @@
     "typescript": "^5.9.2",
     "typescript-eslint": "^8.43.0",
     "yaml": "^2.8.1",
-    "zod-openapi": "github:samchungy/zod-openapi"
+    "zod-openapi": "^5.4.2"
   },
   "ct3aMetadata": {
     "initVersion": "7.39.3"

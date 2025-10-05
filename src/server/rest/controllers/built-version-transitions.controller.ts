@@ -87,21 +87,6 @@ export const transitionBuiltVersion = async (
       userId,
       { logger: actionLog },
     );
-
-    const refreshed = await context.db.builtVersion.findUnique({
-      where: { id: params.builtId },
-      select: {
-        id: true,
-        name: true,
-        versionId: true,
-        createdAt: true,
-      },
-    });
-    if (!refreshed) {
-      throw new RestError(404, "NOT_FOUND", "Built version not found after transition", {
-        builtId: params.builtId,
-      });
-    }
     const history = await statusService.getHistory(params.builtId);
     const mappedHistory = history.map((entry) => ({
       id: entry.id,
@@ -121,7 +106,7 @@ export const transitionBuiltVersion = async (
     });
 
     return BuiltVersionTransitionResponseSchema.parse({
-      builtVersion: toBuiltVersionDto(refreshed),
+      builtVersion: toBuiltVersionDto(result.builtVersion),
       status: result.status,
       history: mappedHistory,
     });
