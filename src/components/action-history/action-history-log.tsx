@@ -265,8 +265,6 @@ export function ActionHistoryLog() {
       : null;
 
   const isBackgroundRefreshing =
-    isFetching && !isLoading && !isFetchingNextPage;
-
   return (
     <section aria-labelledby="action-history-heading" className="space-y-2">
       <div className="flex items-center justify-between">
@@ -276,15 +274,17 @@ export function ActionHistoryLog() {
         >
           Session Action History
         </h2>
-        {statusMessage ? (
-          <span
-            role="status"
-            aria-atomic="true"
-            className="text-xs font-medium text-neutral-500 dark:text-neutral-400"
-          >
-            {statusMessage}
-          </span>
-        ) : null}
+        <output
+          role="status"
+          aria-atomic="true"
+          className="text-xs font-medium text-neutral-500 dark:text-neutral-400"
+        >
+          {unauthorized
+            ? "Sign in to view"
+            : isLoading
+            ? "Loading…"
+            : `${entries.length} entr${entries.length === 1 ? "y" : "ies"}`}
+        </output>
       </div>
 
       <div className="overflow-hidden rounded-lg border border-neutral-200 bg-neutral-900 text-neutral-100 shadow-inner dark:border-neutral-800 dark:bg-neutral-950">
