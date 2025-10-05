@@ -3,6 +3,10 @@ import type {
   BuiltVersionAction as ApiAction,
   BuiltVersionStatus,
 } from "~/shared/types/built-version-status";
+import type {
+  ActionLogger,
+  SubactionInput,
+} from "~/server/services/action-history.service";
 
 // Local copies of DB enum shapes to avoid Prisma type dependency during lint/type analysis
 type DbBuiltVersionAction =
@@ -74,31 +78,47 @@ export class BuiltVersionStatusService {
     builtVersionId: string,
     action: ApiAction,
     userId: string,
-  ): Promise<{ status: BuiltVersionStatus }>
-  {
+    options?: { logger?: ActionLogger },
+  ): Promise<{ status: BuiltVersionStatus }> {
     const prismaAction = ActionToPrisma[action];
     const rule = Rules[prismaAction];
     if (!rule) {
       throw new Error(`Unsupported action: ${action}`);
     }
 
-    return this.db.$transaction(async (tx) => {
+    const auditTrail: SubactionInput[] = [];
+
+    const result = await this.db.$transaction(async (tx) => {
       // Ensure BuiltVersion exists
-      await tx.builtVersion.findUniqueOrThrow({ where: { id: builtVersionId }, select: { id: true } });
+      const builtRecord = await tx.builtVersion.findUniqueOrThrow({
+        where: { id: builtVersionId },
+        select: { id: true, name: true, versionId: true },
+      });
+      auditTrail.push({
+        subactionType: "builtVersion.transition.verify",
+        message: `Transition ${builtRecord.name} via ${prismaAction}`,
+        metadata: { builtVersionId, action: prismaAction },
+      });
 
       const current = await tx.builtVersionTransition.findFirst({
         where: { builtVersionId },
         orderBy: { createdAt: "desc" },
         select: { toStatus: true },
       });
-      const currentStatus = (current?.toStatus ?? "in_development") as DbBuiltVersionStatus;
+      const currentStatus = (current?.toStatus ??
+        "in_development") as DbBuiltVersionStatus;
 
       if (currentStatus !== rule.from) {
         // Provide a precise error for clients
-        throw Object.assign(new Error(`Invalid transition from ${currentStatus} via ${prismaAction}`), {
-          code: "INVALID_TRANSITION",
-          details: { from: currentStatus, expected: rule.from, action },
-        });
+        throw Object.assign(
+          new Error(
+            `Invalid transition from ${currentStatus} via ${prismaAction}`,
+          ),
+          {
+            code: "INVALID_TRANSITION",
+            details: { from: currentStatus, expected: rule.from, action },
+          },
+        );
       }
 
       await tx.builtVersionTransition.create({
@@ -109,6 +129,11 @@ export class BuiltVersionStatusService {
           action: prismaAction,
           createdById: userId,
         },
+      });
+      auditTrail.push({
+        subactionType: "builtVersion.transition.persist",
+        message: `Recorded transition ${prismaAction}`,
+        metadata: { from: rule.from, to: rule.to, builtVersionId },
       });
 
       // Hook: onEnter. Intentionally placed after write.
@@ -130,7 +155,10 @@ export class BuiltVersionStatusService {
         if (!release) return;
         // If there is already a newer built for this release, do NOT create a successor
         const newer = await tx.builtVersion.findFirst({
-          where: { versionId: current.versionId, createdAt: { gt: current.createdAt } },
+          where: {
+            versionId: current.versionId,
+            createdAt: { gt: current.createdAt },
+          },
           select: { id: true },
         });
         if (newer) return;
@@ -146,6 +174,11 @@ export class BuiltVersionStatusService {
             tokenValues: {},
           },
           select: { id: true, name: true },
+        });
+        auditTrail.push({
+          subactionType: "builtVersion.successor.create",
+          message: `Auto-created successor ${successor.name}`,
+          metadata: { successorId: successor.id, releaseId: release.id },
         });
         // Update last used increment on the release
         await tx.releaseVersion.update({
@@ -170,6 +203,19 @@ export class BuiltVersionStatusService {
 
       return { status: rule.to as BuiltVersionStatus };
     });
+
+    if (options?.logger) {
+      for (const entry of auditTrail) {
+        try {
+          await options.logger.subaction(entry);
+        } catch (error) {
+          // Absorb logging failures to prevent breaking the transition workflow
+          console.error("Failed to log subaction:", error);
+        }
+      }
+    }
+
+    return result;
   }
 
   // Convenience explicit methods for improved DX

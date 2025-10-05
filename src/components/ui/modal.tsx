@@ -15,7 +15,16 @@ type ModalProps = {
   restoreFocusOnClose?: boolean;
 };
 
-export function Modal({ open, onOpenChange, title, description, children, footer, className, restoreFocusOnClose = true }: ModalProps) {
+export function Modal({
+  open,
+  onOpenChange,
+  title,
+  description,
+  children,
+  footer,
+  className,
+  restoreFocusOnClose = true,
+}: ModalProps) {
   const ref = React.useRef<HTMLDivElement | null>(null);
   const [mounted, setMounted] = React.useState(false);
   const titleId = React.useId();
@@ -47,7 +56,8 @@ export function Modal({ open, onOpenChange, title, description, children, footer
   // and restore focus to the opener on close
   React.useEffect(() => {
     if (open) {
-      prevFocusRef.current = (document.activeElement as HTMLElement | null) ?? null;
+      prevFocusRef.current =
+        (document.activeElement as HTMLElement | null) ?? null;
       ref.current?.focus();
     } else {
       if (restoreFocusOnClose) {
@@ -111,7 +121,9 @@ export function Modal({ open, onOpenChange, title, description, children, footer
           <div className="max-h-[60vh] overflow-auto p-4">{children}</div>
           {footer && (
             <div className="border-t border-neutral-200 p-3 dark:border-neutral-800">
-              <div className="flex items-center justify-end gap-2">{footer}</div>
+              <div className="flex items-center justify-end gap-2">
+                {footer}
+              </div>
             </div>
           )}
         </div>

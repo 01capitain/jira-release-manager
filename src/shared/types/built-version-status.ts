@@ -12,17 +12,41 @@ export type BuiltVersionAction =
   | "deprecate"
   | "reactivate";
 
-export const StatusBadgeColor: Record<BuiltVersionStatus, { light: string; dark: string; text: string }> = {
-  in_development: { light: "bg-purple-100", dark: "dark:bg-purple-900/40", text: "text-purple-900 dark:text-purple-100" },
-  in_deployment: { light: "bg-yellow-100", dark: "dark:bg-yellow-900/40", text: "text-yellow-900 dark:text-yellow-100" },
-  active: { light: "bg-green-100", dark: "dark:bg-green-900/40", text: "text-green-900 dark:text-green-100" },
-  deprecated: { light: "bg-gray-100", dark: "dark:bg-gray-900/40", text: "text-gray-900 dark:text-gray-100" },
+export const StatusBadgeColor: Record<
+  BuiltVersionStatus,
+  { light: string; dark: string; text: string }
+> = {
+  in_development: {
+    light: "bg-purple-100",
+    dark: "dark:bg-purple-900/40",
+    text: "text-purple-900 dark:text-purple-100",
+  },
+  in_deployment: {
+    light: "bg-yellow-100",
+    dark: "dark:bg-yellow-900/40",
+    text: "text-yellow-900 dark:text-yellow-100",
+  },
+  active: {
+    light: "bg-green-100",
+    dark: "dark:bg-green-900/40",
+    text: "text-green-900 dark:text-green-100",
+  },
+  deprecated: {
+    light: "bg-gray-100",
+    dark: "dark:bg-gray-900/40",
+    text: "text-gray-900 dark:text-gray-100",
+  },
 };
 
 // Static tint classes for header/body backgrounds to ensure Tailwind generates them
 export const StatusTint: Record<
   BuiltVersionStatus,
-  { headerLight: string; headerDark: string; bodyLight: string; bodyDark: string }
+  {
+    headerLight: string;
+    headerDark: string;
+    bodyLight: string;
+    bodyDark: string;
+  }
 > = {
   in_development: {
     headerLight: "bg-purple-200",
@@ -50,7 +74,9 @@ export const StatusTint: Record<
   },
 };
 
-export function nextActionsForStatus(status: BuiltVersionStatus): BuiltVersionAction[] {
+export function nextActionsForStatus(
+  status: BuiltVersionStatus,
+): BuiltVersionAction[] {
   switch (status) {
     case "in_development":
       return ["startDeployment"];
@@ -100,7 +126,9 @@ export function labelForStatus(s: BuiltVersionStatus): string {
   return _exhaustive;
 }
 
-export function targetStatusForAction(a: BuiltVersionAction): BuiltVersionStatus {
+export function targetStatusForAction(
+  a: BuiltVersionAction,
+): BuiltVersionStatus {
   switch (a) {
     case "startDeployment":
       return "in_deployment";

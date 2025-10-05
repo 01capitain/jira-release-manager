@@ -37,7 +37,10 @@ type ReleaseComponentCreateArgs = {
 };
 
 type ReleaseComponentDelegate = {
-  findMany: jest.Mock<Promise<ReleaseComponentRow[]>, [ReleaseComponentFindManyArgs]>;
+  findMany: jest.Mock<
+    Promise<ReleaseComponentRow[]>,
+    [ReleaseComponentFindManyArgs]
+  >;
   create: jest.Mock<Promise<ReleaseComponentRow>, [ReleaseComponentCreateArgs]>;
 };
 
@@ -64,27 +67,36 @@ type ComponentVersionFindManyArgs = {
 };
 
 type ComponentVersionDelegate = {
-  findMany: jest.Mock<Promise<ComponentVersionRow[]>, [ComponentVersionFindManyArgs]>;
+  findMany: jest.Mock<
+    Promise<ComponentVersionRow[]>,
+    [ComponentVersionFindManyArgs]
+  >;
 };
 
 describe("ReleaseComponentService", () => {
   test("list returns mapped DTOs", async () => {
     const createdAt = new Date("2024-03-01T12:00:00Z");
     const releaseComponentDelegate: ReleaseComponentDelegate = {
-      findMany: jest.fn<Promise<ReleaseComponentRow[]>, [ReleaseComponentFindManyArgs]>(
-        async () => [
-          {
-            id: COMPONENT_A_ID,
-            name: "Component A",
-            color: "blue",
-            namingPattern: "{release_version}-{built_version}-{increment}",
-            createdAt,
-          },
-        ],
-      ),
-      create: jest.fn<Promise<ReleaseComponentRow>, [ReleaseComponentCreateArgs]>(),
+      findMany: jest.fn<
+        Promise<ReleaseComponentRow[]>,
+        [ReleaseComponentFindManyArgs]
+      >(async () => [
+        {
+          id: COMPONENT_A_ID,
+          name: "Component A",
+          color: "blue",
+          namingPattern: "{release_version}-{built_version}-{increment}",
+          createdAt,
+        },
+      ]),
+      create: jest.fn<
+        Promise<ReleaseComponentRow>,
+        [ReleaseComponentCreateArgs]
+      >(),
     };
-    const db = { releaseComponent: releaseComponentDelegate } as unknown as PrismaClient;
+    const db = {
+      releaseComponent: releaseComponentDelegate,
+    } as unknown as PrismaClient;
 
     const svc = new ReleaseComponentService(db);
     const res = await svc.list();
@@ -113,18 +125,24 @@ describe("ReleaseComponentService", () => {
   test("create trims fields and returns DTO", async () => {
     const createdAt = new Date("2024-03-02T08:30:00Z");
     const releaseComponentDelegate: ReleaseComponentDelegate = {
-      findMany: jest.fn<Promise<ReleaseComponentRow[]>, [ReleaseComponentFindManyArgs]>(),
-      create: jest.fn<Promise<ReleaseComponentRow>, [ReleaseComponentCreateArgs]>(
-        async (args) => ({
-          id: COMPONENT_B_ID,
-          name: args.data.name,
-          color: args.data.color,
-          namingPattern: args.data.namingPattern,
-          createdAt,
-        }),
-      ),
+      findMany: jest.fn<
+        Promise<ReleaseComponentRow[]>,
+        [ReleaseComponentFindManyArgs]
+      >(),
+      create: jest.fn<
+        Promise<ReleaseComponentRow>,
+        [ReleaseComponentCreateArgs]
+      >(async (args) => ({
+        id: COMPONENT_B_ID,
+        name: args.data.name,
+        color: args.data.color,
+        namingPattern: args.data.namingPattern,
+        createdAt,
+      })),
     };
-    const db = { releaseComponent: releaseComponentDelegate } as unknown as PrismaClient;
+    const db = {
+      releaseComponent: releaseComponentDelegate,
+    } as unknown as PrismaClient;
 
     const svc = new ReleaseComponentService(db);
     const res = await svc.create("user-1", {
@@ -163,20 +181,23 @@ describe("ComponentVersionService", () => {
   test("listByBuilt maps rows to DTOs", async () => {
     const createdAt = new Date("2024-04-01T09:15:00Z");
     const componentVersionDelegate: ComponentVersionDelegate = {
-      findMany: jest.fn<Promise<ComponentVersionRow[]>, [ComponentVersionFindManyArgs]>(
-        async () => [
-          {
-            id: COMPONENT_VERSION_ID,
-            releaseComponentId: COMPONENT_A_ID,
-            builtVersionId: BUILT_VERSION_ID,
-            name: "component-a-0",
-            increment: 0,
-            createdAt,
-          },
-        ],
-      ),
+      findMany: jest.fn<
+        Promise<ComponentVersionRow[]>,
+        [ComponentVersionFindManyArgs]
+      >(async () => [
+        {
+          id: COMPONENT_VERSION_ID,
+          releaseComponentId: COMPONENT_A_ID,
+          builtVersionId: BUILT_VERSION_ID,
+          name: "component-a-0",
+          increment: 0,
+          createdAt,
+        },
+      ]),
     };
-    const db = { componentVersion: componentVersionDelegate } as unknown as PrismaClient;
+    const db = {
+      componentVersion: componentVersionDelegate,
+    } as unknown as PrismaClient;
 
     const svc = new ComponentVersionService(db);
     const res = await svc.listByBuilt(BUILT_VERSION_ID);

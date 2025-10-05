@@ -4,6 +4,7 @@ import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
 import { releaseComponentRouter } from "~/server/api/routers/release-component";
 import { componentVersionRouter } from "~/server/api/routers/component-version";
 import { jiraRouter } from "~/server/api/routers/jira";
+import { actionHistoryRouter } from "~/server/api/routers/action-history";
 
 /**
  * This is the primary router for your server.
@@ -16,6 +17,7 @@ export const appRouter = createTRPCRouter({
   releaseComponent: releaseComponentRouter,
   componentVersion: componentVersionRouter,
   jira: jiraRouter,
+  actionHistory: actionHistoryRouter,
 });
 
 // export type definition of API

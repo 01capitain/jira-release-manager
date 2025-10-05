@@ -6,6 +6,10 @@ import {
 } from "~/server/zod/dto/release-version.dto";
 import type { ReleaseVersionDto } from "~/shared/types/release-version";
 import type { ReleaseVersionWithBuildsDto } from "~/shared/types/release-version-with-builds";
+import type {
+  ActionLogger,
+  SubactionInput,
+} from "~/server/services/action-history.service";
 
 export class ReleaseVersionService {
   constructor(private readonly db: PrismaClient) {}
@@ -26,8 +30,13 @@ export class ReleaseVersionService {
     return { total, items: mapToReleaseVersionDtos(rows) };
   }
 
-  async create(userId: User["id"], name: string): Promise<ReleaseVersionDto> {
-    const created = await this.db.$transaction(async (tx) => {
+  async create(
+    userId: User["id"],
+    name: string,
+    options?: { logger?: ActionLogger },
+  ): Promise<ReleaseVersionDto> {
+    const auditTrail: SubactionInput[] = [];
+    const release = await this.db.$transaction(async (tx) => {
       // Create the release version first
       const release = await tx.releaseVersion.create({
         data: {
@@ -37,6 +46,11 @@ export class ReleaseVersionService {
         },
         // Select only fields needed for DTO to avoid strict schema issues
         select: { id: true, name: true, createdAt: true },
+      });
+      auditTrail.push({
+        subactionType: "releaseVersion.persist",
+        message: `Release ${release.name} stored`,
+        metadata: { id: release.id },
       });
 
       // Auto-create initial built version with increment 0
@@ -53,6 +67,11 @@ export class ReleaseVersionService {
           } as Prisma.InputJsonValue,
         },
         select: { id: true, name: true },
+      });
+      auditTrail.push({
+        subactionType: "builtVersion.autoCreate",
+        message: `Initial built ${built.name} created`,
+        metadata: { id: built.id, releaseId: release.id },
       });
 
       // Update release's lastUsedIncrement to 0
@@ -92,12 +111,25 @@ export class ReleaseVersionService {
               } as Prisma.InputJsonValue,
             },
           });
+          auditTrail.push({
+            subactionType: "componentVersion.seed",
+            message: `Seeded component for built ${built.name}`,
+            metadata: {
+              releaseComponentId: comp.id,
+              builtVersionId: built.id,
+            },
+          });
         }
       }
 
       return release;
     });
-    return toReleaseVersionDto(created);
+    if (options?.logger) {
+      for (const entry of auditTrail) {
+        await options.logger.subaction(entry);
+      }
+    }
+    return toReleaseVersionDto(release);
   }
 
   async listWithBuilds(): Promise<ReleaseVersionWithBuildsDto[]> {

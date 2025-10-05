@@ -36,7 +36,11 @@ export function ComponentVersionLabels({
   }
   if (isLoading) {
     return (
-      <div className="mt-2 text-sm text-muted-foreground" role="status" aria-atomic="true">
+      <div
+        className="text-muted-foreground mt-2 text-sm"
+        role="status"
+        aria-atomic="true"
+      >
         Loading component versions…
       </div>
     );

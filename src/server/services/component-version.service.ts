@@ -1,13 +1,23 @@
 import type { PrismaClient, Prisma, BuiltVersion } from "@prisma/client";
 import type { ComponentVersionDto } from "~/shared/types/component-version";
 import { mapToComponentVersionDtos } from "~/server/zod/dto/component-version.dto";
-import { validatePattern, expandPattern } from "~/server/services/component-version-naming.service";
+import {
+  validatePattern,
+  expandPattern,
+} from "~/server/services/component-version-naming.service";
 
 export class ComponentVersionService {
   constructor(private readonly db: PrismaClient) {}
 
   async create(input: ComponentVersionCreateInput) {
-    const { builtId, builtName, releaseName, componentId, namingPattern, increment } = input;
+    const {
+      builtId,
+      builtName,
+      releaseName,
+      componentId,
+      namingPattern,
+      increment,
+    } = input;
     if (!namingPattern?.trim()) return null;
     const { valid } = validatePattern(namingPattern);
     if (!valid) return null;

@@ -1,4 +1,5 @@
 import type {
+  Prisma,
   PrismaClient,
   User,
   ReleaseVersion,
@@ -15,6 +16,10 @@ import {
   validatePattern,
   expandPattern,
 } from "~/server/services/component-version-naming.service";
+import type {
+  ActionLogger,
+  SubactionInput,
+} from "~/server/services/action-history.service";
 
 export class BuiltVersionService {
   constructor(private readonly db: PrismaClient) {}
@@ -23,21 +28,40 @@ export class BuiltVersionService {
     userId: User["id"],
     versionId: ReleaseVersion["id"],
     name: string,
+    options?: { logger?: ActionLogger },
   ): Promise<BuiltVersionDto> {
+    const auditTrail: SubactionInput[] = [];
     const created = await this.db.$transaction(async (tx) => {
-      const built = await tx.builtVersion.create({
-        data: {
-          name: name.trim(),
-          version: { connect: { id: versionId } },
-          createdBy: { connect: { id: userId } },
-        },
-        select: { id: true, name: true, versionId: true, createdAt: true },
-      });
+      const trimmedName = name.trim();
 
-      // Fetch the release version for token expansion
       const releaseVersion = await tx.releaseVersion.findUniqueOrThrow({
         where: { id: versionId },
         select: { name: true },
+      });
+
+      const parsedIncrement = (() => {
+        const parts = trimmedName.split(".");
+        const lastPart = parts.at(-1);
+        const maybeNumber = Number(lastPart);
+        return Number.isFinite(maybeNumber) ? maybeNumber : 0;
+      })();
+
+      const built = await tx.builtVersion.create({
+        data: {
+          name: trimmedName,
+          version: { connect: { id: versionId } },
+          createdBy: { connect: { id: userId } },
+          tokenValues: {
+            release_version: releaseVersion.name,
+            increment: parsedIncrement,
+          } as Prisma.InputJsonValue,
+        },
+        select: { id: true, name: true, versionId: true, createdAt: true },
+      });
+      auditTrail.push({
+        subactionType: "builtVersion.persist",
+        message: `Built version ${built.name} created`,
+        metadata: { id: built.id, versionId: built.versionId },
       });
 
       // Fetch all release components
@@ -68,13 +92,28 @@ export class BuiltVersionService {
               increment: nextIncrement,
               releaseComponent: { connect: { id: comp.id } },
               builtVersion: { connect: { id: built.id } },
+              tokenValues: {
+                release_version: releaseVersion.name,
+                built_version: built.name,
+                increment: nextIncrement,
+              } as Prisma.InputJsonValue,
             },
+          });
+          auditTrail.push({
+            subactionType: "componentVersion.populate",
+            message: `Component ${comp.id} snapshot for ${built.name}`,
+            metadata: { releaseComponentId: comp.id, builtVersionId: built.id },
           });
         }
       }
 
       return built;
     });
+    if (options?.logger) {
+      for (const entry of auditTrail) {
+        await options.logger.subaction(entry);
+      }
+    }
     return toBuiltVersionDto(created);
   }
 
@@ -118,14 +157,17 @@ export class BuiltVersionService {
     }
 
     const activeBuiltId =
-      builds.find((entry) => latestByBuild.get(entry.id) === "active")?.id ?? null;
+      builds.find((entry) => latestByBuild.get(entry.id) === "active")?.id ??
+      null;
 
     if (!activeBuiltId) {
       const components = await this.db.releaseComponent.findMany({
         select: { id: true },
       });
       return BuiltVersionDefaultSelectionSchema.parse({
-        selectedReleaseComponentIds: components.map((component) => component.id),
+        selectedReleaseComponentIds: components.map(
+          (component) => component.id,
+        ),
       });
     }
 

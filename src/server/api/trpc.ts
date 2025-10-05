@@ -7,12 +7,76 @@
  * need to use are documented accordingly near the end.
  */
 
+import type { Session } from "next-auth";
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import { ZodError } from "zod";
 
 import { auth } from "~/server/auth";
 import { db } from "~/server/db";
+
+const sessionCookieNames = [
+  "next-auth.session-token",
+  "__Secure-next-auth.session-token",
+] as const;
+
+const safeDecode = (value: string) => {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+};
+
+const parseCookies = (header: string): Record<string, string> => {
+  const pairs = header.split(";");
+  const cookies: Record<string, string> = {};
+
+  for (const pair of pairs) {
+    const separatorIndex = pair.indexOf("=");
+    if (separatorIndex === -1) continue;
+
+    const name = pair.slice(0, separatorIndex).trim();
+    if (!name) continue;
+
+    let rawValue = pair.slice(separatorIndex + 1).trim();
+    if (!rawValue) continue;
+
+    if (rawValue.startsWith('"') && rawValue.endsWith('"')) {
+      rawValue = rawValue.slice(1, -1);
+    }
+
+    cookies[name] = safeDecode(rawValue);
+  }
+
+  return cookies;
+};
+
+const isValidSessionToken = (token: string) => {
+  if (token.length < 16 || token.length > 256) {
+    return false;
+  }
+  return /^[A-Za-z0-9._-]+$/.test(token);
+};
+
+const extractSessionToken = (headers: Headers): string | null => {
+  const raw = headers.get("cookie");
+  if (!raw) return null;
+  try {
+    const cookies = parseCookies(raw);
+    for (const name of sessionCookieNames) {
+      const candidate = cookies[name];
+      if (typeof candidate !== "string") continue;
+      if (isValidSessionToken(candidate)) {
+        return candidate;
+      }
+      return null;
+    }
+  } catch {
+    return null;
+  }
+  return null;
+};
 
 /**
  * 1. CONTEXT
@@ -27,9 +91,10 @@ import { db } from "~/server/db";
  * @see https://trpc.io/docs/server/context
  */
 export const createTRPCContext = async (opts: { headers: Headers }) => {
-  let session: Awaited<ReturnType<typeof auth>> = null;
+  let session: Session | null = null;
   try {
-    session = await auth();
+    const getSession = auth as unknown as () => Promise<Session | null>;
+    session = await getSession();
   } catch (err) {
     // Avoid bubbling Auth.js errors to public procedures; surface as anonymous session
     if (process.env.NODE_ENV !== "production") {
@@ -40,6 +105,7 @@ export const createTRPCContext = async (opts: { headers: Headers }) => {
   return {
     db,
     session,
+    sessionToken: extractSessionToken(opts.headers),
     ...opts,
   };
 };
@@ -136,6 +202,7 @@ export const protectedProcedure = t.procedure
     return next({
       ctx: {
         // infers the `session` as non-nullable
+        ...ctx,
         session,
       },
     });

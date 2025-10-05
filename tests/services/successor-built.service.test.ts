@@ -26,8 +26,18 @@ function setupMockDb({
   const BUILT_Y = "33333333-3333-3333-3333-333333333333"; // successor
 
   const builtVersions = [
-    { id: BUILT_X, name: currentBuiltName, versionId: REL_ID, createdAt: new Date("2024-01-01T00:00:00Z") },
-    { id: BUILT_Y, name: successorBuiltName, versionId: REL_ID, createdAt: new Date("2024-01-02T00:00:00Z") },
+    {
+      id: BUILT_X,
+      name: currentBuiltName,
+      versionId: REL_ID,
+      createdAt: new Date("2024-01-01T00:00:00Z"),
+    },
+    {
+      id: BUILT_Y,
+      name: successorBuiltName,
+      versionId: REL_ID,
+      createdAt: new Date("2024-01-02T00:00:00Z"),
+    },
   ];
   const componentVersions: CV[] = [];
   let cvAuto = 0;
@@ -48,17 +58,26 @@ function setupMockDb({
     $transaction: async (fn: (tx: any) => Promise<any>) => fn(db),
     // release
     releaseVersion: {
-      findUniqueOrThrow: jest.fn(async () => ({ id: REL_ID, name: currentBuiltName.split(".")[0] })),
+      findUniqueOrThrow: jest.fn(async () => ({
+        id: REL_ID,
+        name: currentBuiltName.split(".")[0],
+      })),
     },
     // built
     builtVersion: {
-      findUniqueOrThrow: jest.fn(async (args: any) => builtVersions.find((b) => b.id === args.where.id)!),
+      findUniqueOrThrow: jest.fn(
+        async (args: any) => builtVersions.find((b) => b.id === args.where.id)!,
+      ),
       findFirst: jest.fn(async (args: any) => {
         const { versionId, createdAt } = args.where;
         const gt = createdAt.gt as Date;
-        const candidates = builtVersions.filter((b) => b.versionId === versionId && b.createdAt > gt);
+        const candidates = builtVersions.filter(
+          (b) => b.versionId === versionId && b.createdAt > gt,
+        );
         if (candidates.length === 0) return null;
-        candidates.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+        candidates.sort(
+          (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),
+        );
         return candidates[0];
       }),
     },
@@ -76,14 +95,25 @@ function setupMockDb({
       }),
       upsert: jest.fn(async (args: any) => {
         const where = args.where?.builtVersionId_releaseComponentId;
-        if (!where) throw new Error("mock upsert expects builtVersionId_releaseComponentId");
+        if (!where)
+          throw new Error(
+            "mock upsert expects builtVersionId_releaseComponentId",
+          );
         const idx = componentVersions.findIndex(
-          (cv) => cv.builtVersionId === where.builtVersionId && cv.releaseComponentId === where.releaseComponentId,
+          (cv) =>
+            cv.builtVersionId === where.builtVersionId &&
+            cv.releaseComponentId === where.releaseComponentId,
         );
         if (idx >= 0) {
-          componentVersions[idx] = { ...componentVersions[idx], ...(args.update ?? {}) };
-          const row = componentVersions[idx];
-          return args.select ? { id: row.id, increment: row.increment } : row;
+          const existing = componentVersions[idx];
+          if (!existing) {
+            throw new Error("expected component version to exist");
+          }
+          const updated = { ...existing, ...(args.update ?? {}) };
+          componentVersions[idx] = updated;
+          return args.select
+            ? { id: updated.id, increment: updated.increment }
+            : updated;
         }
         const created: CV = {
           id: `cv-${++cvAuto}`,
@@ -94,7 +124,9 @@ function setupMockDb({
           tokenValues: args.create.tokenValues,
         };
         componentVersions.push(created);
-        return args.select ? { id: created.id, increment: created.increment } : created;
+        return args.select
+          ? { id: created.id, increment: created.increment }
+          : created;
       }),
       create: jest.fn(async (args: any) => {
         const row: CV = {
@@ -109,18 +141,27 @@ function setupMockDb({
         return row;
       }),
       update: jest.fn(async (args: any) => {
-        const idx = componentVersions.findIndex((cv) => cv.id === args.where.id);
+        const idx = componentVersions.findIndex(
+          (cv) => cv.id === args.where.id,
+        );
         if (idx >= 0) {
-          componentVersions[idx] = { ...componentVersions[idx], ...args.data };
-          return componentVersions[idx];
+          const current = componentVersions[idx];
+          if (!current) {
+            throw new Error("component version not found");
+          }
+          const next = { ...current, ...args.data };
+          componentVersions[idx] = next;
+          return next;
         }
         throw new Error("not found");
       }),
       delete: jest.fn(async (args: any) => {
-        const idx = componentVersions.findIndex((cv) => cv.id === args.where.id);
+        const idx = componentVersions.findIndex(
+          (cv) => cv.id === args.where.id,
+        );
         if (idx >= 0) {
           const [removed] = componentVersions.splice(idx, 1);
-          return removed;
+          return removed ?? { id: args.where.id };
         }
         throw new Error("not found");
       }),
@@ -141,32 +182,78 @@ describe("SuccessorBuiltService.createSuccessorBuilt", () => {
   ];
 
   test("selecting all keeps rows on current and seeds successor", async () => {
-    const { db, ids, componentVersions } = setupMockDb({ components: comps, currentBuiltName: "version 1.0", successorBuiltName: "version 1.1" });
+    const { db, ids, componentVersions } = setupMockDb({
+      components: comps,
+      currentBuiltName: "version 1.0",
+      successorBuiltName: "version 1.1",
+    });
     const svc = new SuccessorBuiltService(db);
-    const summary = await svc.createSuccessorBuilt(ids.BUILT_X as any, comps.map((c) => c.id), "user-1" as any);
-    const onX = componentVersions.filter((cv) => cv.builtVersionId === ids.BUILT_X);
-    const onY = componentVersions.filter((cv) => cv.builtVersionId === ids.BUILT_Y);
-    expect(onX.map((r) => r.releaseComponentId).sort()).toEqual(["A", "B", "C"]);
-    expect(onY.map((r) => r.releaseComponentId).sort()).toEqual(["A", "B", "C"]);
-    expect(summary).toMatchObject({ created: 3, updated: 0, moved: 0, successorBuiltId: ids.BUILT_Y });
+    const summary = await svc.createSuccessorBuilt(
+      ids.BUILT_X as any,
+      comps.map((c) => c.id),
+      "user-1" as any,
+    );
+    const onX = componentVersions.filter(
+      (cv) => cv.builtVersionId === ids.BUILT_X,
+    );
+    const onY = componentVersions.filter(
+      (cv) => cv.builtVersionId === ids.BUILT_Y,
+    );
+    expect(onX.map((r) => r.releaseComponentId).sort()).toEqual([
+      "A",
+      "B",
+      "C",
+    ]);
+    expect(onY.map((r) => r.releaseComponentId).sort()).toEqual([
+      "A",
+      "B",
+      "C",
+    ]);
+    expect(summary).toMatchObject({
+      created: 3,
+      updated: 0,
+      moved: 0,
+      successorBuiltId: ids.BUILT_Y,
+    });
   });
 
   test("unselected move to successor; selected remain and seed successor", async () => {
-    const { db, ids, componentVersions } = setupMockDb({ components: comps, currentBuiltName: "version 1.0", successorBuiltName: "version 1.1" });
+    const { db, ids, componentVersions } = setupMockDb({
+      components: comps,
+      currentBuiltName: "version 1.0",
+      successorBuiltName: "version 1.1",
+    });
     const svc = new SuccessorBuiltService(db);
-    await svc.createSuccessorBuilt(ids.BUILT_X as any, ["A", "C"], "user-1" as any);
-    const onX = componentVersions.filter((cv) => cv.builtVersionId === ids.BUILT_X);
-    const onY = componentVersions.filter((cv) => cv.builtVersionId === ids.BUILT_Y);
+    await svc.createSuccessorBuilt(
+      ids.BUILT_X as any,
+      ["A", "C"],
+      "user-1" as any,
+    );
+    const onX = componentVersions.filter(
+      (cv) => cv.builtVersionId === ids.BUILT_X,
+    );
+    const onY = componentVersions.filter(
+      (cv) => cv.builtVersionId === ids.BUILT_Y,
+    );
     // current (closed): only A and C
     expect(onX.map((r) => r.releaseComponentId).sort()).toEqual(["A", "C"]);
     // successor: moved B and seeded A,C
-    expect(onY.map((r) => r.releaseComponentId).sort()).toEqual(["A", "B", "C"]);
+    expect(onY.map((r) => r.releaseComponentId).sort()).toEqual([
+      "A",
+      "B",
+      "C",
+    ]);
   });
 
   test("validation: at least one component must be selected", async () => {
-    const { db, ids } = setupMockDb({ components: comps, currentBuiltName: "version 1.0", successorBuiltName: "version 1.1" });
+    const { db, ids } = setupMockDb({
+      components: comps,
+      currentBuiltName: "version 1.0",
+      successorBuiltName: "version 1.1",
+    });
     const svc = new SuccessorBuiltService(db);
-    await expect(svc.createSuccessorBuilt(ids.BUILT_X as any, [], "user-1" as any)).rejects.toMatchObject({ code: "VALIDATION_ERROR" });
+    await expect(
+      svc.createSuccessorBuilt(ids.BUILT_X as any, [], "user-1" as any),
+    ).rejects.toMatchObject({ code: "VALIDATION_ERROR" });
   });
 });
- 

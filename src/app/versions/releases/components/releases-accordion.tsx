@@ -59,11 +59,14 @@ export default function ReleasesAccordion() {
     } catch {}
     return undefined;
   };
-  const writeCache = React.useCallback((payload: ReleaseVersionWithBuildsDto[]) => {
-    try {
-      localStorage.setItem(storageKey(), JSON.stringify(payload));
-    } catch {}
-  }, []);
+  const writeCache = React.useCallback(
+    (payload: ReleaseVersionWithBuildsDto[]) => {
+      try {
+        localStorage.setItem(storageKey(), JSON.stringify(payload));
+      } catch {}
+    },
+    [],
+  );
 
   const { data, isFetching } = api.builtVersion.listReleasesWithBuilds.useQuery(
     undefined,
@@ -85,12 +88,20 @@ export default function ReleasesAccordion() {
         const ids = rel.builtVersions.map((b) => b.id);
         const names = rel.builtVersions.map((b) => b.name);
         return (
-          <details key={rel.id} className="group rounded-md border border-neutral-200 dark:border-neutral-800">
+          <details
+            key={rel.id}
+            className="group rounded-md border border-neutral-200 dark:border-neutral-800"
+          >
             <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-md bg-neutral-50 px-4 py-2 text-neutral-800 dark:bg-neutral-900 dark:text-neutral-100">
               <div className="flex items-center gap-2">
-                <span className="text-base font-medium">Release {rel.name}</span>
+                <span className="text-base font-medium">
+                  Release {rel.name}
+                </span>
                 {/* When collapsed, show latest active built version */}
-                <LatestActiveTag builtVersionIds={ids} builtVersionNames={names} />
+                <LatestActiveTag
+                  builtVersionIds={ids}
+                  builtVersionNames={names}
+                />
               </div>
               <span className="flex items-center gap-2 text-xs text-neutral-500 dark:text-neutral-400">
                 <span>{rel.builtVersions.length} builds</span>
@@ -103,7 +114,12 @@ export default function ReleasesAccordion() {
             <div className="p-4">
               <div className="relative grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3">
                 {rel.builtVersions.map((b) => (
-                  <BuiltVersionCard key={b.id} id={b.id} name={b.name} createdAt={b.createdAt} />
+                  <BuiltVersionCard
+                    key={b.id}
+                    id={b.id}
+                    name={b.name}
+                    createdAt={b.createdAt}
+                  />
                 ))}
                 {hydrated && isFetching && (
                   <div

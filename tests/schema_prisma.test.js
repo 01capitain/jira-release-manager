@@ -16,9 +16,9 @@ function resolveSchemaPath() {
   const fromEnv = process.env.PRISMA_SCHEMA_PATH;
   if (fromEnv && fs.existsSync(fromEnv)) return fromEnv;
 
-  const candidates = [
-    "prisma/schema.prisma",
-  ].map((p) => path.resolve(process.cwd(), p));
+  const candidates = ["prisma/schema.prisma"].map((p) =>
+    path.resolve(process.cwd(), p),
+  );
 
   for (const p of candidates) {
     if (fs.existsSync(p)) return p;

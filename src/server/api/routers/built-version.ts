@@ -22,6 +22,7 @@ import { SuccessorBuiltService } from "~/server/services/successor-built.service
 import type { ReleaseVersionWithBuildsDto } from "~/shared/types/release-version-with-builds";
 import type { BuiltVersionDto } from "~/shared/types/built-version";
 import type { BuiltVersionDefaultSelectionDto } from "~/shared/types/built-version-selection";
+import { ActionHistoryService } from "~/server/services/action-history.service";
 
 export const builtVersionRouter = createTRPCRouter({
   listByRelease: publicProcedure
@@ -43,7 +44,34 @@ export const builtVersionRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }): Promise<BuiltVersionDto> => {
       const svc = new BuiltVersionService(ctx.db);
       const userId = requireUserId(ctx.session);
-      return svc.create(userId, input.versionId, input.name);
+      const history = new ActionHistoryService(ctx.db);
+      const trimmed = input.name.trim();
+      const action = await history.startAction({
+        actionType: "builtVersion.create",
+        message: `Create built version ${trimmed}`,
+        userId,
+        sessionToken: ctx.sessionToken ?? null,
+        metadata: { versionId: input.versionId },
+      });
+      try {
+        const result = await svc.create(userId, input.versionId, trimmed, {
+          logger: action,
+        });
+        await action.complete("success", {
+          message: `Built version ${result.name} created`,
+          metadata: { id: result.id, versionId: result.versionId },
+        });
+        return result;
+      } catch (err) {
+        await action.complete("failed", {
+          message: `Failed to create built version ${trimmed}`,
+          metadata: {
+            error: err instanceof Error ? err.message : String(err),
+            versionId: input.versionId,
+          },
+        });
+        throw err;
+      }
     }),
 
   // Determine default selection for deployment based on the most recent active build in the same release
@@ -71,18 +99,44 @@ export const builtVersionRouter = createTRPCRouter({
     .input(BuiltVersionTransitionInputSchema)
     .mutation(async ({ ctx, input }) => {
       const svc = new BuiltVersionStatusService(ctx.db);
+      const historySvc = new ActionHistoryService(ctx.db);
+      const userId = requireUserId(ctx.session);
+      const actionLog = await historySvc.startAction({
+        actionType: `builtVersion.transition.${input.action}`,
+        message: `Transition built version ${input.builtVersionId} via ${input.action}`,
+        userId,
+        sessionToken: ctx.sessionToken ?? null,
+      });
       try {
         const res = await svc.transition(
           input.builtVersionId,
           input.action,
-          requireUserId(ctx.session),
+          userId,
+          { logger: actionLog },
         );
         const history = await svc.getHistory(input.builtVersionId);
+        await actionLog.complete("success", {
+          message: `Built version ${input.builtVersionId} now ${res.status}`,
+          metadata: {
+            builtVersionId: input.builtVersionId,
+            action: input.action,
+          },
+        });
         return { ...res, history } as const;
       } catch (err: unknown) {
         const e = err as { message?: string; code?: string; details?: unknown };
         const code =
-          e?.code === "INVALID_TRANSITION" ? "BAD_REQUEST" : "INTERNAL_SERVER_ERROR";
+          e?.code === "INVALID_TRANSITION"
+            ? "BAD_REQUEST"
+            : "INTERNAL_SERVER_ERROR";
+        await actionLog.complete("failed", {
+          message: `Failed to transition built version ${input.builtVersionId}`,
+          metadata: {
+            action: input.action,
+            error: e?.message ?? String(err),
+            details: e?.details ?? null,
+          },
+        });
         throw new TRPCError({
           code,
           message: e?.message ?? "Transition failed",
@@ -97,22 +151,45 @@ export const builtVersionRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       const svc = new SuccessorBuiltService(ctx.db);
       const statusSvc = new BuiltVersionStatusService(ctx.db);
+      const historySvc = new ActionHistoryService(ctx.db);
+      const userId = requireUserId(ctx.session);
+      const actionLog = await historySvc.startAction({
+        actionType: "builtVersion.successor.apply",
+        message: `Arrange successor components for ${input.builtVersionId}`,
+        userId,
+        sessionToken: ctx.sessionToken ?? null,
+        metadata: { selectionCount: input.selectedReleaseComponentIds.length },
+      });
       try {
         const summary = await svc.createSuccessorBuilt(
           input.builtVersionId,
           input.selectedReleaseComponentIds,
-          requireUserId(ctx.session),
+          userId,
+          { logger: actionLog },
         );
         // Do not change status here; keep build in `in_deployment`.
         const status = await statusSvc.getCurrentStatus(input.builtVersionId);
         const history = await statusSvc.getHistory(input.builtVersionId);
+        await actionLog.complete("success", {
+          message: `Successor prepared for ${input.builtVersionId}`,
+          metadata: summary,
+        });
         return { status, history, summary } as const;
       } catch (err: unknown) {
         const e = err as { message?: string; code?: string; details?: unknown };
         const code =
-          e?.code === "VALIDATION_ERROR" || e?.code === "INVALID_STATE" || e?.code === "MISSING_SUCCESSOR"
+          e?.code === "VALIDATION_ERROR" ||
+          e?.code === "INVALID_STATE" ||
+          e?.code === "MISSING_SUCCESSOR"
             ? "BAD_REQUEST"
             : "INTERNAL_SERVER_ERROR";
+        await actionLog.complete("failed", {
+          message: `Failed to arrange successor for ${input.builtVersionId}`,
+          metadata: {
+            error: e?.message ?? String(err),
+            code: e?.code ?? code,
+          },
+        });
         throw new TRPCError({
           code,
           message: e?.message ?? "Create successor built failed",
