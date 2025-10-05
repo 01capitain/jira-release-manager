@@ -18,9 +18,7 @@ export const env = createEnv({
     // Jira integration
     JIRA_BASE_URL: z.string().url().optional(),
     JIRA_PROJECT_KEY: z.string().optional(),
-    NODE_ENV: z
-      .enum(["development", "test", "production"])
-      .default("development"),
+    NODE_ENV: z.enum(["development", "test", "production"]),
   },
 
   /**

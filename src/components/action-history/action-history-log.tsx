@@ -264,7 +264,7 @@ export function ActionHistoryLog() {
       ? "Loading…"
       : null;
 
-  const isBackgroundRefreshing =
+  const isBackgroundRefreshing = isFetching && !isLoading;
   return (
     <section aria-labelledby="action-history-heading" className="space-y-2">
       <div className="flex items-center justify-between">
