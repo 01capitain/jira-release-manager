@@ -368,7 +368,6 @@ export const jiraRouter = createTRPCRouter({
             releaseStatus: version.releaseStatus,
             releaseDate: version.releaseDate ? new Date(version.releaseDate) : null,
             startDate: version.startDate ? new Date(version.startDate) : null,
-            projectKey: env.JIRA_PROJECT_KEY ?? null,
           },
           create: {
             jiraId: version.id,
@@ -377,7 +376,6 @@ export const jiraRouter = createTRPCRouter({
             releaseStatus: version.releaseStatus,
             releaseDate: version.releaseDate ? new Date(version.releaseDate) : null,
             startDate: version.startDate ? new Date(version.startDate) : null,
-            projectKey: env.JIRA_PROJECT_KEY ?? null,
           },
         })
       );

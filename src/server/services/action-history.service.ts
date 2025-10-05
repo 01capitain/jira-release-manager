@@ -1,4 +1,4 @@
-import type { Prisma, PrismaClient } from "@prisma/client";
+import { Prisma, type PrismaClient } from "@prisma/client";
 
 import { mapToActionHistoryEntryDtos } from "~/server/zod/dto/action-history.dto";
 import type { ActionHistoryEntryDto } from "~/shared/types/action-history";

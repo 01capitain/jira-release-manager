@@ -172,7 +172,7 @@ describe("ReleaseVersion and BuiltVersion behavior", () => {
     );
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({ id: BUILT_VERSION_LIST_ID, name: "v100.1", versionId });
-    expect(rows[0].createdAt).toBe(createdAt.toISOString());
+    expect(rows[0]?.createdAt).toBe(createdAt.toISOString());
   });
 
   test("default selection returns components from latest active built", async () => {

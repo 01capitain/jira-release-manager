@@ -13,7 +13,9 @@ type StoredVersion = StoredVersionsResponse["items"][number];
 type ReleaseVersionsResponse = RouterOutputs["releaseVersion"]["list"];
 type ReleaseVersionItem = ReleaseVersionsResponse["items"][number];
 
-const formatReleaseDate = (value: StoredVersion["releaseDate"]): string | null => {
+const formatReleaseDate = (
+  value: StoredVersion["releaseDate"] | string,
+): string | null => {
   if (value instanceof Date) {
     return value.toISOString().slice(0, 10);
   }
