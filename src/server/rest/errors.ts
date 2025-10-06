@@ -108,7 +108,7 @@ export const normalizeError = (error: unknown): RestError => {
     const rawCode = (error as { code: string }).code;
     const { status, restCode } = mapErrorCode(rawCode);
     const mapped = toDetails((error as { details?: unknown }).details);
-    return new RestError(status, restCode, error.message, mapped ?? undefined);
+   return new RestError(status, restCode, error.message, mapped);
   }
   return new RestError(500, "INTERNAL_SERVER_ERROR", "An unexpected error occurred");
 };
