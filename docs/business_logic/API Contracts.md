@@ -13,6 +13,7 @@ type TokenValues = {
 
 - Services compute names from patterns and persist the token snapshot using `Prisma.InputJsonValue` at the database boundary.
 - When transitioning built statuses, a successor built may be created with an incremented version and token snapshot. Component versions for the successor are created or moved later based on user selection.
+- Built version transitions are exposed through explicit per-action mutations (`builtVersion.startDeployment`, `builtVersion.cancelDeployment`, `builtVersion.markActive`, `builtVersion.revertToDeployment`, `builtVersion.deprecate`, `builtVersion.reactivate`) to mirror the one-action-per-endpoint REST design.
 
 ## Action History Logging
 

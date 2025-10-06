@@ -1,4 +1,5 @@
 import { TRPCError } from "@trpc/server";
+import type { PrismaClient } from "@prisma/client";
 import {
   createTRPCRouter,
   protectedProcedure,
@@ -15,7 +16,6 @@ import { BuiltVersionService } from "~/server/services/built-version.service";
 import {
   BuiltVersionCreateSuccessorInputSchema,
   BuiltVersionStatusInputSchema,
-  BuiltVersionTransitionInputSchema,
 } from "~/server/api/schemas";
 import { BuiltVersionStatusService } from "~/server/services/built-version-status.service";
 import { SuccessorBuiltService } from "~/server/services/successor-built.service";
@@ -23,6 +23,62 @@ import type { ReleaseVersionWithBuildsDto } from "~/shared/types/release-version
 import type { BuiltVersionDto } from "~/shared/types/built-version";
 import type { BuiltVersionDefaultSelectionDto } from "~/shared/types/built-version-selection";
 import { ActionHistoryService } from "~/server/services/action-history.service";
+import type { BuiltVersionAction } from "~/shared/types/built-version-status";
+
+type TransitionContext = {
+  db: PrismaClient;
+  session: { user?: { id?: string | null } } | null;
+  sessionToken?: string | null;
+};
+
+const executeTransition = async (
+  ctx: TransitionContext,
+  builtVersionId: string,
+  action: BuiltVersionAction,
+) => {
+  const svc = new BuiltVersionStatusService(ctx.db);
+  const historySvc = new ActionHistoryService(ctx.db);
+  const userId = requireUserId(ctx.session);
+  const actionLog = await historySvc.startAction({
+    actionType: `builtVersion.transition.${action}`,
+    message: `Transition built version ${builtVersionId} via ${action}`,
+    userId,
+    sessionToken: ctx.sessionToken ?? null,
+  });
+  try {
+    const res = await svc.transition(builtVersionId, action, userId, {
+      logger: actionLog,
+    });
+    const history = await svc.getHistory(builtVersionId);
+    await actionLog.complete("success", {
+      message: `Built version ${builtVersionId} now ${res.status}`,
+      metadata: {
+        builtVersionId,
+        action,
+      },
+    });
+    return { ...res, history } as const;
+  } catch (err: unknown) {
+    const e = err as { message?: string; code?: string; details?: unknown };
+    const code =
+      e?.code === "INVALID_TRANSITION"
+        ? "BAD_REQUEST"
+        : "INTERNAL_SERVER_ERROR";
+    await actionLog.complete("failed", {
+      message: `Failed to transition built version ${builtVersionId}`,
+      metadata: {
+        action,
+        error: e?.message ?? String(err),
+        details: e?.details ?? null,
+      },
+    });
+    throw new TRPCError({
+      code,
+      message: e?.message ?? "Transition failed",
+      cause: e,
+    });
+  }
+};
 
 export const builtVersionRouter = createTRPCRouter({
   listByRelease: publicProcedure
@@ -94,56 +150,41 @@ export const builtVersionRouter = createTRPCRouter({
       return { status, history } as const;
     }),
 
-  // Perform a transition; only allowed actions from current state succeed
-  transition: protectedProcedure
-    .input(BuiltVersionTransitionInputSchema)
-    .mutation(async ({ ctx, input }) => {
-      const svc = new BuiltVersionStatusService(ctx.db);
-      const historySvc = new ActionHistoryService(ctx.db);
-      const userId = requireUserId(ctx.session);
-      const actionLog = await historySvc.startAction({
-        actionType: `builtVersion.transition.${input.action}`,
-        message: `Transition built version ${input.builtVersionId} via ${input.action}`,
-        userId,
-        sessionToken: ctx.sessionToken ?? null,
-      });
-      try {
-        const res = await svc.transition(
-          input.builtVersionId,
-          input.action,
-          userId,
-          { logger: actionLog },
-        );
-        const history = await svc.getHistory(input.builtVersionId);
-        await actionLog.complete("success", {
-          message: `Built version ${input.builtVersionId} now ${res.status}`,
-          metadata: {
-            builtVersionId: input.builtVersionId,
-            action: input.action,
-          },
-        });
-        return { ...res, history } as const;
-      } catch (err: unknown) {
-        const e = err as { message?: string; code?: string; details?: unknown };
-        const code =
-          e?.code === "INVALID_TRANSITION"
-            ? "BAD_REQUEST"
-            : "INTERNAL_SERVER_ERROR";
-        await actionLog.complete("failed", {
-          message: `Failed to transition built version ${input.builtVersionId}`,
-          metadata: {
-            action: input.action,
-            error: e?.message ?? String(err),
-            details: e?.details ?? null,
-          },
-        });
-        throw new TRPCError({
-          code,
-          message: e?.message ?? "Transition failed",
-          cause: e,
-        });
-      }
-    }),
+  startDeployment: protectedProcedure
+    .input(BuiltVersionStatusInputSchema)
+    .mutation(async ({ ctx, input }) =>
+      executeTransition(ctx, input.builtVersionId, "startDeployment"),
+    ),
+
+  cancelDeployment: protectedProcedure
+    .input(BuiltVersionStatusInputSchema)
+    .mutation(async ({ ctx, input }) =>
+      executeTransition(ctx, input.builtVersionId, "cancelDeployment"),
+    ),
+
+  markActive: protectedProcedure
+    .input(BuiltVersionStatusInputSchema)
+    .mutation(async ({ ctx, input }) =>
+      executeTransition(ctx, input.builtVersionId, "markActive"),
+    ),
+
+  revertToDeployment: protectedProcedure
+    .input(BuiltVersionStatusInputSchema)
+    .mutation(async ({ ctx, input }) =>
+      executeTransition(ctx, input.builtVersionId, "revertToDeployment"),
+    ),
+
+  deprecate: protectedProcedure
+    .input(BuiltVersionStatusInputSchema)
+    .mutation(async ({ ctx, input }) =>
+      executeTransition(ctx, input.builtVersionId, "deprecate"),
+    ),
+
+  reactivate: protectedProcedure
+    .input(BuiltVersionStatusInputSchema)
+    .mutation(async ({ ctx, input }) =>
+      executeTransition(ctx, input.builtVersionId, "reactivate"),
+    ),
 
   // Apply selection to create the successor built arrangement (no status change)
   createSuccessorBuilt: protectedProcedure
