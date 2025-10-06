@@ -67,19 +67,14 @@ export const toRestResponse = (error: unknown): Response => {
     );
   }
   if (error instanceof ZodError) {
-    const details = error.flatten();
-    return NextResponse.json(
+    const normalized = normalizeError(error);
+    return NextResponse.json<RestErrorBody>(
       {
-        code: "VALIDATION_ERROR",
-        message: "Invalid request payload",
-        details: details.fieldErrors
-          ? {
-              fieldErrors: details.fieldErrors,
-              formErrors: details.formErrors,
-            }
-          : { formErrors: details.formErrors },
+        code: normalized.code,
+        message: normalized.message,
+        ...(normalized.details !== undefined ? { details: normalized.details } : {}),
       },
-      { status: 400 },
+      { status: normalized.status },
     );
   }
   console.error("[REST] Unhandled error", error);
