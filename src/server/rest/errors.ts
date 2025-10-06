@@ -54,9 +54,7 @@ const mapErrorCode = (code: string): { status: number; restCode: string } => {
     default:
       return { status: 500, restCode: code ?? "INTERNAL_SERVER_ERROR" };
   }
-}
 };
-
 export const toRestResponse = (error: unknown): Response => {
   if (error instanceof RestError) {
     return NextResponse.json(
