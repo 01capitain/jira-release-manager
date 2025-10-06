@@ -1,4 +1,4 @@
-import type { Prisma, PrismaClient, User } from "@prisma/client";
+import type { Prisma, PrismaClient, ReleaseVersion, User } from "@prisma/client";
 import { mapToBuiltVersionDtos } from "~/server/zod/dto/built-version.dto";
 import {
   mapToReleaseVersionDtos,
@@ -153,5 +153,59 @@ export class ReleaseVersionService {
       }),
       builtVersions: mapToBuiltVersionDtos(r.builtVersions),
     }));
+  }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// At the very top of src/server/services/release-version.service.ts:
+//
+// (other imports…)
+import { RestError } from "~/server/rest/errors";
+// ─────────────────────────────────────────────────────────────────────────────
+
+export class ReleaseVersionService {
+  // …other methods…
+
+  async getById(
+    releaseId: ReleaseVersion["id"],
+  ): Promise<ReleaseVersionWithBuildsDto> {
+    const row = await this.db.releaseVersion.findUnique({
+      where: { id: releaseId },
+      select: {
+        id: true,
+        name: true,
+        createdAt: true,
+        builtVersions: {
+          orderBy: { createdAt: "desc" },
+          select: { id: true, name: true, versionId: true, createdAt: true },
+        },
+      },
+    });
+
+    if (!row) {
+      throw new RestError(404, "NOT_FOUND", `Release version ${releaseId} not found`, {
+        releaseId,
+      });
+    }
+
+    return {
+      ...toReleaseVersionDto({
+        id: row.id,
+        name: row.name,
+        createdAt: row.createdAt,
+      }),
+      builtVersions: mapToBuiltVersionDtos(row.builtVersions),
+    };
+  }
+
+  // …other methods…
+}
+    return {
+      ...toReleaseVersionDto({
+        id: row.id,
+        name: row.name,
+        createdAt: row.createdAt,
+      }),
+      builtVersions: mapToBuiltVersionDtos(row.builtVersions),
+    };
   }
 }
