@@ -1,4 +1,9 @@
-import type { Prisma, PrismaClient, ReleaseVersion, User } from "@prisma/client";
+import type {
+  Prisma,
+  PrismaClient,
+  ReleaseVersion,
+  User,
+} from "@prisma/client";
 import { mapToBuiltVersionDtos } from "~/server/zod/dto/built-version.dto";
 import {
   mapToReleaseVersionDtos,
@@ -173,9 +178,14 @@ export class ReleaseVersionService {
     });
 
     if (!row) {
-      throw new RestError(404, "NOT_FOUND", `Release version ${releaseId} not found`, {
-        releaseId,
-      });
+      throw new RestError(
+        404,
+        "NOT_FOUND",
+        `Release version ${releaseId} not found`,
+        {
+          releaseId,
+        },
+      );
     }
 
     return {

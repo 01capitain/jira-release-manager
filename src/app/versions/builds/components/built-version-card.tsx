@@ -58,12 +58,11 @@ export default function BuiltVersionCard({
       await handleTransitionSuccess();
     },
   });
-  const revertToDeployment =
-    api.builtVersion.revertToDeployment.useMutation({
-      onSuccess: async () => {
-        await handleTransitionSuccess();
-      },
-    });
+  const revertToDeployment = api.builtVersion.revertToDeployment.useMutation({
+    onSuccess: async () => {
+      await handleTransitionSuccess();
+    },
+  });
   const deprecate = api.builtVersion.deprecate.useMutation({
     onSuccess: async () => {
       await handleTransitionSuccess();
@@ -88,7 +87,9 @@ export default function BuiltVersionCard({
     deprecate.isPending ||
     reactivate.isPending;
   const processing =
-    submitting || startDeploymentRaw.isPending || createSuccessorBuilt.isPending;
+    submitting ||
+    startDeploymentRaw.isPending ||
+    createSuccessorBuilt.isPending;
   const { data: componentsData } = api.releaseComponent.list.useQuery(
     undefined,
     {

@@ -114,9 +114,14 @@ const performTransition = async (
   });
 
   try {
-    const result = await statusService.transition(params.builtId, action, userId, {
-      logger: actionLog,
-    });
+    const result = await statusService.transition(
+      params.builtId,
+      action,
+      userId,
+      {
+        logger: actionLog,
+      },
+    );
     const history = await statusService.getHistory(params.builtId);
     const mappedHistory = history.map((entry) => ({
       id: entry.id,

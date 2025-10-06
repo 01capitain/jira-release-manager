@@ -282,8 +282,8 @@ export function ActionHistoryLog() {
           {unauthorized
             ? "Sign in to view"
             : isLoading
-            ? "Loading…"
-            : `${entries.length} entr${entries.length === 1 ? "y" : "ies"}`}
+              ? "Loading…"
+              : `${entries.length} entr${entries.length === 1 ? "y" : "ies"}`}
         </output>
       </div>
 
