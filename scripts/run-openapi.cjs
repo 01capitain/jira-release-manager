@@ -1,3 +1,4 @@
+// @ts-nocheck
 const { register } = require("esbuild-register/dist/node");
 
 register({
@@ -28,4 +29,4 @@ Module._resolveFilename = function resolve(request, parent, isMain, options) {
   return originalResolveFilename(request, parent, isMain, options);
 };
 
-require("./generate-openapi.cts");
+require("./generate-openapi.ts");

@@ -2,14 +2,14 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { createDocument } from "zod-openapi";
+import { createDocument, type ZodOpenApiPathsObject } from "zod-openapi";
 import YAML from "yaml";
 
-import { actionHistoryPaths } from "../src/server/rest/controllers/action-history.controller.ts";
-import { builtVersionPaths } from "../src/server/rest/controllers/built-version-transitions.controller.ts";
-import { releaseComponentPaths } from "../src/server/rest/controllers/release-components.controller.ts";
-import { releaseVersionPaths } from "../src/server/rest/controllers/release-versions.controller.ts";
-import { userPaths } from "../src/server/rest/controllers/users.controller.ts";
+import { actionHistoryPaths } from "../src/server/rest/controllers/action-history.controller";
+import { builtVersionPaths } from "../src/server/rest/controllers/built-version-transitions.controller";
+import { releaseComponentPaths } from "../src/server/rest/controllers/release-components.controller";
+import { releaseVersionPaths } from "../src/server/rest/controllers/release-versions.controller";
+import { userPaths } from "../src/server/rest/controllers/users.controller";
 
 const isCheck = process.argv.includes("--check");
 
@@ -23,8 +23,7 @@ const paths = {
   ...builtVersionPaths,
   ...actionHistoryPaths,
   ...userPaths,
-};
-
+} as unknown as ZodOpenApiPathsObject;
 
 async function main() {
   const document = createDocument({
@@ -46,13 +45,17 @@ async function main() {
     try {
       const existing = await readFile(outputPath, "utf8");
       if (existing !== normalized) {
-        console.error("OpenAPI spec is out of date. Run pnpm openapi:gen.");
+        console.error(
+          "OpenAPI spec is out of date. Run pnpm openapi:generate.",
+        );
         process.exit(1);
       }
       return;
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-        console.error("OpenAPI spec has not been generated yet. Run pnpm openapi:gen.");
+        console.error(
+          "OpenAPI spec has not been generated yet. Run pnpm openapi:generate.",
+        );
         process.exit(1);
       }
       throw error;

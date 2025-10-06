@@ -258,12 +258,6 @@ export function ActionHistoryLog() {
     fetchOlder();
   }, [entries.length, fetchOlder, hasNextPage, unauthorized]);
 
-  const statusMessage = unauthorized
-    ? "Sign in to view"
-    : isLoading
-      ? "Loading…"
-      : null;
-
   const isBackgroundRefreshing = isFetching && !isLoading;
   return (
     <section aria-labelledby="action-history-heading" className="space-y-2">

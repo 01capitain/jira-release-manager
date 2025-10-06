@@ -63,10 +63,16 @@ export const parseJsonBody = async <T extends z.ZodTypeAny>(
   let data: unknown;
   try {
     data = await req.json();
-  } catch (error) {
+  } catch {
     throw new RestError(400, "INVALID_JSON", "Request body must be valid JSON");
   }
-  return schema.parse(data);
+  const parsed = schema.safeParse(data);
+  if (!parsed.success) {
+    throw parsed.error;
+  }
+  // Zod narrows the data shape; downstream callers rely on schema inference.
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+  return parsed.data;
 };
 
 export const parseSearchParams = <T extends z.ZodTypeAny>(
@@ -74,7 +80,12 @@ export const parseSearchParams = <T extends z.ZodTypeAny>(
   schema: T,
 ): z.infer<T> => {
   const entries = Object.fromEntries(req.nextUrl.searchParams.entries());
-  return schema.parse(entries);
+  const parsed = schema.safeParse(entries);
+  if (!parsed.success) {
+    throw parsed.error;
+  }
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+  return parsed.data;
 };
 
 export const jsonResponse = <T>(body: T, init?: ResponseInit): Response => {
