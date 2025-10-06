@@ -1,0 +1,955 @@
+openapi: 3.1.0
+info:
+  title: Jira Release Manager REST API
+  version: 1.0.0
+  description: Generated specification for the versioned REST endpoints exposed
+    under /api/v1.
+servers:
+  - url: /api/v1
+    description: Application server
+paths:
+  /release-versions:
+    get:
+      operationId: listReleaseVersions
+      summary: List release versions
+      tags:
+        - Release Versions
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 9007199254740991
+        - in: query
+          name: pageSize
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+      responses:
+        "200":
+          description: Release versions page
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total:
+                    type: integer
+                    minimum: -9007199254740991
+                    maximum: 9007199254740991
+                  page:
+                    type: integer
+                    minimum: -9007199254740991
+                    maximum: 9007199254740991
+                  pageSize:
+                    type: integer
+                    minimum: -9007199254740991
+                    maximum: 9007199254740991
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        name:
+                          type: string
+                        createdAt:
+                          type: string
+                          pattern: ^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{3}))?Z$
+                      required:
+                        - id
+                        - name
+                        - createdAt
+                      additionalProperties: false
+                required:
+                  - total
+                  - page
+                  - pageSize
+                  - items
+                additionalProperties: false
+        "400":
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                  message:
+                    type: string
+                  details:
+                    anyOf:
+                      - type: object
+                        properties: {}
+                        additionalProperties: {}
+                      - type: "null"
+                required:
+                  - code
+                  - message
+                additionalProperties: false
+    post:
+      operationId: createReleaseVersion
+      summary: Create release version
+      tags:
+        - Release Versions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+              required:
+                - name
+      responses:
+        "201":
+          description: Release version created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  name:
+                    type: string
+                  createdAt:
+                    type: string
+                    pattern: ^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{3}))?Z$
+                required:
+                  - id
+                  - name
+                  - createdAt
+                additionalProperties: false
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                  message:
+                    type: string
+                  details:
+                    anyOf:
+                      - type: object
+                        properties: {}
+                        additionalProperties: {}
+                      - type: "null"
+                required:
+                  - code
+                  - message
+                additionalProperties: false
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                  message:
+                    type: string
+                  details:
+                    anyOf:
+                      - type: object
+                        properties: {}
+                        additionalProperties: {}
+                      - type: "null"
+                required:
+                  - code
+                  - message
+                additionalProperties: false
+        "409":
+          description: Release already exists
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                  message:
+                    type: string
+                  details:
+                    anyOf:
+                      - type: object
+                        properties: {}
+                        additionalProperties: {}
+                      - type: "null"
+                required:
+                  - code
+                  - message
+                additionalProperties: false
+  /release-versions/{releaseId}:
+    get:
+      operationId: getReleaseVersion
+      summary: Get release version
+      tags:
+        - Release Versions
+      parameters:
+        - in: path
+          name: releaseId
+          schema:
+            type: string
+            format: uuid
+            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$
+          required: true
+      responses:
+        "200":
+          description: Release version
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  name:
+                    type: string
+                  createdAt:
+                    type: string
+                    pattern: ^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{3}))?Z$
+                  builtVersions:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        name:
+                          type: string
+                        versionId:
+                          type: string
+                        createdAt:
+                          type: string
+                          pattern: ^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{3}))?Z$
+                      required:
+                        - id
+                        - name
+                        - versionId
+                        - createdAt
+                      additionalProperties: false
+                required:
+                  - id
+                  - name
+                  - createdAt
+                  - builtVersions
+                additionalProperties: false
+        "404":
+          description: Release not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                  message:
+                    type: string
+                  details:
+                    anyOf:
+                      - type: object
+                        properties: {}
+                        additionalProperties: {}
+                      - type: "null"
+                required:
+                  - code
+                  - message
+                additionalProperties: false
+  /release-components:
+    get:
+      operationId: listReleaseComponents
+      summary: List release components
+      tags:
+        - Release Components
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 9007199254740991
+        - in: query
+          name: pageSize
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+        - in: query
+          name: search
+          schema:
+            type: string
+            minLength: 1
+        - in: query
+          name: releaseId
+          schema:
+            type: string
+            format: uuid
+            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$
+      responses:
+        "200":
+          description: Release components page
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total:
+                    type: integer
+                    minimum: -9007199254740991
+                    maximum: 9007199254740991
+                  page:
+                    type: integer
+                    minimum: -9007199254740991
+                    maximum: 9007199254740991
+                  pageSize:
+                    type: integer
+                    minimum: -9007199254740991
+                    maximum: 9007199254740991
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        name:
+                          type: string
+                        color:
+                          type: string
+                        namingPattern:
+                          type: string
+                        createdAt:
+                          type: string
+                          pattern: ^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{3}))?Z$
+                      required:
+                        - id
+                        - name
+                        - color
+                        - namingPattern
+                        - createdAt
+                      additionalProperties: false
+                required:
+                  - total
+                  - page
+                  - pageSize
+                  - items
+                additionalProperties: false
+        "400":
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                  message:
+                    type: string
+                  details:
+                    anyOf:
+                      - type: object
+                        properties: {}
+                        additionalProperties: {}
+                      - type: "null"
+                required:
+                  - code
+                  - message
+                additionalProperties: false
+    post:
+      operationId: createReleaseComponent
+      summary: Create release component
+      tags:
+        - Release Components
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                color:
+                  type: string
+                  enum:
+                    - slate
+                    - gray
+                    - zinc
+                    - neutral
+                    - stone
+                    - red
+                    - orange
+                    - amber
+                    - yellow
+                    - lime
+                    - green
+                    - emerald
+                    - teal
+                    - cyan
+                    - sky
+                    - blue
+                    - indigo
+                    - violet
+                    - purple
+                    - fuchsia
+                    - pink
+                    - rose
+                namingPattern:
+                  type: string
+                  minLength: 1
+              required:
+                - name
+                - color
+                - namingPattern
+      responses:
+        "201":
+          description: Release component created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  name:
+                    type: string
+                  color:
+                    type: string
+                  namingPattern:
+                    type: string
+                  createdAt:
+                    type: string
+                    pattern: ^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{3}))?Z$
+                required:
+                  - id
+                  - name
+                  - color
+                  - namingPattern
+                  - createdAt
+                additionalProperties: false
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                  message:
+                    type: string
+                  details:
+                    anyOf:
+                      - type: object
+                        properties: {}
+                        additionalProperties: {}
+                      - type: "null"
+                required:
+                  - code
+                  - message
+                additionalProperties: false
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                  message:
+                    type: string
+                  details:
+                    anyOf:
+                      - type: object
+                        properties: {}
+                        additionalProperties: {}
+                      - type: "null"
+                required:
+                  - code
+                  - message
+                additionalProperties: false
+        "409":
+          description: Component already exists
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                  message:
+                    type: string
+                  details:
+                    anyOf:
+                      - type: object
+                        properties: {}
+                        additionalProperties: {}
+                      - type: "null"
+                required:
+                  - code
+                  - message
+                additionalProperties: false
+  /release-components/{componentId}:
+    get:
+      operationId: getReleaseComponent
+      summary: Get release component
+      tags:
+        - Release Components
+      parameters:
+        - in: path
+          name: componentId
+          schema:
+            type: string
+            format: uuid
+            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$
+          required: true
+      responses:
+        "200":
+          description: Release component
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  name:
+                    type: string
+                  color:
+                    type: string
+                  namingPattern:
+                    type: string
+                  createdAt:
+                    type: string
+                    pattern: ^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{3}))?Z$
+                required:
+                  - id
+                  - name
+                  - color
+                  - namingPattern
+                  - createdAt
+                additionalProperties: false
+        "404":
+          description: Component not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                  message:
+                    type: string
+                  details:
+                    anyOf:
+                      - type: object
+                        properties: {}
+                        additionalProperties: {}
+                      - type: "null"
+                required:
+                  - code
+                  - message
+                additionalProperties: false
+  /release-versions/{releaseId}/built-versions/{builtId}/transitions:
+    post:
+      operationId: transitionBuiltVersion
+      summary: Transition built version
+      tags:
+        - Release Versions
+      parameters:
+        - in: path
+          name: releaseId
+          schema:
+            type: string
+            format: uuid
+            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$
+          required: true
+        - in: path
+          name: builtId
+          schema:
+            type: string
+            format: uuid
+            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                action:
+                  type: string
+                  enum:
+                    - startDeployment
+                    - cancelDeployment
+                    - markActive
+                    - revertToDeployment
+                    - deprecate
+                    - reactivate
+              required:
+                - action
+      responses:
+        "200":
+          description: Transition result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  builtVersion:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      name:
+                        type: string
+                      versionId:
+                        type: string
+                      createdAt:
+                        type: string
+                        pattern: ^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{3}))?Z$
+                    required:
+                      - id
+                      - name
+                      - versionId
+                      - createdAt
+                    additionalProperties: false
+                  status:
+                    type: string
+                  history:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        fromStatus:
+                          type: string
+                        toStatus:
+                          type: string
+                        action:
+                          type: string
+                        createdAt:
+                          type: string
+                          pattern: ^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{3}))?Z$
+                        createdById:
+                          type: string
+                      required:
+                        - id
+                        - fromStatus
+                        - toStatus
+                        - action
+                        - createdAt
+                        - createdById
+                      additionalProperties: false
+                required:
+                  - builtVersion
+                  - status
+                  - history
+                additionalProperties: false
+        "400":
+          description: Invalid transition
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                  message:
+                    type: string
+                  details:
+                    anyOf:
+                      - type: object
+                        properties: {}
+                        additionalProperties: {}
+                      - type: "null"
+                required:
+                  - code
+                  - message
+                additionalProperties: false
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                  message:
+                    type: string
+                  details:
+                    anyOf:
+                      - type: object
+                        properties: {}
+                        additionalProperties: {}
+                      - type: "null"
+                required:
+                  - code
+                  - message
+                additionalProperties: false
+        "404":
+          description: Built version not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                  message:
+                    type: string
+                  details:
+                    anyOf:
+                      - type: object
+                        properties: {}
+                        additionalProperties: {}
+                      - type: "null"
+                required:
+                  - code
+                  - message
+                additionalProperties: false
+  /action-history:
+    get:
+      operationId: listActionHistory
+      summary: List action history for current session
+      tags:
+        - Action History
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+        - in: query
+          name: cursor
+          schema:
+            type: string
+            format: uuid
+            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$
+      responses:
+        "200":
+          description: Action history page
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        actionType:
+                          type: string
+                        message:
+                          type: string
+                        status:
+                          type: string
+                          enum:
+                            - success
+                            - failed
+                            - cancelled
+                        createdAt:
+                          type: string
+                          pattern: ^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{3}))?Z$
+                        createdBy:
+                          type: object
+                          properties:
+                            id:
+                              type: string
+                            name:
+                              anyOf:
+                                - type: string
+                                - type: "null"
+                            email:
+                              anyOf:
+                                - type: string
+                                - type: "null"
+                          required:
+                            - id
+                          additionalProperties: false
+                        metadata:
+                          anyOf:
+                            - type: object
+                              properties: {}
+                              additionalProperties: {}
+                            - type: "null"
+                        subactions:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              id:
+                                type: string
+                              subactionType:
+                                type: string
+                              message:
+                                type: string
+                              status:
+                                type: string
+                                enum:
+                                  - success
+                                  - failed
+                                  - cancelled
+                              createdAt:
+                                type: string
+                                pattern: ^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{3}))?Z$
+                              metadata:
+                                anyOf:
+                                  - type: object
+                                    properties: {}
+                                    additionalProperties: {}
+                                  - type: "null"
+                            required:
+                              - id
+                              - subactionType
+                              - message
+                              - status
+                              - createdAt
+                            additionalProperties: false
+                      required:
+                        - id
+                        - actionType
+                        - message
+                        - status
+                        - createdAt
+                        - createdBy
+                        - subactions
+                      additionalProperties: false
+                  nextCursor:
+                    anyOf:
+                      - type: string
+                        format: uuid
+                        pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$
+                      - type: "null"
+                  hasMore:
+                    type: boolean
+                required:
+                  - items
+                  - nextCursor
+                  - hasMore
+                additionalProperties: false
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                  message:
+                    type: string
+                  details:
+                    anyOf:
+                      - type: object
+                        properties: {}
+                        additionalProperties: {}
+                      - type: "null"
+                required:
+                  - code
+                  - message
+                additionalProperties: false
+  /users/me:
+    get:
+      operationId: getCurrentUser
+      summary: Get current user
+      tags:
+        - Users
+      responses:
+        "200":
+          description: Current user profile
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  name:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  email:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  permissions:
+                    type: object
+                    properties:
+                      releaseVersions:
+                        type: object
+                        properties:
+                          create:
+                            type: boolean
+                        required:
+                          - create
+                        additionalProperties: false
+                      releaseComponents:
+                        type: object
+                        properties:
+                          create:
+                            type: boolean
+                        required:
+                          - create
+                        additionalProperties: false
+                      builtVersions:
+                        type: object
+                        properties:
+                          transition:
+                            type: boolean
+                        required:
+                          - transition
+                        additionalProperties: false
+                    required:
+                      - releaseVersions
+                      - releaseComponents
+                      - builtVersions
+                    additionalProperties: false
+                required:
+                  - id
+                  - name
+                  - email
+                  - permissions
+                additionalProperties: false
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                  message:
+                    type: string
+                  details:
+                    anyOf:
+                      - type: object
+                        properties: {}
+                        additionalProperties: {}
+                      - type: "null"
+                required:
+                  - code
+                  - message
+                additionalProperties: false
