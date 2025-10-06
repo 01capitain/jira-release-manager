@@ -564,10 +564,10 @@ paths:
                   - code
                   - message
                 additionalProperties: false
-  /release-versions/{releaseId}/built-versions/{builtId}/transitions:
+  /release-versions/{releaseId}/built-versions/{builtId}/start-deployment:
     post:
-      operationId: transitionBuiltVersion
-      summary: Transition built version
+      operationId: startDeploymentBuiltVersion
+      summary: Start deployment built version
       tags:
         - Release Versions
       parameters:
@@ -585,24 +585,721 @@ paths:
             format: uuid
             pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$
           required: true
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                action:
-                  type: string
-                  enum:
-                    - startDeployment
-                    - cancelDeployment
-                    - markActive
-                    - revertToDeployment
-                    - deprecate
-                    - reactivate
-              required:
-                - action
+      responses:
+        "200":
+          description: Transition result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  builtVersion:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      name:
+                        type: string
+                      versionId:
+                        type: string
+                      createdAt:
+                        type: string
+                        pattern: ^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{3}))?Z$
+                    required:
+                      - id
+                      - name
+                      - versionId
+                      - createdAt
+                    additionalProperties: false
+                  status:
+                    type: string
+                  history:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        fromStatus:
+                          type: string
+                        toStatus:
+                          type: string
+                        action:
+                          type: string
+                        createdAt:
+                          type: string
+                          pattern: ^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{3}))?Z$
+                        createdById:
+                          type: string
+                      required:
+                        - id
+                        - fromStatus
+                        - toStatus
+                        - action
+                        - createdAt
+                        - createdById
+                      additionalProperties: false
+                required:
+                  - builtVersion
+                  - status
+                  - history
+                additionalProperties: false
+        "400":
+          description: Invalid transition
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                  message:
+                    type: string
+                  details:
+                    anyOf:
+                      - type: object
+                        properties: {}
+                        additionalProperties: {}
+                      - type: "null"
+                required:
+                  - code
+                  - message
+                additionalProperties: false
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                  message:
+                    type: string
+                  details:
+                    anyOf:
+                      - type: object
+                        properties: {}
+                        additionalProperties: {}
+                      - type: "null"
+                required:
+                  - code
+                  - message
+                additionalProperties: false
+        "404":
+          description: Built version not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                  message:
+                    type: string
+                  details:
+                    anyOf:
+                      - type: object
+                        properties: {}
+                        additionalProperties: {}
+                      - type: "null"
+                required:
+                  - code
+                  - message
+                additionalProperties: false
+  /release-versions/{releaseId}/built-versions/{builtId}/cancel-deployment:
+    post:
+      operationId: cancelDeploymentBuiltVersion
+      summary: Cancel deployment built version
+      tags:
+        - Release Versions
+      parameters:
+        - in: path
+          name: releaseId
+          schema:
+            type: string
+            format: uuid
+            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$
+          required: true
+        - in: path
+          name: builtId
+          schema:
+            type: string
+            format: uuid
+            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$
+          required: true
+      responses:
+        "200":
+          description: Transition result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  builtVersion:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      name:
+                        type: string
+                      versionId:
+                        type: string
+                      createdAt:
+                        type: string
+                        pattern: ^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{3}))?Z$
+                    required:
+                      - id
+                      - name
+                      - versionId
+                      - createdAt
+                    additionalProperties: false
+                  status:
+                    type: string
+                  history:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        fromStatus:
+                          type: string
+                        toStatus:
+                          type: string
+                        action:
+                          type: string
+                        createdAt:
+                          type: string
+                          pattern: ^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{3}))?Z$
+                        createdById:
+                          type: string
+                      required:
+                        - id
+                        - fromStatus
+                        - toStatus
+                        - action
+                        - createdAt
+                        - createdById
+                      additionalProperties: false
+                required:
+                  - builtVersion
+                  - status
+                  - history
+                additionalProperties: false
+        "400":
+          description: Invalid transition
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                  message:
+                    type: string
+                  details:
+                    anyOf:
+                      - type: object
+                        properties: {}
+                        additionalProperties: {}
+                      - type: "null"
+                required:
+                  - code
+                  - message
+                additionalProperties: false
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                  message:
+                    type: string
+                  details:
+                    anyOf:
+                      - type: object
+                        properties: {}
+                        additionalProperties: {}
+                      - type: "null"
+                required:
+                  - code
+                  - message
+                additionalProperties: false
+        "404":
+          description: Built version not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                  message:
+                    type: string
+                  details:
+                    anyOf:
+                      - type: object
+                        properties: {}
+                        additionalProperties: {}
+                      - type: "null"
+                required:
+                  - code
+                  - message
+                additionalProperties: false
+  /release-versions/{releaseId}/built-versions/{builtId}/mark-active:
+    post:
+      operationId: markActiveBuiltVersion
+      summary: Mark active built version
+      tags:
+        - Release Versions
+      parameters:
+        - in: path
+          name: releaseId
+          schema:
+            type: string
+            format: uuid
+            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$
+          required: true
+        - in: path
+          name: builtId
+          schema:
+            type: string
+            format: uuid
+            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$
+          required: true
+      responses:
+        "200":
+          description: Transition result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  builtVersion:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      name:
+                        type: string
+                      versionId:
+                        type: string
+                      createdAt:
+                        type: string
+                        pattern: ^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{3}))?Z$
+                    required:
+                      - id
+                      - name
+                      - versionId
+                      - createdAt
+                    additionalProperties: false
+                  status:
+                    type: string
+                  history:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        fromStatus:
+                          type: string
+                        toStatus:
+                          type: string
+                        action:
+                          type: string
+                        createdAt:
+                          type: string
+                          pattern: ^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{3}))?Z$
+                        createdById:
+                          type: string
+                      required:
+                        - id
+                        - fromStatus
+                        - toStatus
+                        - action
+                        - createdAt
+                        - createdById
+                      additionalProperties: false
+                required:
+                  - builtVersion
+                  - status
+                  - history
+                additionalProperties: false
+        "400":
+          description: Invalid transition
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                  message:
+                    type: string
+                  details:
+                    anyOf:
+                      - type: object
+                        properties: {}
+                        additionalProperties: {}
+                      - type: "null"
+                required:
+                  - code
+                  - message
+                additionalProperties: false
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                  message:
+                    type: string
+                  details:
+                    anyOf:
+                      - type: object
+                        properties: {}
+                        additionalProperties: {}
+                      - type: "null"
+                required:
+                  - code
+                  - message
+                additionalProperties: false
+        "404":
+          description: Built version not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                  message:
+                    type: string
+                  details:
+                    anyOf:
+                      - type: object
+                        properties: {}
+                        additionalProperties: {}
+                      - type: "null"
+                required:
+                  - code
+                  - message
+                additionalProperties: false
+  /release-versions/{releaseId}/built-versions/{builtId}/revert-to-deployment:
+    post:
+      operationId: revertToDeploymentBuiltVersion
+      summary: Revert to deployment built version
+      tags:
+        - Release Versions
+      parameters:
+        - in: path
+          name: releaseId
+          schema:
+            type: string
+            format: uuid
+            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$
+          required: true
+        - in: path
+          name: builtId
+          schema:
+            type: string
+            format: uuid
+            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$
+          required: true
+      responses:
+        "200":
+          description: Transition result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  builtVersion:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      name:
+                        type: string
+                      versionId:
+                        type: string
+                      createdAt:
+                        type: string
+                        pattern: ^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{3}))?Z$
+                    required:
+                      - id
+                      - name
+                      - versionId
+                      - createdAt
+                    additionalProperties: false
+                  status:
+                    type: string
+                  history:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        fromStatus:
+                          type: string
+                        toStatus:
+                          type: string
+                        action:
+                          type: string
+                        createdAt:
+                          type: string
+                          pattern: ^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{3}))?Z$
+                        createdById:
+                          type: string
+                      required:
+                        - id
+                        - fromStatus
+                        - toStatus
+                        - action
+                        - createdAt
+                        - createdById
+                      additionalProperties: false
+                required:
+                  - builtVersion
+                  - status
+                  - history
+                additionalProperties: false
+        "400":
+          description: Invalid transition
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                  message:
+                    type: string
+                  details:
+                    anyOf:
+                      - type: object
+                        properties: {}
+                        additionalProperties: {}
+                      - type: "null"
+                required:
+                  - code
+                  - message
+                additionalProperties: false
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                  message:
+                    type: string
+                  details:
+                    anyOf:
+                      - type: object
+                        properties: {}
+                        additionalProperties: {}
+                      - type: "null"
+                required:
+                  - code
+                  - message
+                additionalProperties: false
+        "404":
+          description: Built version not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                  message:
+                    type: string
+                  details:
+                    anyOf:
+                      - type: object
+                        properties: {}
+                        additionalProperties: {}
+                      - type: "null"
+                required:
+                  - code
+                  - message
+                additionalProperties: false
+  /release-versions/{releaseId}/built-versions/{builtId}/deprecate:
+    post:
+      operationId: deprecateBuiltVersion
+      summary: Deprecate built version
+      tags:
+        - Release Versions
+      parameters:
+        - in: path
+          name: releaseId
+          schema:
+            type: string
+            format: uuid
+            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$
+          required: true
+        - in: path
+          name: builtId
+          schema:
+            type: string
+            format: uuid
+            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$
+          required: true
+      responses:
+        "200":
+          description: Transition result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  builtVersion:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      name:
+                        type: string
+                      versionId:
+                        type: string
+                      createdAt:
+                        type: string
+                        pattern: ^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{3}))?Z$
+                    required:
+                      - id
+                      - name
+                      - versionId
+                      - createdAt
+                    additionalProperties: false
+                  status:
+                    type: string
+                  history:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        fromStatus:
+                          type: string
+                        toStatus:
+                          type: string
+                        action:
+                          type: string
+                        createdAt:
+                          type: string
+                          pattern: ^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{3}))?Z$
+                        createdById:
+                          type: string
+                      required:
+                        - id
+                        - fromStatus
+                        - toStatus
+                        - action
+                        - createdAt
+                        - createdById
+                      additionalProperties: false
+                required:
+                  - builtVersion
+                  - status
+                  - history
+                additionalProperties: false
+        "400":
+          description: Invalid transition
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                  message:
+                    type: string
+                  details:
+                    anyOf:
+                      - type: object
+                        properties: {}
+                        additionalProperties: {}
+                      - type: "null"
+                required:
+                  - code
+                  - message
+                additionalProperties: false
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                  message:
+                    type: string
+                  details:
+                    anyOf:
+                      - type: object
+                        properties: {}
+                        additionalProperties: {}
+                      - type: "null"
+                required:
+                  - code
+                  - message
+                additionalProperties: false
+        "404":
+          description: Built version not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                  message:
+                    type: string
+                  details:
+                    anyOf:
+                      - type: object
+                        properties: {}
+                        additionalProperties: {}
+                      - type: "null"
+                required:
+                  - code
+                  - message
+                additionalProperties: false
+  /release-versions/{releaseId}/built-versions/{builtId}/reactivate:
+    post:
+      operationId: reactivateBuiltVersion
+      summary: Reactivate built version
+      tags:
+        - Release Versions
+      parameters:
+        - in: path
+          name: releaseId
+          schema:
+            type: string
+            format: uuid
+            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$
+          required: true
+        - in: path
+          name: builtId
+          schema:
+            type: string
+            format: uuid
+            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$
+          required: true
       responses:
         "200":
           description: Transition result

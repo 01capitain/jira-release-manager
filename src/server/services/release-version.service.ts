@@ -10,6 +10,7 @@ import type {
   ActionLogger,
   SubactionInput,
 } from "~/server/services/action-history.service";
+import { RestError } from "~/server/rest/errors";
 
 export class ReleaseVersionService {
   constructor(private readonly db: PrismaClient) {}
@@ -155,16 +156,6 @@ export class ReleaseVersionService {
     }));
   }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// At the very top of src/server/services/release-version.service.ts:
-//
-// (other imports…)
-import { RestError } from "~/server/rest/errors";
-// ─────────────────────────────────────────────────────────────────────────────
-
-export class ReleaseVersionService {
-  // …other methods…
-
   async getById(
     releaseId: ReleaseVersion["id"],
   ): Promise<ReleaseVersionWithBuildsDto> {
@@ -187,18 +178,6 @@ export class ReleaseVersionService {
       });
     }
 
-    return {
-      ...toReleaseVersionDto({
-        id: row.id,
-        name: row.name,
-        createdAt: row.createdAt,
-      }),
-      builtVersions: mapToBuiltVersionDtos(row.builtVersions),
-    };
-  }
-
-  // …other methods…
-}
     return {
       ...toReleaseVersionDto({
         id: row.id,

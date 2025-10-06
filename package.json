@@ -34,6 +34,7 @@
     "test:services": "jest tests/services",
     "test:db-schema": "node tests/scripts/test-lint-db-schema.mjs",
     "openapi:gen": "node scripts/run-openapi.cjs",
+    "openapi:generate": "pnpm openapi:gen",
     "openapi:check": "node scripts/run-openapi.cjs --check"
   },
   "engines": {

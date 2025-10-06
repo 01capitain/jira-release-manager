@@ -10,18 +10,12 @@ import type { RestContext } from "~/server/rest/context";
 import { ensureAuthenticated } from "~/server/rest/auth";
 import { RestError } from "~/server/rest/errors";
 import { jsonErrorResponse } from "~/server/rest/openapi";
-import { BuiltVersionTransitionInputSchema } from "~/server/api/schemas";
 import { IsoTimestampSchema } from "~/shared/types/iso8601";
-const BuiltVersionActionSchema =
-  BuiltVersionTransitionInputSchema.shape.action;
+import type { BuiltVersionAction } from "~/shared/types/built-version-status";
 
 export const BuiltVersionTransitionParamSchema = z.object({
   releaseId: z.string().uuid(),
   builtId: z.string().uuid(),
-});
-
-export const BuiltVersionTransitionBodySchema = z.object({
-  action: BuiltVersionActionSchema,
 });
 
 export const BuiltVersionTransitionHistoryEntrySchema = z.object({
@@ -39,10 +33,49 @@ export const BuiltVersionTransitionResponseSchema = z.object({
   history: z.array(BuiltVersionTransitionHistoryEntrySchema),
 });
 
-export const transitionBuiltVersion = async (
+const transitions = [
+  {
+    action: "startDeployment" as const,
+    segment: "start-deployment",
+    summary: "Start deployment",
+  },
+  {
+    action: "cancelDeployment" as const,
+    segment: "cancel-deployment",
+    summary: "Cancel deployment",
+  },
+  {
+    action: "markActive" as const,
+    segment: "mark-active",
+    summary: "Mark active",
+  },
+  {
+    action: "revertToDeployment" as const,
+    segment: "revert-to-deployment",
+    summary: "Revert to deployment",
+  },
+  {
+    action: "deprecate" as const,
+    segment: "deprecate",
+    summary: "Deprecate",
+  },
+  {
+    action: "reactivate" as const,
+    segment: "reactivate",
+    summary: "Reactivate",
+  },
+] satisfies readonly {
+  action: BuiltVersionAction;
+  segment: string;
+  summary: string;
+}[];
+
+type TransitionParams = z.infer<typeof BuiltVersionTransitionParamSchema>;
+
+const performTransition = async (
   context: RestContext,
-  params: z.infer<typeof BuiltVersionTransitionParamSchema>,
-  body: z.infer<typeof BuiltVersionTransitionBodySchema>,
+  params: TransitionParams,
+  action: BuiltVersionAction,
 ) => {
   const userId = ensureAuthenticated(context);
   const builtRecord = await context.db.builtVersion.findUnique({
@@ -74,19 +107,16 @@ export const transitionBuiltVersion = async (
   const statusService = new BuiltVersionStatusService(context.db);
   const historyService = new ActionHistoryService(context.db);
   const actionLog = await historyService.startAction({
-    actionType: `builtVersion.transition.${body.action}`,
-    message: `Transition built version ${params.builtId} via ${body.action}`,
+    actionType: `builtVersion.transition.${action}`,
+    message: `Transition built version ${params.builtId} via ${action}`,
     userId,
     sessionToken: context.sessionToken ?? null,
   });
 
   try {
-    const result = await statusService.transition(
-      params.builtId,
-      body.action,
-      userId,
-      { logger: actionLog },
-    );
+    const result = await statusService.transition(params.builtId, action, userId, {
+      logger: actionLog,
+    });
     const history = await statusService.getHistory(params.builtId);
     const mappedHistory = history.map((entry) => ({
       id: entry.id,
@@ -101,7 +131,7 @@ export const transitionBuiltVersion = async (
       message: `Built version ${params.builtId} transitioned to ${result.status}`,
       metadata: {
         builtVersionId: params.builtId,
-        action: body.action,
+        action,
       },
     });
 
@@ -114,7 +144,7 @@ export const transitionBuiltVersion = async (
     await actionLog.complete("failed", {
       message: `Failed to transition built version ${params.builtId}`,
       metadata: {
-        action: body.action,
+        action,
         error: error instanceof Error ? error.message : String(error),
       },
     });
@@ -122,36 +152,64 @@ export const transitionBuiltVersion = async (
   }
 };
 
-export const builtVersionPaths = {
-  "/release-versions/{releaseId}/built-versions/{builtId}/transitions": {
-    post: {
-      operationId: "transitionBuiltVersion",
-      summary: "Transition built version",
-      tags: ["Release Versions"],
-      requestParams: {
-        path: BuiltVersionTransitionParamSchema,
-      },
-      requestBody: {
+export const startDeploymentBuiltVersion = (
+  context: RestContext,
+  params: TransitionParams,
+) => performTransition(context, params, "startDeployment");
+
+export const cancelDeploymentBuiltVersion = (
+  context: RestContext,
+  params: TransitionParams,
+) => performTransition(context, params, "cancelDeployment");
+
+export const markActiveBuiltVersion = (
+  context: RestContext,
+  params: TransitionParams,
+) => performTransition(context, params, "markActive");
+
+export const revertToDeploymentBuiltVersion = (
+  context: RestContext,
+  params: TransitionParams,
+) => performTransition(context, params, "revertToDeployment");
+
+export const deprecateBuiltVersion = (
+  context: RestContext,
+  params: TransitionParams,
+) => performTransition(context, params, "deprecate");
+
+export const reactivateBuiltVersion = (
+  context: RestContext,
+  params: TransitionParams,
+) => performTransition(context, params, "reactivate");
+
+const buildPathItem = (action: BuiltVersionAction, summary: string) => ({
+  post: {
+    operationId: `${action}BuiltVersion`,
+    summary: `${summary} built version`,
+    tags: ["Release Versions"],
+    requestParams: {
+      path: BuiltVersionTransitionParamSchema,
+    },
+    responses: {
+      200: {
+        description: "Transition result",
         content: {
           "application/json": {
-            schema: BuiltVersionTransitionBodySchema,
+            schema: BuiltVersionTransitionResponseSchema,
           },
         },
-        required: true,
       },
-      responses: {
-        200: {
-          description: "Transition result",
-          content: {
-            "application/json": {
-              schema: BuiltVersionTransitionResponseSchema,
-            },
-          },
-        },
-        400: jsonErrorResponse("Invalid transition"),
-        401: jsonErrorResponse("Authentication required"),
-        404: jsonErrorResponse("Built version not found"),
-      },
+      400: jsonErrorResponse("Invalid transition"),
+      401: jsonErrorResponse("Authentication required"),
+      404: jsonErrorResponse("Built version not found"),
     },
   },
-} as const;
+});
+
+export const builtVersionPaths = transitions.reduce<
+  Record<string, ReturnType<typeof buildPathItem>>
+>((acc, { action, segment, summary }) => {
+  acc[`/release-versions/{releaseId}/built-versions/{builtId}/${segment}`] =
+    buildPathItem(action, summary);
+  return acc;
+}, {});
