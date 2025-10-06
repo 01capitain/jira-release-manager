@@ -52,7 +52,7 @@ const mapErrorCode = (code: string): { status: number; restCode: string } => {
     case "P2002":
       return { status: 409, restCode: "CONFLICT" };
     default:
-      return { status: 500, restCode: code ?? "INTERNAL_SERVER_ERROR" };
+      return { status: 500, restCode: "INTERNAL_SERVER_ERROR" };
   }
 };
 export const toRestResponse = (error: unknown): Response => {
