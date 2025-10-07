@@ -8,11 +8,13 @@ import { ensureAuthenticated } from "~/server/rest/auth";
 import { jsonErrorResponse } from "~/server/rest/openapi";
 import { ReleaseComponentCreateSchema } from "~/shared/schemas/release-component";
 
+export { ReleaseComponentCreateSchema } from "~/shared/schemas/release-component";
+
 export const ReleaseComponentListQuerySchema = z.object({
   page: z.coerce.number().int().min(1).optional(),
   pageSize: z.coerce.number().int().min(1).max(100).optional(),
   search: z.string().trim().min(1).optional(),
-  releaseId: z.string().uuid().optional(),
+  releaseId: z.uuidv7().optional(),
 });
 
 export type ReleaseComponentListQuery = z.infer<
@@ -27,7 +29,7 @@ export const ReleaseComponentListResponseSchema = z.object({
 });
 
 export const ReleaseComponentIdParamSchema = z.object({
-  componentId: z.string().uuid(),
+  componentId: z.uuidv7(),
 });
 
 export const listReleaseComponents = async (

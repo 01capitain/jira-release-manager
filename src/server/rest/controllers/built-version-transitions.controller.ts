@@ -14,17 +14,17 @@ import { IsoTimestampSchema } from "~/shared/types/iso8601";
 import type { BuiltVersionAction } from "~/shared/types/built-version-status";
 
 export const BuiltVersionTransitionParamSchema = z.object({
-  releaseId: z.string().uuid(),
-  builtId: z.string().uuid(),
+  releaseId: z.uuidv7(),
+  builtId: z.uuidv7(),
 });
 
 export const BuiltVersionTransitionHistoryEntrySchema = z.object({
-  id: z.string(),
+  id: z.uuidv7(),
   fromStatus: z.string(),
   toStatus: z.string(),
   action: z.string(),
   createdAt: IsoTimestampSchema,
-  createdById: z.string(),
+  createdById: z.uuidv7(),
 });
 
 export const BuiltVersionTransitionResponseSchema = z.object({

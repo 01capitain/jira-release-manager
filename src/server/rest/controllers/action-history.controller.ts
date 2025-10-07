@@ -8,14 +8,14 @@ import { jsonErrorResponse } from "~/server/rest/openapi";
 
 export const ActionHistoryQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(200).optional(),
-  cursor: z.string().uuid().optional(),
+  cursor: z.uuidv7().optional(),
 });
 
 export type ActionHistoryQuery = z.infer<typeof ActionHistoryQuerySchema>;
 
 export const ActionHistoryListResponseSchema = z.object({
   items: z.array(ActionHistoryEntryDtoSchema),
-  nextCursor: z.string().uuid().nullable(),
+  nextCursor: z.uuidv7().nullable(),
   hasMore: z.boolean(),
 });
 

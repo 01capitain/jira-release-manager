@@ -21,9 +21,9 @@ function setupMockDb({
   successorBuiltName: string;
   seedOnCurrent?: boolean;
 }) {
-  const REL_ID = "11111111-1111-1111-1111-111111111111";
-  const BUILT_X = "22222222-2222-2222-2222-222222222222";
-  const BUILT_Y = "33333333-3333-3333-3333-333333333333"; // successor
+  const REL_ID = "00000000-0000-7000-8000-000000000021";
+  const BUILT_X = "00000000-0000-7000-8000-000000000022";
+  const BUILT_Y = "00000000-0000-7000-8000-000000000023"; // successor
 
   const builtVersions = [
     {

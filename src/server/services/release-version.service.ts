@@ -9,6 +9,7 @@ import {
   mapToReleaseVersionDtos,
   toReleaseVersionDto,
 } from "~/server/zod/dto/release-version.dto";
+import { RestError } from "~/server/rest/errors";
 import type { ReleaseVersionDto } from "~/shared/types/release-version";
 import type { ReleaseVersionWithBuildsDto } from "~/shared/types/release-version-with-builds";
 import type {

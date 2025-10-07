@@ -6,7 +6,7 @@ import { jsonErrorResponse } from "~/server/rest/openapi";
 import { RestError } from "~/server/rest/errors";
 
 export const UsersMeResponseSchema = z.object({
-  id: z.string(),
+  id: z.uuidv7(),
   name: z.string().nullable(),
   email: z.string().nullable(),
   permissions: z.object({

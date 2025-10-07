@@ -30,8 +30,7 @@
     "test": "jest",
     "test:services": "jest tests/services",
     "test:db-schema": "node tests/scripts/test-lint-db-schema.mjs",
-    "openapi:gen": "node scripts/run-openapi.cjs",
-    "openapi:generate": "pnpm openapi:gen",
+    "openapi:generate": "node scripts/run-openapi.cjs",
     "openapi:check": "node scripts/run-openapi.cjs --check",
     "check-all": "pnpm run env:check && pnpm openapi:check && pnpm format:check && pnpm typecheck && pnpm lint && pnpm run db:lint"
   },
@@ -44,7 +43,7 @@
     "@radix-ui/react-scroll-area": "^1.2.10",
     "@radix-ui/react-separator": "^1.1.7",
     "@radix-ui/react-slot": "^1.2.3",
-    "@t3-oss/env-nextjs": "^0.12.0",
+    "@t3-oss/env-nextjs": "^0.13.8",
     "@tanstack/react-query": "^5.87.4",
     "@trpc/client": "^11.5.1",
     "@trpc/react-query": "^11.5.1",
@@ -60,7 +59,7 @@
     "server-only": "^0.0.1",
     "superjson": "^2.2.2",
     "tailwind-merge": "^3.3.1",
-    "zod": "^3.25.76"
+    "zod": "^4.1.5"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.1",
