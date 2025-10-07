@@ -74,12 +74,7 @@ export const parseSearchParams = <T extends z.ZodTypeAny>(
   schema: T,
 ): z.infer<T> => {
   const entries = Object.fromEntries(req.nextUrl.searchParams.entries());
-  const parsed = schema.safeParse(entries);
-  if (!parsed.success) {
-    throw parsed.error;
-  }
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-  return parsed.data;
+  return schema.parse(entries);
 };
 
 export const jsonResponse = <T>(body: T, init?: ResponseInit): Response => {
