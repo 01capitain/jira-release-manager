@@ -52,28 +52,59 @@ export default function BuiltVersionCard({
     onSuccess: async () => {
       await handleTransitionSuccess();
     },
+    onError: (error) => {
+      setLastMessage(`Failed to cancel deployment: ${error.message}`);
+      if (clearTimerRef.current) clearTimeout(clearTimerRef.current);
+      clearTimerRef.current = window.setTimeout(() => setLastMessage(""), 3000);
+    },
   });
   const markActive = api.builtVersion.markActive.useMutation({
     onSuccess: async () => {
       await handleTransitionSuccess();
+    },
+    onError: (error) => {
+      setLastMessage(`Failed to mark active: ${error.message}`);
+      if (clearTimerRef.current) clearTimeout(clearTimerRef.current);
+      clearTimerRef.current = window.setTimeout(() => setLastMessage(""), 3000);
     },
   });
   const revertToDeployment = api.builtVersion.revertToDeployment.useMutation({
     onSuccess: async () => {
       await handleTransitionSuccess();
     },
+    onError: (error) => {
+      setLastMessage(`Failed to revert to deployment: ${error.message}`);
+      if (clearTimerRef.current) clearTimeout(clearTimerRef.current);
+      clearTimerRef.current = window.setTimeout(() => setLastMessage(""), 3000);
+    },
   });
   const deprecate = api.builtVersion.deprecate.useMutation({
     onSuccess: async () => {
       await handleTransitionSuccess();
+    },
+    onError: (error) => {
+      setLastMessage(`Failed to deprecate: ${error.message}`);
+      if (clearTimerRef.current) clearTimeout(clearTimerRef.current);
+      clearTimerRef.current = window.setTimeout(() => setLastMessage(""), 3000);
     },
   });
   const reactivate = api.builtVersion.reactivate.useMutation({
     onSuccess: async () => {
       await handleTransitionSuccess();
     },
+    onError: (error) => {
+      setLastMessage(`Failed to reactivate: ${error.message}`);
+      if (clearTimerRef.current) clearTimeout(clearTimerRef.current);
+      clearTimerRef.current = window.setTimeout(() => setLastMessage(""), 3000);
+    },
   });
-  const startDeploymentRaw = api.builtVersion.startDeployment.useMutation();
+  const startDeploymentRaw = api.builtVersion.startDeployment.useMutation({
+    onError: (error) => {
+      setLastMessage(`Failed to start deployment: ${error.message}`);
+      if (clearTimerRef.current) clearTimeout(clearTimerRef.current);
+      clearTimerRef.current = window.setTimeout(() => setLastMessage(""), 3000);
+    },
+  });
   const createSuccessorBuilt =
     api.builtVersion.createSuccessorBuilt.useMutation();
 

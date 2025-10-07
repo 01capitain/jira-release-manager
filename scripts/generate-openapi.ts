@@ -23,6 +23,10 @@ const paths = {
   ...builtVersionPaths,
   ...actionHistoryPaths,
   ...userPaths,
+  // TypeScript rejects a direct cast because zod-openapi's types rely on zod/v4
+  // internals and mutable arrays, while our controllers export readonly arrays
+  // of tags and zod v3 schemas. The runtime shape still matches the contract,
+  // so we cast through unknown with this documented limitation.
 } as unknown as ZodOpenApiPathsObject;
 
 async function main() {
