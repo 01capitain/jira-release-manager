@@ -41,11 +41,8 @@ export default function BuiltVersionCard({
     api.builtVersion.getStatus.useQuery({ builtVersionId: id });
   const currentStatus = statusData?.status ?? "in_development";
   const utils = api.useUtils();
-  const handleTransitionSuccess = async (refreshReleases?: boolean) => {
+  const handleTransitionSuccess = async () => {
     await utils.builtVersion.getStatus.invalidate({ builtVersionId: id });
-    if (refreshReleases) {
-      await utils.builtVersion.listReleasesWithBuilds.invalidate();
-    }
   };
 
   const cancelDeployment = api.builtVersion.cancelDeployment.useMutation({
