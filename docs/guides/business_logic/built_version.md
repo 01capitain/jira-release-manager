@@ -66,4 +66,4 @@ From `deprecated`:
 
 - Prisma models: `prisma/schema.prisma` (`ReleaseVersion.lastUsedIncrement`, `BuiltVersion.tokenValues`, `ComponentVersion.tokenValues`, `BuiltVersionTransition` + enums)
 - Services: `src/server/services/release-version.service.ts`, `src/server/services/built-version-status.service.ts`, `src/server/services/deployment.service.ts`
-- API: `src/server/api/routers/built-version.ts` (`getStatus`, `transition`, `createSuccessorBuilt` selection)
+- API: `src/server/api/routers/built-version.ts` (`getStatus`, per-action transitions, `createSuccessorBuilt` selection)

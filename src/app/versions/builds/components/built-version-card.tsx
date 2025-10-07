@@ -41,27 +41,83 @@ export default function BuiltVersionCard({
     api.builtVersion.getStatus.useQuery({ builtVersionId: id });
   const currentStatus = statusData?.status ?? "in_development";
   const utils = api.useUtils();
-  const transition = api.builtVersion.transition.useMutation({
-    onSuccess: async (_data, variables) => {
-      await utils.builtVersion.getStatus.invalidate({ builtVersionId: id });
-      // Only refresh the builds list when moving from in_development → in_deployment,
-      // which is triggered via the 'startDeployment' action and creates a successor build.
-      if (variables?.action === "startDeployment") {
-        await utils.builtVersion.listReleasesWithBuilds.invalidate();
-      }
+  const handleTransitionSuccess = async () => {
+    await utils.builtVersion.getStatus.invalidate({ builtVersionId: id });
+  };
+
+  const cancelDeployment = api.builtVersion.cancelDeployment.useMutation({
+    onSuccess: async () => {
+      await handleTransitionSuccess();
+    },
+    onError: (error) => {
+      setLastMessage(`Failed to cancel deployment: ${error.message}`);
+      if (clearTimerRef.current) clearTimeout(clearTimerRef.current);
+      clearTimerRef.current = window.setTimeout(() => setLastMessage(""), 3000);
     },
   });
-
-  // Raw mutations used during the modal submit flow to avoid automatic invalidation flicker
-  const transitionStart = api.builtVersion.transition.useMutation();
+  const markActive = api.builtVersion.markActive.useMutation({
+    onSuccess: async () => {
+      await handleTransitionSuccess();
+    },
+    onError: (error) => {
+      setLastMessage(`Failed to mark active: ${error.message}`);
+      if (clearTimerRef.current) clearTimeout(clearTimerRef.current);
+      clearTimerRef.current = window.setTimeout(() => setLastMessage(""), 3000);
+    },
+  });
+  const revertToDeployment = api.builtVersion.revertToDeployment.useMutation({
+    onSuccess: async () => {
+      await handleTransitionSuccess();
+    },
+    onError: (error) => {
+      setLastMessage(`Failed to revert to deployment: ${error.message}`);
+      if (clearTimerRef.current) clearTimeout(clearTimerRef.current);
+      clearTimerRef.current = window.setTimeout(() => setLastMessage(""), 3000);
+    },
+  });
+  const deprecate = api.builtVersion.deprecate.useMutation({
+    onSuccess: async () => {
+      await handleTransitionSuccess();
+    },
+    onError: (error) => {
+      setLastMessage(`Failed to deprecate: ${error.message}`);
+      if (clearTimerRef.current) clearTimeout(clearTimerRef.current);
+      clearTimerRef.current = window.setTimeout(() => setLastMessage(""), 3000);
+    },
+  });
+  const reactivate = api.builtVersion.reactivate.useMutation({
+    onSuccess: async () => {
+      await handleTransitionSuccess();
+    },
+    onError: (error) => {
+      setLastMessage(`Failed to reactivate: ${error.message}`);
+      if (clearTimerRef.current) clearTimeout(clearTimerRef.current);
+      clearTimerRef.current = window.setTimeout(() => setLastMessage(""), 3000);
+    },
+  });
+  const startDeploymentRaw = api.builtVersion.startDeployment.useMutation({
+    onError: (error) => {
+      setLastMessage(`Failed to start deployment: ${error.message}`);
+      if (clearTimerRef.current) clearTimeout(clearTimerRef.current);
+      clearTimerRef.current = window.setTimeout(() => setLastMessage(""), 3000);
+    },
+  });
   const createSuccessorBuilt =
     api.builtVersion.createSuccessorBuilt.useMutation();
 
   const [selecting, setSelecting] = React.useState(false);
   const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
   const [submitting, setSubmitting] = React.useState(false);
+  const statusMutationPending =
+    cancelDeployment.isPending ||
+    markActive.isPending ||
+    revertToDeployment.isPending ||
+    deprecate.isPending ||
+    reactivate.isPending;
   const processing =
-    submitting || transitionStart.isPending || createSuccessorBuilt.isPending;
+    submitting ||
+    startDeploymentRaw.isPending ||
+    createSuccessorBuilt.isPending;
   const { data: componentsData } = api.releaseComponent.list.useQuery(
     undefined,
     {
@@ -95,6 +151,14 @@ export default function BuiltVersionCard({
     }
   }, [selecting, componentsData, selectedIds]);
 
+  const mutationByAction = {
+    cancelDeployment: cancelDeployment.mutateAsync,
+    markActive: markActive.mutateAsync,
+    revertToDeployment: revertToDeployment.mutateAsync,
+    deprecate: deprecate.mutateAsync,
+    reactivate: reactivate.mutateAsync,
+  } as const;
+
   const [lastMessage, setLastMessage] = React.useState<string>("");
   const clearTimerRef = React.useRef<number | null>(null);
   const act = async (action: BuiltVersionAction) => {
@@ -102,7 +166,8 @@ export default function BuiltVersionCard({
       setSelecting(true);
       return;
     }
-    await transition.mutateAsync({ builtVersionId: id, action });
+    const mutate = mutationByAction[action];
+    await mutate({ builtVersionId: id });
     setLastMessage(`${labelForAction(action)} done`);
     // Clear message after a short delay
     if (clearTimerRef.current) {
@@ -178,7 +243,7 @@ export default function BuiltVersionCard({
                   size="icon"
                   variant="ghost"
                   className="absolute top-1/2 left-2 h-8 w-8 -translate-y-1/2"
-                  disabled={!backward || transition.isPending}
+                  disabled={!backward || statusMutationPending}
                   aria-label={
                     backward
                       ? `${labelForAction(backward)} to ${labelForStatus(targetStatusForAction(backward))}`
@@ -210,7 +275,7 @@ export default function BuiltVersionCard({
                   size="icon"
                   variant="ghost"
                   className="absolute top-1/2 right-2 h-8 w-8 -translate-y-1/2"
-                  disabled={!forward || transition.isPending}
+                  disabled={!forward || statusMutationPending}
                   aria-label={
                     forward
                       ? `${labelForAction(forward)} to ${labelForStatus(targetStatusForAction(forward))}`
@@ -350,9 +415,8 @@ export default function BuiltVersionCard({
               }
               setSubmitting(true);
               if (currentStatus === "in_development") {
-                await transitionStart.mutateAsync({
+                await startDeploymentRaw.mutateAsync({
                   builtVersionId: id,
-                  action: "startDeployment",
                 });
               }
               const res = await createSuccessorBuilt.mutateAsync({

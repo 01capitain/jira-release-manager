@@ -1,5 +1,4 @@
 import { z } from "zod";
-import type { BuiltVersionAction } from "~/shared/types/built-version-status";
 
 export const ComponentVersionListByBuiltSchema = z.object({
   builtVersionId: z.uuidv7({ error: "Invalid built version id" }),
@@ -28,24 +27,6 @@ export const BuiltVersionStatusInputSchema = z.object({
 
 export type BuiltVersionStatusInput = z.infer<
   typeof BuiltVersionStatusInputSchema
->;
-
-const builtVersionActionValues = [
-  "startDeployment",
-  "cancelDeployment",
-  "markActive",
-  "revertToDeployment",
-  "deprecate",
-  "reactivate",
-] as const satisfies readonly BuiltVersionAction[];
-
-export const BuiltVersionTransitionInputSchema = z.object({
-  builtVersionId: builtVersionIdSchema,
-  action: z.enum(builtVersionActionValues),
-});
-
-export type BuiltVersionTransitionInput = z.infer<
-  typeof BuiltVersionTransitionInputSchema
 >;
 
 export const BuiltVersionCreateSuccessorInputSchema = z.object({

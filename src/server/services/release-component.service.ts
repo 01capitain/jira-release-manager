@@ -83,10 +83,13 @@ export class ReleaseComponentService {
       },
     });
     if (!row) {
-      throw Object.assign(new Error(`Release component ${componentId} not found`), {
-        code: "NOT_FOUND",
-        details: { componentId },
-      });
+      throw Object.assign(
+        new Error(`Release component ${componentId} not found`),
+        {
+          code: "NOT_FOUND",
+          details: { componentId },
+        },
+      );
     }
     return toReleaseComponentDto(row);
   }

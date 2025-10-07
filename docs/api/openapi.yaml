@@ -407,10 +407,10 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/RestError"
-  /release-versions/{releaseId}/built-versions/{builtId}/transitions:
+  /release-versions/{releaseId}/built-versions/{builtId}/start-deployment:
     post:
-      operationId: transitionBuiltVersion
-      summary: Transition built version
+      operationId: startDeploymentBuiltVersion
+      summary: Start deployment built version
       tags:
         - Release Versions
       parameters:
@@ -428,24 +428,506 @@ paths:
             format: uuid
             pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$
           required: true
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                action:
-                  type: string
-                  enum:
-                    - startDeployment
-                    - cancelDeployment
-                    - markActive
-                    - revertToDeployment
-                    - deprecate
-                    - reactivate
-              required:
-                - action
+      responses:
+        "200":
+          description: Transition result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  builtVersion:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      name:
+                        type: string
+                      versionId:
+                        type: string
+                      createdAt:
+                        $ref: "#/components/schemas/iso8601Timestamp"
+                    required:
+                      - id
+                      - name
+                      - versionId
+                      - createdAt
+                    additionalProperties: false
+                  status:
+                    type: string
+                  history:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          format: uuid
+                          pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$
+                        fromStatus:
+                          type: string
+                        toStatus:
+                          type: string
+                        action:
+                          type: string
+                        createdAt:
+                          $ref: "#/components/schemas/iso8601Timestamp"
+                        createdById:
+                          type: string
+                          format: uuid
+                          pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$
+                      required:
+                        - id
+                        - fromStatus
+                        - toStatus
+                        - action
+                        - createdAt
+                        - createdById
+                      additionalProperties: false
+                required:
+                  - builtVersion
+                  - status
+                  - history
+                additionalProperties: false
+        "400":
+          description: Invalid transition
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestError"
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestError"
+        "404":
+          description: Built version not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestError"
+  /release-versions/{releaseId}/built-versions/{builtId}/cancel-deployment:
+    post:
+      operationId: cancelDeploymentBuiltVersion
+      summary: Cancel deployment built version
+      tags:
+        - Release Versions
+      parameters:
+        - in: path
+          name: releaseId
+          schema:
+            type: string
+            format: uuid
+            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$
+          required: true
+        - in: path
+          name: builtId
+          schema:
+            type: string
+            format: uuid
+            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$
+          required: true
+      responses:
+        "200":
+          description: Transition result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  builtVersion:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      name:
+                        type: string
+                      versionId:
+                        type: string
+                      createdAt:
+                        $ref: "#/components/schemas/iso8601Timestamp"
+                    required:
+                      - id
+                      - name
+                      - versionId
+                      - createdAt
+                    additionalProperties: false
+                  status:
+                    type: string
+                  history:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          format: uuid
+                          pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$
+                        fromStatus:
+                          type: string
+                        toStatus:
+                          type: string
+                        action:
+                          type: string
+                        createdAt:
+                          $ref: "#/components/schemas/iso8601Timestamp"
+                        createdById:
+                          type: string
+                          format: uuid
+                          pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$
+                      required:
+                        - id
+                        - fromStatus
+                        - toStatus
+                        - action
+                        - createdAt
+                        - createdById
+                      additionalProperties: false
+                required:
+                  - builtVersion
+                  - status
+                  - history
+                additionalProperties: false
+        "400":
+          description: Invalid transition
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestError"
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestError"
+        "404":
+          description: Built version not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestError"
+  /release-versions/{releaseId}/built-versions/{builtId}/mark-active:
+    post:
+      operationId: markActiveBuiltVersion
+      summary: Mark active built version
+      tags:
+        - Release Versions
+      parameters:
+        - in: path
+          name: releaseId
+          schema:
+            type: string
+            format: uuid
+            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$
+          required: true
+        - in: path
+          name: builtId
+          schema:
+            type: string
+            format: uuid
+            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$
+          required: true
+      responses:
+        "200":
+          description: Transition result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  builtVersion:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      name:
+                        type: string
+                      versionId:
+                        type: string
+                      createdAt:
+                        $ref: "#/components/schemas/iso8601Timestamp"
+                    required:
+                      - id
+                      - name
+                      - versionId
+                      - createdAt
+                    additionalProperties: false
+                  status:
+                    type: string
+                  history:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          format: uuid
+                          pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$
+                        fromStatus:
+                          type: string
+                        toStatus:
+                          type: string
+                        action:
+                          type: string
+                        createdAt:
+                          $ref: "#/components/schemas/iso8601Timestamp"
+                        createdById:
+                          type: string
+                          format: uuid
+                          pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$
+                      required:
+                        - id
+                        - fromStatus
+                        - toStatus
+                        - action
+                        - createdAt
+                        - createdById
+                      additionalProperties: false
+                required:
+                  - builtVersion
+                  - status
+                  - history
+                additionalProperties: false
+        "400":
+          description: Invalid transition
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestError"
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestError"
+        "404":
+          description: Built version not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestError"
+  /release-versions/{releaseId}/built-versions/{builtId}/revert-to-deployment:
+    post:
+      operationId: revertToDeploymentBuiltVersion
+      summary: Revert to deployment built version
+      tags:
+        - Release Versions
+      parameters:
+        - in: path
+          name: releaseId
+          schema:
+            type: string
+            format: uuid
+            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$
+          required: true
+        - in: path
+          name: builtId
+          schema:
+            type: string
+            format: uuid
+            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$
+          required: true
+      responses:
+        "200":
+          description: Transition result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  builtVersion:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      name:
+                        type: string
+                      versionId:
+                        type: string
+                      createdAt:
+                        $ref: "#/components/schemas/iso8601Timestamp"
+                    required:
+                      - id
+                      - name
+                      - versionId
+                      - createdAt
+                    additionalProperties: false
+                  status:
+                    type: string
+                  history:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          format: uuid
+                          pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$
+                        fromStatus:
+                          type: string
+                        toStatus:
+                          type: string
+                        action:
+                          type: string
+                        createdAt:
+                          $ref: "#/components/schemas/iso8601Timestamp"
+                        createdById:
+                          type: string
+                          format: uuid
+                          pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$
+                      required:
+                        - id
+                        - fromStatus
+                        - toStatus
+                        - action
+                        - createdAt
+                        - createdById
+                      additionalProperties: false
+                required:
+                  - builtVersion
+                  - status
+                  - history
+                additionalProperties: false
+        "400":
+          description: Invalid transition
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestError"
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestError"
+        "404":
+          description: Built version not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestError"
+  /release-versions/{releaseId}/built-versions/{builtId}/deprecate:
+    post:
+      operationId: deprecateBuiltVersion
+      summary: Deprecate built version
+      tags:
+        - Release Versions
+      parameters:
+        - in: path
+          name: releaseId
+          schema:
+            type: string
+            format: uuid
+            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$
+          required: true
+        - in: path
+          name: builtId
+          schema:
+            type: string
+            format: uuid
+            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$
+          required: true
+      responses:
+        "200":
+          description: Transition result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  builtVersion:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      name:
+                        type: string
+                      versionId:
+                        type: string
+                      createdAt:
+                        $ref: "#/components/schemas/iso8601Timestamp"
+                    required:
+                      - id
+                      - name
+                      - versionId
+                      - createdAt
+                    additionalProperties: false
+                  status:
+                    type: string
+                  history:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          format: uuid
+                          pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$
+                        fromStatus:
+                          type: string
+                        toStatus:
+                          type: string
+                        action:
+                          type: string
+                        createdAt:
+                          $ref: "#/components/schemas/iso8601Timestamp"
+                        createdById:
+                          type: string
+                          format: uuid
+                          pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$
+                      required:
+                        - id
+                        - fromStatus
+                        - toStatus
+                        - action
+                        - createdAt
+                        - createdById
+                      additionalProperties: false
+                required:
+                  - builtVersion
+                  - status
+                  - history
+                additionalProperties: false
+        "400":
+          description: Invalid transition
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestError"
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestError"
+        "404":
+          description: Built version not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestError"
+  /release-versions/{releaseId}/built-versions/{builtId}/reactivate:
+    post:
+      operationId: reactivateBuiltVersion
+      summary: Reactivate built version
+      tags:
+        - Release Versions
+      parameters:
+        - in: path
+          name: releaseId
+          schema:
+            type: string
+            format: uuid
+            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$
+          required: true
+        - in: path
+          name: builtId
+          schema:
+            type: string
+            format: uuid
+            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$
+          required: true
       responses:
         "200":
           description: Transition result
