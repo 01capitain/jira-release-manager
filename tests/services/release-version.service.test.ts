@@ -3,11 +3,13 @@ import { ReleaseVersionService } from "~/server/services/release-version.service
 import { BuiltVersionService } from "~/server/services/built-version.service";
 import { BuiltVersionStatusService } from "~/server/services/built-version-status.service";
 
-const COMPONENT_A_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
-const COMPONENT_B_ID = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb";
-const BUILT_VERSION_LIST_ID = "cccccccc-cccc-cccc-cccc-cccccccccccc";
-const ACTIVE_BUILT_ID = "dddddddd-dddd-dddd-dddd-dddddddddddd";
-const NEWER_BUILT_ID = "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee";
+const COMPONENT_A_ID = "00000000-0000-7000-8000-00000000000a";
+const COMPONENT_B_ID = "00000000-0000-7000-8000-00000000000b";
+const REL_MAIN_ID = "00000000-0000-7000-8000-00000000000c";
+const REL_SECONDARY_ID = "00000000-0000-7000-8000-00000000000d";
+const BUILT_VERSION_LIST_ID = "00000000-0000-7000-8000-00000000000e";
+const ACTIVE_BUILT_ID = "00000000-0000-7000-8000-00000000000f";
+const NEWER_BUILT_ID = "00000000-0000-7000-8000-000000000010";
 
 // Minimal Prisma-like client mock with only fields used in tests
 function makeMockDb() {
@@ -17,11 +19,11 @@ function makeMockDb() {
     calls[key].push(payload);
   };
 
-  const REL_ID = "11111111-1111-1111-1111-111111111111";
+  const REL_ID = REL_MAIN_ID;
   let builtAutoInc = 0;
   const makeUuid = (n: number) => {
     const hex = n.toString(16).padStart(12, "0");
-    return `00000000-0000-0000-0000-${hex}`;
+    return `00000000-0000-7000-8000-${hex}`;
   };
 
   const db: any = {
@@ -118,7 +120,7 @@ describe("ReleaseVersion and BuiltVersion behavior", () => {
     const { db, calls } = makeMockDb();
     // Mock Release name when looked up by BuiltVersionService
     db.releaseVersion.findUniqueOrThrow = jest.fn(async () => ({
-      id: "11111111-1111-1111-1111-111111111111",
+      id: REL_MAIN_ID,
       name: "version 100",
     }));
 
@@ -138,7 +140,7 @@ describe("ReleaseVersion and BuiltVersion behavior", () => {
 
   test("creating a builtVersion creates component versions for each release component", async () => {
     const { db } = makeMockDb();
-    const REL2 = "22222222-2222-2222-2222-222222222222";
+    const REL2 = REL_SECONDARY_ID;
     db.releaseVersion.findUniqueOrThrow = jest.fn(async () => ({
       id: REL2,
       name: "version 200",
@@ -153,13 +155,13 @@ describe("ReleaseVersion and BuiltVersion behavior", () => {
     const { db, calls } = makeMockDb();
     const createdAt = new Date("2024-01-01T00:00:00Z");
     db.builtVersion.findUnique = jest.fn(async () => ({
-      id: "33333333-3333-3333-3333-333333333333",
+      id: BUILT_VERSION_LIST_ID,
       name: "version 300.0",
-      versionId: "11111111-1111-1111-1111-111111111111",
+      versionId: REL_MAIN_ID,
       createdAt,
     }));
     db.releaseVersion.findUnique = jest.fn(async () => ({
-      id: "11111111-1111-1111-1111-111111111111",
+      id: REL_MAIN_ID,
       name: "version 300",
       lastUsedIncrement: 0,
     }));
@@ -167,15 +169,15 @@ describe("ReleaseVersion and BuiltVersion behavior", () => {
 
     const ssvc = new BuiltVersionStatusService(db);
     const res = await ssvc.transition(
-      "33333333-3333-3333-3333-333333333333" as any,
+      BUILT_VERSION_LIST_ID as any,
       "startDeployment",
       "user-1" as any,
     );
     expect(res.status).toBe("in_deployment");
     expect(res.builtVersion).toMatchObject({
-      id: "33333333-3333-3333-3333-333333333333",
+      id: BUILT_VERSION_LIST_ID,
       name: "version 300.0",
-      versionId: "11111111-1111-1111-1111-111111111111",
+      versionId: REL_MAIN_ID,
       createdAt,
     });
 
@@ -190,13 +192,13 @@ describe("ReleaseVersion and BuiltVersion behavior", () => {
     const { db } = makeMockDb();
     const createdAt = new Date("2024-01-01T00:00:00Z");
     db.builtVersion.findUnique = jest.fn(async () => ({
-      id: "44444444-4444-4444-4444-444444444444",
+      id: ACTIVE_BUILT_ID,
       name: "version 400.0",
-      versionId: "11111111-1111-1111-1111-111111111111",
+      versionId: REL_MAIN_ID,
       createdAt,
     }));
     db.releaseVersion.findUnique = jest.fn(async () => ({
-      id: "11111111-1111-1111-1111-111111111111",
+      id: REL_MAIN_ID,
       name: "version 400",
       lastUsedIncrement: 1,
     }));
@@ -205,7 +207,7 @@ describe("ReleaseVersion and BuiltVersion behavior", () => {
 
     const ssvc = new BuiltVersionStatusService(db);
     await ssvc.transition(
-      "44444444-4444-4444-4444-444444444444" as any,
+      ACTIVE_BUILT_ID as any,
       "startDeployment",
       "user-1" as any,
     );
@@ -217,7 +219,7 @@ describe("ReleaseVersion and BuiltVersion behavior", () => {
 
   test("listByRelease maps rows to DTOs", async () => {
     const { db } = makeMockDb();
-    const versionId = "55555555-5555-5555-5555-555555555555";
+    const versionId = "00000000-0000-7000-8000-000000000024";
     const createdAt = new Date("2024-02-01T00:00:00Z");
     db.builtVersion.findMany = jest.fn(async () => [
       { id: BUILT_VERSION_LIST_ID, name: "v100.1", versionId, createdAt },

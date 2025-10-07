@@ -2,7 +2,7 @@ import { z } from "zod";
 import type { BuiltVersionAction } from "~/shared/types/built-version-status";
 
 export const ComponentVersionListByBuiltSchema = z.object({
-  builtVersionId: z.string().uuid("Invalid built version id"),
+  builtVersionId: z.uuidv7({ error: "Invalid built version id" }),
 });
 
 export type ComponentVersionListByBuiltInput = z.infer<
@@ -20,7 +20,7 @@ export type ReleaseVersionListInput = z.infer<
   typeof ReleaseVersionListInputSchema
 >;
 
-const builtVersionIdSchema = z.string().uuid("Invalid built version id");
+const builtVersionIdSchema = z.uuidv7({ error: "Invalid built version id" });
 
 export const BuiltVersionStatusInputSchema = z.object({
   builtVersionId: builtVersionIdSchema,
@@ -51,15 +51,15 @@ export type BuiltVersionTransitionInput = z.infer<
 export const BuiltVersionCreateSuccessorInputSchema = z.object({
   builtVersionId: builtVersionIdSchema,
   selectedReleaseComponentIds: z
-    .array(z.string().uuid("Invalid release component id"))
-    .min(1, "Select at least one component"),
+    .array(z.uuidv7({ error: "Invalid release component id" }))
+    .min(1, { error: "Select at least one component" }),
 });
 
 export type BuiltVersionCreateSuccessorInput = z.infer<
   typeof BuiltVersionCreateSuccessorInputSchema
 >;
 
-const JiraEmailSchema = z.string().trim().email();
+const JiraEmailSchema = z.string().trim().pipe(z.email());
 
 export const JiraCredentialsSchema = z.object({
   email: JiraEmailSchema,
@@ -86,7 +86,7 @@ export const JiraVerifyConnectionSchema = JiraCredentialsSchema;
 export const ActionHistoryListInputSchema = z
   .object({
     limit: z.number().int().min(1).max(200).optional(),
-    cursor: z.string().uuid("Invalid action history cursor").optional(),
+    cursor: z.uuidv7({ error: "Invalid action history cursor" }).optional(),
   })
   .optional();
 

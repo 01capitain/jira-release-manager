@@ -26,14 +26,14 @@ export const AllowedBaseColors = [
 ] as const;
 
 export const ReleaseComponentCreateSchema = z.object({
-  name: z.string().trim().min(1, "Please enter a name."),
+  name: z.string().trim().min(1, { error: "Please enter a name." }),
   color: z.enum(AllowedBaseColors, {
-    errorMap: () => ({ message: "Please choose a valid base color." }),
+    error: "Please choose a valid base color.",
   }),
   namingPattern: z
     .string()
     .trim()
-    .min(1, "Please enter a naming pattern.")
+    .min(1, { error: "Please enter a naming pattern." })
     .refine(
       (p) => {
         // Only allow known tokens: {release_version}, {built_version}, {increment}
@@ -44,7 +44,7 @@ export const ReleaseComponentCreateSchema = z.object({
         );
       },
       {
-        message:
+        error:
           "Pattern may only contain {release_version}, {built_version}, {increment} tokens.",
       },
     ),

@@ -10,6 +10,8 @@ import { RestError } from "~/server/rest/errors";
 import { jsonErrorResponse } from "~/server/rest/openapi";
 import { ReleaseVersionCreateSchema } from "~/shared/schemas/release-version";
 
+export { ReleaseVersionCreateSchema } from "~/shared/schemas/release-version";
+
 export const ReleaseVersionListQuerySchema = z.object({
   page: z.coerce.number().int().min(1).optional(),
   pageSize: z.coerce.number().int().min(1).max(100).optional(),
@@ -31,7 +33,7 @@ export const ReleaseVersionDetailSchema = ReleaseVersionDtoSchema.extend({
 });
 
 export const ReleaseVersionIdParamSchema = z.object({
-  releaseId: z.string().uuid(),
+  releaseId: z.uuidv7(),
 });
 
 export const ReleaseVersionCreateResponseSchema = ReleaseVersionDtoSchema;

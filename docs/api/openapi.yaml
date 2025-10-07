@@ -57,8 +57,7 @@ paths:
                         name:
                           type: string
                         createdAt:
-                          type: string
-                          pattern: ^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{3}))?Z$
+                          $ref: "#/components/schemas/iso8601Timestamp"
                       required:
                         - id
                         - name
@@ -75,22 +74,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  code:
-                    type: string
-                  message:
-                    type: string
-                  details:
-                    anyOf:
-                      - type: object
-                        properties: {}
-                        additionalProperties: {}
-                      - type: "null"
-                required:
-                  - code
-                  - message
-                additionalProperties: false
+                $ref: "#/components/schemas/RestError"
     post:
       operationId: createReleaseVersion
       summary: Create release version
@@ -121,8 +105,7 @@ paths:
                   name:
                     type: string
                   createdAt:
-                    type: string
-                    pattern: ^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{3}))?Z$
+                    $ref: "#/components/schemas/iso8601Timestamp"
                 required:
                   - id
                   - name
@@ -133,64 +116,19 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  code:
-                    type: string
-                  message:
-                    type: string
-                  details:
-                    anyOf:
-                      - type: object
-                        properties: {}
-                        additionalProperties: {}
-                      - type: "null"
-                required:
-                  - code
-                  - message
-                additionalProperties: false
+                $ref: "#/components/schemas/RestError"
         "401":
           description: Authentication required
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  code:
-                    type: string
-                  message:
-                    type: string
-                  details:
-                    anyOf:
-                      - type: object
-                        properties: {}
-                        additionalProperties: {}
-                      - type: "null"
-                required:
-                  - code
-                  - message
-                additionalProperties: false
+                $ref: "#/components/schemas/RestError"
         "409":
           description: Release already exists
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  code:
-                    type: string
-                  message:
-                    type: string
-                  details:
-                    anyOf:
-                      - type: object
-                        properties: {}
-                        additionalProperties: {}
-                      - type: "null"
-                required:
-                  - code
-                  - message
-                additionalProperties: false
+                $ref: "#/components/schemas/RestError"
   /release-versions/{releaseId}:
     get:
       operationId: getReleaseVersion
@@ -203,7 +141,7 @@ paths:
           schema:
             type: string
             format: uuid
-            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$
+            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$
           required: true
       responses:
         "200":
@@ -218,8 +156,7 @@ paths:
                   name:
                     type: string
                   createdAt:
-                    type: string
-                    pattern: ^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{3}))?Z$
+                    $ref: "#/components/schemas/iso8601Timestamp"
                   builtVersions:
                     type: array
                     items:
@@ -232,8 +169,7 @@ paths:
                         versionId:
                           type: string
                         createdAt:
-                          type: string
-                          pattern: ^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{3}))?Z$
+                          $ref: "#/components/schemas/iso8601Timestamp"
                       required:
                         - id
                         - name
@@ -251,22 +187,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  code:
-                    type: string
-                  message:
-                    type: string
-                  details:
-                    anyOf:
-                      - type: object
-                        properties: {}
-                        additionalProperties: {}
-                      - type: "null"
-                required:
-                  - code
-                  - message
-                additionalProperties: false
+                $ref: "#/components/schemas/RestError"
   /release-components:
     get:
       operationId: listReleaseComponents
@@ -296,7 +217,7 @@ paths:
           schema:
             type: string
             format: uuid
-            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$
+            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$
       responses:
         "200":
           description: Release components page
@@ -331,8 +252,7 @@ paths:
                         namingPattern:
                           type: string
                         createdAt:
-                          type: string
-                          pattern: ^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{3}))?Z$
+                          $ref: "#/components/schemas/iso8601Timestamp"
                       required:
                         - id
                         - name
@@ -351,22 +271,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  code:
-                    type: string
-                  message:
-                    type: string
-                  details:
-                    anyOf:
-                      - type: object
-                        properties: {}
-                        additionalProperties: {}
-                      - type: "null"
-                required:
-                  - code
-                  - message
-                additionalProperties: false
+                $ref: "#/components/schemas/RestError"
     post:
       operationId: createReleaseComponent
       summary: Create release component
@@ -431,8 +336,7 @@ paths:
                   namingPattern:
                     type: string
                   createdAt:
-                    type: string
-                    pattern: ^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{3}))?Z$
+                    $ref: "#/components/schemas/iso8601Timestamp"
                 required:
                   - id
                   - name
@@ -445,64 +349,19 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  code:
-                    type: string
-                  message:
-                    type: string
-                  details:
-                    anyOf:
-                      - type: object
-                        properties: {}
-                        additionalProperties: {}
-                      - type: "null"
-                required:
-                  - code
-                  - message
-                additionalProperties: false
+                $ref: "#/components/schemas/RestError"
         "401":
           description: Authentication required
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  code:
-                    type: string
-                  message:
-                    type: string
-                  details:
-                    anyOf:
-                      - type: object
-                        properties: {}
-                        additionalProperties: {}
-                      - type: "null"
-                required:
-                  - code
-                  - message
-                additionalProperties: false
+                $ref: "#/components/schemas/RestError"
         "409":
           description: Component already exists
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  code:
-                    type: string
-                  message:
-                    type: string
-                  details:
-                    anyOf:
-                      - type: object
-                        properties: {}
-                        additionalProperties: {}
-                      - type: "null"
-                required:
-                  - code
-                  - message
-                additionalProperties: false
+                $ref: "#/components/schemas/RestError"
   /release-components/{componentId}:
     get:
       operationId: getReleaseComponent
@@ -515,7 +374,7 @@ paths:
           schema:
             type: string
             format: uuid
-            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$
+            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$
           required: true
       responses:
         "200":
@@ -534,8 +393,7 @@ paths:
                   namingPattern:
                     type: string
                   createdAt:
-                    type: string
-                    pattern: ^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{3}))?Z$
+                    $ref: "#/components/schemas/iso8601Timestamp"
                 required:
                   - id
                   - name
@@ -548,22 +406,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  code:
-                    type: string
-                  message:
-                    type: string
-                  details:
-                    anyOf:
-                      - type: object
-                        properties: {}
-                        additionalProperties: {}
-                      - type: "null"
-                required:
-                  - code
-                  - message
-                additionalProperties: false
+                $ref: "#/components/schemas/RestError"
   /release-versions/{releaseId}/built-versions/{builtId}/transitions:
     post:
       operationId: transitionBuiltVersion
@@ -576,14 +419,14 @@ paths:
           schema:
             type: string
             format: uuid
-            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$
+            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$
           required: true
         - in: path
           name: builtId
           schema:
             type: string
             format: uuid
-            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$
+            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$
           required: true
       requestBody:
         required: true
@@ -621,8 +464,7 @@ paths:
                       versionId:
                         type: string
                       createdAt:
-                        type: string
-                        pattern: ^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{3}))?Z$
+                        $ref: "#/components/schemas/iso8601Timestamp"
                     required:
                       - id
                       - name
@@ -638,6 +480,8 @@ paths:
                       properties:
                         id:
                           type: string
+                          format: uuid
+                          pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$
                         fromStatus:
                           type: string
                         toStatus:
@@ -645,10 +489,11 @@ paths:
                         action:
                           type: string
                         createdAt:
-                          type: string
-                          pattern: ^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{3}))?Z$
+                          $ref: "#/components/schemas/iso8601Timestamp"
                         createdById:
                           type: string
+                          format: uuid
+                          pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$
                       required:
                         - id
                         - fromStatus
@@ -667,64 +512,19 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  code:
-                    type: string
-                  message:
-                    type: string
-                  details:
-                    anyOf:
-                      - type: object
-                        properties: {}
-                        additionalProperties: {}
-                      - type: "null"
-                required:
-                  - code
-                  - message
-                additionalProperties: false
+                $ref: "#/components/schemas/RestError"
         "401":
           description: Authentication required
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  code:
-                    type: string
-                  message:
-                    type: string
-                  details:
-                    anyOf:
-                      - type: object
-                        properties: {}
-                        additionalProperties: {}
-                      - type: "null"
-                required:
-                  - code
-                  - message
-                additionalProperties: false
+                $ref: "#/components/schemas/RestError"
         "404":
           description: Built version not found
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  code:
-                    type: string
-                  message:
-                    type: string
-                  details:
-                    anyOf:
-                      - type: object
-                        properties: {}
-                        additionalProperties: {}
-                      - type: "null"
-                required:
-                  - code
-                  - message
-                additionalProperties: false
+                $ref: "#/components/schemas/RestError"
   /action-history:
     get:
       operationId: listActionHistory
@@ -743,7 +543,7 @@ paths:
           schema:
             type: string
             format: uuid
-            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$
+            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$
       responses:
         "200":
           description: Action history page
@@ -770,8 +570,7 @@ paths:
                             - failed
                             - cancelled
                         createdAt:
-                          type: string
-                          pattern: ^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{3}))?Z$
+                          $ref: "#/components/schemas/iso8601Timestamp"
                         createdBy:
                           type: object
                           properties:
@@ -812,8 +611,7 @@ paths:
                                   - failed
                                   - cancelled
                               createdAt:
-                                type: string
-                                pattern: ^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{3}))?Z$
+                                $ref: "#/components/schemas/iso8601Timestamp"
                               metadata:
                                 anyOf:
                                   - type: object
@@ -840,7 +638,7 @@ paths:
                     anyOf:
                       - type: string
                         format: uuid
-                        pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$
+                        pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$
                       - type: "null"
                   hasMore:
                     type: boolean
@@ -854,22 +652,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  code:
-                    type: string
-                  message:
-                    type: string
-                  details:
-                    anyOf:
-                      - type: object
-                        properties: {}
-                        additionalProperties: {}
-                      - type: "null"
-                required:
-                  - code
-                  - message
-                additionalProperties: false
+                $ref: "#/components/schemas/RestError"
   /users/me:
     get:
       operationId: getCurrentUser
@@ -886,6 +669,8 @@ paths:
                 properties:
                   id:
                     type: string
+                    format: uuid
+                    pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$
                   name:
                     anyOf:
                       - type: string
@@ -937,19 +722,38 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  code:
-                    type: string
-                  message:
-                    type: string
-                  details:
-                    anyOf:
-                      - type: object
-                        properties: {}
-                        additionalProperties: {}
-                      - type: "null"
-                required:
-                  - code
-                  - message
-                additionalProperties: false
+                $ref: "#/components/schemas/RestError"
+components:
+  schemas:
+    iso8601Timestamp:
+      title: ISO 8601 Timestamp
+      description: UTC timestamp string ending with 'Z'.
+      examples:
+        - 2025-01-01T12:34:56.000Z
+      type: string
+      pattern: ^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{3}))?Z$
+    RestError:
+      title: REST Error
+      description: Standard envelope for REST error responses.
+      examples:
+        - code: VALIDATION_ERROR
+          message: Invalid request payload
+          details:
+            field: name
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          anyOf:
+            - $ref: "#/components/schemas/RestErrorDetails"
+            - type: "null"
+      required:
+        - code
+        - message
+      additionalProperties: false
+    RestErrorDetails:
+      title: REST Error Details
+      description: Arbitrary structured data providing additional error context.

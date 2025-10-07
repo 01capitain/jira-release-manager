@@ -4,6 +4,7 @@ import {
   mapToReleaseVersionDtos,
   toReleaseVersionDto,
 } from "~/server/zod/dto/release-version.dto";
+import { RestError } from "~/server/rest/errors";
 import type { ReleaseVersionDto } from "~/shared/types/release-version";
 import type { ReleaseVersionWithBuildsDto } from "~/shared/types/release-version-with-builds";
 import type {
@@ -155,16 +156,6 @@ export class ReleaseVersionService {
     }));
   }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// At the very top of src/server/services/release-version.service.ts:
-//
-// (other imports…)
-import { RestError } from "~/server/rest/errors";
-// ─────────────────────────────────────────────────────────────────────────────
-
-export class ReleaseVersionService {
-  // …other methods…
-
   async getById(
     releaseId: ReleaseVersion["id"],
   ): Promise<ReleaseVersionWithBuildsDto> {
@@ -187,18 +178,6 @@ export class ReleaseVersionService {
       });
     }
 
-    return {
-      ...toReleaseVersionDto({
-        id: row.id,
-        name: row.name,
-        createdAt: row.createdAt,
-      }),
-      builtVersions: mapToBuiltVersionDtos(row.builtVersions),
-    };
-  }
-
-  // …other methods…
-}
     return {
       ...toReleaseVersionDto({
         id: row.id,

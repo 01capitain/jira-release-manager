@@ -24,8 +24,8 @@ importers:
         specifier: ^1.2.3
         version: 1.2.3(@types/react@19.1.12)(react@19.1.1)
       '@t3-oss/env-nextjs':
-        specifier: ^0.12.0
-        version: 0.12.0(typescript@5.9.2)(zod@3.25.76)
+        specifier: ^0.13.8
+        version: 0.13.8(typescript@5.9.2)(zod@4.1.12)
       '@tanstack/react-query':
         specifier: ^5.87.4
         version: 5.87.4(react@19.1.1)
@@ -72,8 +72,8 @@ importers:
         specifier: ^3.3.1
         version: 3.3.1
       zod:
-        specifier: ^3.25.76
-        version: 3.25.76
+        specifier: ^4.1.5
+        version: 4.1.12
     devDependencies:
       '@eslint/eslintrc':
         specifier: ^3.3.1
@@ -125,7 +125,7 @@ importers:
         version: 6.16.0(typescript@5.9.2)
       prisma-zod-generator:
         specifier: ^1.20.2
-        version: 1.20.2(prisma@6.16.0(typescript@5.9.2))(typescript@5.9.2)(zod@3.25.76)
+        version: 1.20.2(prisma@6.16.0(typescript@5.9.2))(typescript@5.9.2)(zod@4.1.12)
       tailwindcss:
         specifier: ^4.1.13
         version: 4.1.13
@@ -151,8 +151,8 @@ importers:
         specifier: ^2.8.1
         version: 2.8.1
       zod-openapi:
-        specifier: github:samchungy/zod-openapi
-        version: https://codeload.github.com/samchungy/zod-openapi/tar.gz/732ccb6e6b3a5b9386caf4f6417a5360e06cd6f7(zod@3.25.76)
+        specifier: ^5.4.2
+        version: 5.4.2(zod@4.1.12)
 
 packages:
 
@@ -1111,13 +1111,16 @@ packages:
   '@swc/helpers@0.5.15':
     resolution: {integrity: sha512-JQ5TuMi45Owi4/BIMAJBoSQoOJu12oOk/gADqlcUL9JEdHB8vyjUSsxqeNXnmXHjYKMi2WcYtezGEEhqUI/E2g==}
 
-  '@t3-oss/env-core@0.12.0':
-    resolution: {integrity: sha512-lOPj8d9nJJTt81mMuN9GMk8x5veOt7q9m11OSnCBJhwp1QrL/qR+M8Y467ULBSm9SunosryWNbmQQbgoiMgcdw==}
+  '@t3-oss/env-core@0.13.8':
+    resolution: {integrity: sha512-L1inmpzLQyYu4+Q1DyrXsGJYCXbtXjC4cICw1uAKv0ppYPQv656lhZPU91Qd1VS6SO/bou1/q5ufVzBGbNsUpw==}
     peerDependencies:
+      arktype: ^2.1.0
       typescript: '>=5.0.0'
       valibot: ^1.0.0-beta.7 || ^1.0.0
-      zod: ^3.24.0
+      zod: ^3.24.0 || ^4.0.0-beta.0
     peerDependenciesMeta:
+      arktype:
+        optional: true
       typescript:
         optional: true
       valibot:
@@ -1125,13 +1128,16 @@ packages:
       zod:
         optional: true
 
-  '@t3-oss/env-nextjs@0.12.0':
-    resolution: {integrity: sha512-rFnvYk1049RnNVUPvY8iQ55AuQh1Rr+qZzQBh3t++RttCGK4COpXGNxS4+45afuQq02lu+QAOy/5955aU8hRKw==}
+  '@t3-oss/env-nextjs@0.13.8':
+    resolution: {integrity: sha512-QmTLnsdQJ8BiQad2W2nvV6oUpH4oMZMqnFEjhVpzU0h3sI9hn8zb8crjWJ1Amq453mGZs6A4v4ihIeBFDOrLeQ==}
     peerDependencies:
+      arktype: ^2.1.0
       typescript: '>=5.0.0'
       valibot: ^1.0.0-beta.7 || ^1.0.0
-      zod: ^3.24.0
+      zod: ^3.24.0 || ^4.0.0-beta.0
     peerDependenciesMeta:
+      arktype:
+        optional: true
       typescript:
         optional: true
       valibot:
@@ -3746,15 +3752,14 @@ packages:
     resolution: {integrity: sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==}
     engines: {node: '>=10'}
 
-  zod-openapi@https://codeload.github.com/samchungy/zod-openapi/tar.gz/732ccb6e6b3a5b9386caf4f6417a5360e06cd6f7:
-    resolution: {tarball: https://codeload.github.com/samchungy/zod-openapi/tar.gz/732ccb6e6b3a5b9386caf4f6417a5360e06cd6f7}
-    version: 5.4.2
+  zod-openapi@5.4.2:
+    resolution: {integrity: sha512-F2s/1E/8Ahd43JhrkqE/dc13qjaGF/VTdUVq7rtRKvyDWyuYYryyzdxHnzH1ff1zLpd4KkvNvIpeBnVQShlxYg==}
     engines: {node: '>=20'}
     peerDependencies:
       zod: ^3.25.74 || ^4.0.0
 
-  zod@3.25.76:
-    resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
+  zod@4.1.12:
+    resolution: {integrity: sha512-JInaHOamG8pt5+Ey8kGmdcAcg3OL9reK8ltczgHTAwNhMys/6ThXHityHxVV2p3fkw/c+MAvBHFVYHFZDmjMCQ==}
 
 snapshots:
 
@@ -4712,17 +4717,17 @@ snapshots:
     dependencies:
       tslib: 2.8.1
 
-  '@t3-oss/env-core@0.12.0(typescript@5.9.2)(zod@3.25.76)':
+  '@t3-oss/env-core@0.13.8(typescript@5.9.2)(zod@4.1.12)':
     optionalDependencies:
       typescript: 5.9.2
-      zod: 3.25.76
+      zod: 4.1.12
 
-  '@t3-oss/env-nextjs@0.12.0(typescript@5.9.2)(zod@3.25.76)':
+  '@t3-oss/env-nextjs@0.13.8(typescript@5.9.2)(zod@4.1.12)':
     dependencies:
-      '@t3-oss/env-core': 0.12.0(typescript@5.9.2)(zod@3.25.76)
+      '@t3-oss/env-core': 0.13.8(typescript@5.9.2)(zod@4.1.12)
     optionalDependencies:
       typescript: 5.9.2
-      zod: 3.25.76
+      zod: 4.1.12
 
   '@tailwindcss/node@4.1.13':
     dependencies:
@@ -7041,7 +7046,7 @@ snapshots:
       ansi-styles: 5.2.0
       react-is: 18.3.1
 
-  prisma-zod-generator@1.20.2(prisma@6.16.0(typescript@5.9.2))(typescript@5.9.2)(zod@3.25.76):
+  prisma-zod-generator@1.20.2(prisma@6.16.0(typescript@5.9.2))(typescript@5.9.2)(zod@4.1.12):
     dependencies:
       '@prisma/client': 6.16.0(prisma@6.16.0(typescript@5.9.2))(typescript@5.9.2)
       '@prisma/generator-helper': 6.16.1
@@ -7051,7 +7056,7 @@ snapshots:
       node-fetch: 3.3.2
       prettier: 3.6.2
       tslib: 2.8.1
-      zod: 3.25.76
+      zod: 4.1.12
     transitivePeerDependencies:
       - magicast
       - prisma
@@ -7720,8 +7725,8 @@ snapshots:
 
   yocto-queue@0.1.0: {}
 
-  zod-openapi@https://codeload.github.com/samchungy/zod-openapi/tar.gz/732ccb6e6b3a5b9386caf4f6417a5360e06cd6f7(zod@3.25.76):
+  zod-openapi@5.4.2(zod@4.1.12):
     dependencies:
-      zod: 3.25.76
+      zod: 4.1.12
 
-  zod@3.25.76: {}
+  zod@4.1.12: {}
