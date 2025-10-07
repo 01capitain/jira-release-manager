@@ -11,7 +11,10 @@ export function toRestJsonSchema<T extends z.ZodTypeAny>(
   schema: T,
   options?: ToRestJsonSchemaOptions,
 ) {
-  const { skipRegistry, ...meta } = options ?? {};
+  const { skipRegistry, ...rawMeta } = options ?? {};
+  const meta = Object.fromEntries(
+    Object.entries(rawMeta).filter(([, value]) => value !== undefined),
+  );
   const hasMeta = Object.keys(meta).length > 0;
   const targetSchema = hasMeta ? schema.meta(meta) : schema;
   if (hasMeta && !skipRegistry) {
