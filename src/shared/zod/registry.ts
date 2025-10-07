@@ -15,10 +15,7 @@ export function registerSchema<T extends z.ZodTypeAny>(
   options?: { skipRegistry?: boolean },
 ): T {
   if (!options?.skipRegistry) {
-    const internals = (schema as { _zod?: { def?: unknown } })._zod;
-    if (internals && "def" in internals) {
-      appRegistry.add(schema, meta);
-    }
+    schema.register(appRegistry, meta);
   }
   return schema;
 }

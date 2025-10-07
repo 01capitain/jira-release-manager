@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { registerSchema } from "~/shared/zod/registry";
 
 const ISO_UTC_REGEX =
   /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{3}))?Z$/;
@@ -16,12 +15,5 @@ export const IsoTimestampSchema = z
     description: "UTC timestamp string ending with 'Z'.",
     examples: ["2025-01-01T12:34:56.000Z"],
   });
-
-registerSchema(IsoTimestampSchema, {
-  id: "iso8601Timestamp",
-  title: "ISO 8601 Timestamp",
-  description: "UTC timestamp string ending with 'Z'.",
-  examples: ["2025-01-01T12:34:56.000Z"],
-});
 
 export type ISO8601 = z.infer<typeof IsoTimestampSchema>;
