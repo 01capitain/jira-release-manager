@@ -1,9 +1,9 @@
 import {
   createReleaseVersion,
   listReleaseVersions,
-  ReleaseVersionCreateSchema,
   ReleaseVersionListQuerySchema,
 } from "~/server/rest/controllers/release-versions.controller";
+import { ReleaseVersionCreateSchema } from "~/shared/schemas/release-version";
 import {
   createRestHandler,
   jsonResponse,

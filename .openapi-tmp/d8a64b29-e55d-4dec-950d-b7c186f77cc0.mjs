@@ -11894,7 +11894,7 @@ var require_draft_mode = __commonJS({
             return createOrGetCachedDraftMode(draftModeProvider, workStore);
           }
         // Otherwise, we fall through to providing an empty draft mode.
-        // eslint-disable-next-line no-fallthrough
+         
         case "prerender":
         case "prerender-client":
         case "prerender-ppr":

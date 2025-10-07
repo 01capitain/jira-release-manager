@@ -1,9 +1,9 @@
 import {
   createReleaseComponent,
   listReleaseComponents,
-  ReleaseComponentCreateSchema,
   ReleaseComponentListQuerySchema,
 } from "~/server/rest/controllers/release-components.controller";
+import { ReleaseComponentCreateSchema } from "~/shared/schemas/release-component";
 import {
   createRestHandler,
   jsonResponse,

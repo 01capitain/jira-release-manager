@@ -8,4 +8,3 @@ export const ensureAuthenticated = (context: RestContext): string => {
   }
   return userId;
 };
-

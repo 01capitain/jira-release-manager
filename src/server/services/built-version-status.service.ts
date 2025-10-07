@@ -86,7 +86,10 @@ export class BuiltVersionStatusService {
     action: ApiAction,
     userId: string,
     options?: { logger?: ActionLogger },
-  ): Promise<{ status: BuiltVersionStatus; builtVersion: BuiltVersionSummary }> {
+  ): Promise<{
+    status: BuiltVersionStatus;
+    builtVersion: BuiltVersionSummary;
+  }> {
     const prismaAction = ActionToPrisma[action];
     const rule = Rules[prismaAction];
     if (!rule) {

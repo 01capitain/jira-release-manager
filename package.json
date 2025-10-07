@@ -5,14 +5,11 @@
   "type": "module",
   "scripts": {
     "env:check": "node scripts/check-node.mjs",
-    "check": "pnpm run env:check && pnpm openapi:check && eslint . && pnpm run db:lint && tsc --noEmit",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,mdx}\" --cache",
     "format:write": "prettier --write \"**/*.{ts,tsx,js,jsx,mdx}\" --cache",
     "preinstall": "node scripts/check-node.mjs",
     "postinstall": "prisma generate",
     "build": "next build",
-    "check-all": "pnpm openapi:check && eslint . && pnpm run db:lint && tsc --noEmit",
-    "validate-all": "pnpm format:check && pnpm check-all",
     "clean": "rm -rf .next tsconfig.tsbuildinfo",
     "db:init": "prisma db execute --file ./init.sql --schema prisma/schema.prisma",
     "db:reset": "node scripts/dev-db-reset.mjs",
@@ -34,7 +31,9 @@
     "test:services": "jest tests/services",
     "test:db-schema": "node tests/scripts/test-lint-db-schema.mjs",
     "openapi:gen": "node scripts/run-openapi.cjs",
-    "openapi:check": "node scripts/run-openapi.cjs --check"
+    "openapi:generate": "pnpm openapi:gen",
+    "openapi:check": "node scripts/run-openapi.cjs --check",
+    "check-all": "pnpm run env:check && pnpm openapi:check && pnpm format:check && pnpm typecheck && pnpm lint && pnpm run db:lint"
   },
   "engines": {
     "node": ">=22.0.0 <23"
