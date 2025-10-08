@@ -4,19 +4,18 @@ import type {
   ReleaseVersion,
   User,
 } from "@prisma/client";
+import { RestError } from "~/server/rest/errors";
+import type {
+  ActionLogger,
+  SubactionInput,
+} from "~/server/services/action-history.service";
 import { mapToBuiltVersionDtos } from "~/server/zod/dto/built-version.dto";
 import {
   mapToReleaseVersionDtos,
   toReleaseVersionDto,
 } from "~/server/zod/dto/release-version.dto";
-import { RestError } from "~/server/rest/errors";
 import type { ReleaseVersionDto } from "~/shared/types/release-version";
 import type { ReleaseVersionWithBuildsDto } from "~/shared/types/release-version-with-builds";
-import type {
-  ActionLogger,
-  SubactionInput,
-} from "~/server/services/action-history.service";
-import { RestError } from "~/server/rest/errors";
 
 export class ReleaseVersionService {
   constructor(private readonly db: PrismaClient) {}
