@@ -11,6 +11,7 @@ const config = {
   moduleNameMapper: {
     // Map TS path alias '~/' to src/ for Jest
     "^~/(.*)$": "<rootDir>/src/$1",
+    "^next-auth$": "<rootDir>/tests/stubs/next-auth.ts",
   },
 };
 

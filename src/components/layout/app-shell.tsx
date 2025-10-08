@@ -8,7 +8,7 @@ import {
   Menu,
   Settings,
 } from "lucide-react";
-import { signIn, signOut, useSession } from "next-auth/react";
+import { useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import * as React from "react";
@@ -20,6 +20,12 @@ import { cn } from "~/lib/utils";
 import { RefreshCw } from "lucide-react";
 import { api } from "~/trpc/react";
 import { ActionHistoryLog } from "~/components/action-history/action-history-log";
+import { useAuthSession } from "~/hooks/use-auth-session";
+import {
+  SESSION_QUERY_KEY,
+  requestDiscordLogin,
+  requestLogout,
+} from "~/lib/auth-client";
 
 type NavGroup = {
   id: string;
@@ -53,11 +59,14 @@ const NAV_GROUPS: NavGroup[] = [
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { data: session } = useSession();
+  const queryClient = useQueryClient();
+  const { data: session, status: authStatus } = useAuthSession();
   const [open, setOpen] = React.useState(false);
   const [expanded, setExpanded] = React.useState<Record<string, boolean>>({
     versions: true,
   });
+  const [isLoggingIn, setIsLoggingIn] = React.useState(false);
+  const [isLoggingOut, setIsLoggingOut] = React.useState(false);
 
   React.useEffect(() => {
     if (process.env.NODE_ENV !== "production") {
@@ -194,21 +203,43 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     <Button
                       variant="ghost"
                       className="justify-start gap-2"
+                      disabled={isLoggingOut}
                       onClick={async () => {
-                        await signOut({ redirect: false });
-                        router.refresh();
+                        try {
+                          setIsLoggingOut(true);
+                          await requestLogout();
+                          await queryClient.invalidateQueries({
+                            queryKey: SESSION_QUERY_KEY,
+                          });
+                          router.refresh();
+                        } catch (error) {
+                          console.error("[Logout]", error);
+                        } finally {
+                          setIsLoggingOut(false);
+                        }
                       }}
                     >
                       <LogOut className="h-4 w-4" />
-                      Logout
+                      {isLoggingOut ? "Logging out…" : "Logout"}
                     </Button>
                   </div>
                 ) : (
                   <Button
                     className="w-full justify-start"
-                    onClick={() => void signIn("discord")}
+                    disabled={isLoggingIn || authStatus === "loading"}
+                    onClick={async () => {
+                      try {
+                        setIsLoggingIn(true);
+                        const url = await requestDiscordLogin();
+                        window.location.assign(url);
+                      } catch (error) {
+                        console.error("[Login]", error);
+                      } finally {
+                        setIsLoggingIn(false);
+                      }
+                    }}
                   >
-                    log in per discord sso
+                    {isLoggingIn ? "Redirecting…" : "Log in with Discord"}
                   </Button>
                 )}
               </div>

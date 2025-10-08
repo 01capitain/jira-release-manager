@@ -12,7 +12,8 @@ import { GlowingEffect } from "~/components/ui/glowing-effect";
 import type { ReleaseVersionDto as ReleaseVersion } from "~/shared/types/release-version";
 import { api } from "~/trpc/react";
 import { ReleaseVersionCreateSchema } from "~/shared/schemas/release-version";
-import { useSession, signIn } from "next-auth/react";
+import { useAuthSession } from "~/hooks/use-auth-session";
+import { requestDiscordLogin } from "~/lib/auth-client";
 
 type Phase = "idle" | "loading" | "success";
 
@@ -21,7 +22,8 @@ export default function AddReleaseCard({
 }: {
   onCreated?: (item: ReleaseVersion) => void;
 }) {
-  const { status } = useSession();
+  const { status } = useAuthSession();
+  const [isLoggingIn, setIsLoggingIn] = React.useState(false);
   const createMutation = api.releaseVersion.create.useMutation();
   const [open, setOpen] = React.useState(false);
   const [name, setName] = React.useState("");
@@ -101,8 +103,21 @@ export default function AddReleaseCard({
                 You need to be signed in to create a new release version.
               </div>
               <div className="flex gap-3">
-                <Button onClick={() => void signIn("discord")}>
-                  Log in with Discord
+                <Button
+                  disabled={isLoggingIn}
+                  onClick={async () => {
+                    try {
+                      setIsLoggingIn(true);
+                      const url = await requestDiscordLogin();
+                      window.location.assign(url);
+                    } catch (error) {
+                      console.error("[Login]", error);
+                    } finally {
+                      setIsLoggingIn(false);
+                    }
+                  }}
+                >
+                  {isLoggingIn ? "Redirecting…" : "Log in with Discord"}
                 </Button>
               </div>
             </div>

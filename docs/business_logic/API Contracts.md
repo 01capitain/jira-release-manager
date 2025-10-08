@@ -22,3 +22,45 @@ type TokenValues = {
 - Subactions provide a single-depth trace for service-level steps (e.g., auto-created successor, seeded component versions) and inherit the parent action id.
 - The tRPC endpoint `actionHistory.current` returns the chronological session feed as `ActionHistoryEntryDto` (and `subactions`) for rendering the terminal-style history UI. Responses are paginated in slices of 5 parent actions to keep the scrollback responsive, regardless of how many subactions each action carries.
 - Entries persist even when domain operations throw; failure metadata (error message, action context) is stored on the parent action to aid troubleshooting.
+
+## Authentication Endpoints
+
+- `POST /api/auth/login`
+  - Body: `{ provider: "discord"; returnTo?: string }` (`returnTo` must be an app-relative path).
+  - Success: `200 { redirectUrl: string }`; the client should redirect the browser to `redirectUrl` to start the Discord OAuth flow.
+  - Failure: `400 { error: "PROVIDER_UNAVAILABLE" | "INVALID_REQUEST"; message: string }` for schema issues, `500 { error: string; message: string }` for unexpected Auth.js failures.
+- `POST /api/auth/logout`
+  - Success: `204` after the Auth.js session cookies are cleared server-side.
+  - Failure: `500 { error: string; message: string }` when the underlying Auth.js logic raises an error.
+- `GET /api/auth/session`
+  - Success (authenticated): `200 { user: { id: string; name?: string; email?: string; image?: string }; expires: string }`.
+  - Success (guest): `200 { user: null }`.
+- All three handlers rely on the existing NextAuth (Auth.js) configuration and therefore do not introduce new providers—the only supported provider remains Discord SSO. Additional providers must extend these handlers explicitly in future work.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant U as User
+    participant B as Browser UI
+    participant REST as POST /api/auth/login
+    participant Auth as Auth.js (NextAuth)
+    participant Discord as Discord OAuth
+    participant Sess as GET /api/auth/session
+
+    U->>B: Click “Log in with Discord”
+    B->>REST: POST { provider: "discord", returnTo? }
+    REST->>Auth: signIn("discord", { redirect: false, redirectTo })
+    Auth-->>REST: redirectUrl | AuthError
+    REST-->>B: 200 { redirectUrl } | 4xx/5xx error
+    alt redirectUrl returned
+        B->>Discord: Navigate to redirectUrl
+        Discord-->>Auth: OAuth callback (code/state)
+        Auth-->>B: Redirect back with session cookie
+        B->>Sess: GET /api/auth/session
+        Sess-->>B: 200 { user, expires }
+        B-->>U: Render authenticated state
+    else Auth.js / Discord error
+        Auth-->>B: Redirect with error query or REST returns error JSON
+        B-->>U: Show login failure message
+    end
+```

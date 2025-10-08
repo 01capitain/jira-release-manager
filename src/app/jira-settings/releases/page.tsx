@@ -1,12 +1,13 @@
 "use client";
 
 import * as React from "react";
-import { useSession, signIn } from "next-auth/react";
 import Link from "next/link";
 import { Button } from "~/components/ui/button";
 import { Label } from "~/components/ui/label";
 import { api, type RouterOutputs } from "~/trpc/react";
 import { Pagination } from "~/components/ui/pagination";
+import { useAuthSession } from "~/hooks/use-auth-session";
+import { requestDiscordLogin } from "~/lib/auth-client";
 
 type StoredVersionsResponse = RouterOutputs["jira"]["listStoredVersions"];
 type StoredVersion = StoredVersionsResponse["items"][number];
@@ -33,7 +34,8 @@ export default function JiraReleasesPage() {
   const [includeUnreleased, setIncludeUnreleased] = React.useState(true);
   const [includeArchived, setIncludeArchived] = React.useState(false);
 
-  const { data: session } = useSession();
+  const { data: session } = useAuthSession();
+  const [isLoggingIn, setIsLoggingIn] = React.useState(false);
   // No auto-sync query; syncing happens only on explicit action
 
   const releases = api.releaseVersion.list.useQuery({ page: 1, pageSize: 100 });
@@ -76,7 +78,22 @@ export default function JiraReleasesPage() {
         <div className="mt-4 rounded-md border border-neutral-300 bg-neutral-50 p-3 text-sm dark:border-neutral-700 dark:bg-neutral-900">
           Please sign in to fetch Jira releases.
           <div className="mt-2">
-            <Button onClick={() => void signIn("discord")}>Sign in</Button>
+            <Button
+              disabled={isLoggingIn}
+              onClick={async () => {
+                try {
+                  setIsLoggingIn(true);
+                  const url = await requestDiscordLogin();
+                  window.location.assign(url);
+                } catch (error) {
+                  console.error("[Login]", error);
+                } finally {
+                  setIsLoggingIn(false);
+                }
+              }}
+            >
+              {isLoggingIn ? "Redirecting…" : "Sign in with Discord"}
+            </Button>
           </div>
         </div>
       ) : null}
