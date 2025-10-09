@@ -8,6 +8,7 @@ import { api, type RouterOutputs } from "~/trpc/react";
 import { Pagination } from "~/components/ui/pagination";
 import { useAuthSession } from "~/hooks/use-auth-session";
 import { requestDiscordLogin } from "~/lib/auth-client";
+import { toast } from "~/lib/toast";
 
 type StoredVersionsResponse = RouterOutputs["jira"]["listStoredVersions"];
 type StoredVersion = StoredVersionsResponse["items"][number];
@@ -86,6 +87,16 @@ export default function JiraReleasesPage() {
                   const url = await requestDiscordLogin();
                   window.location.assign(url);
                 } catch (error) {
+                  const detail =
+                    error instanceof Error
+                      ? error.message
+                      : typeof error === "string"
+                        ? error
+                        : null;
+                  const message = detail
+                    ? `Failed to sign in with Discord: ${detail}`
+                    : "Failed to sign in with Discord. Please try again.";
+                  toast.error(message);
                   console.error("[Login]", error);
                 } finally {
                   setIsLoggingIn(false);
