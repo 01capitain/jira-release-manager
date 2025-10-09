@@ -17,10 +17,6 @@ const loginSchema = z.object({
 
 type LoginRequest = z.infer<typeof loginSchema>;
 
-type LoginResponseBody = {
-  redirectUrl: string;
-};
-
 type ErrorBody = {
   error: string;
   message: string;
@@ -35,7 +31,7 @@ export const POST = async (request: Request): Promise<Response> => {
   let payload: LoginRequest;
 
   try {
-    const json = await request.json();
+    const json = (await request.json()) as unknown;
     const parsed = loginSchema.safeParse(json);
     if (!parsed.success) {
       return Response.json(BAD_REQUEST, { status: 400 });
@@ -49,17 +45,22 @@ export const POST = async (request: Request): Promise<Response> => {
   }
 
   try {
-    const redirectUrl = await signIn("discord", {
+    const redirectResult = (await signIn("discord", {
       redirect: false,
       redirectTo: payload.returnTo,
-    });
+    })) as unknown;
 
-    if (typeof redirectUrl !== "string" || redirectUrl.length === 0) {
+    if (
+      typeof redirectResult !== "string" ||
+      redirectResult.length === 0
+    ) {
       return Response.json(
         { error: "INTERNAL_ERROR", message: "Failed to resolve redirect" },
         { status: 500 },
       );
     }
+
+    const redirectUrl = redirectResult;
 
     return Response.json({ redirectUrl });
   } catch (error) {

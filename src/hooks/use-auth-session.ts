@@ -35,7 +35,7 @@ export function useAuthSession(): AuthSessionResult {
   const { status: queryStatus, data: rawData, ...rest } = query;
 
   const session =
-    rawData && rawData.user
+    rawData?.user
       ? {
           user: rawData.user,
           expires: rawData.expires,
