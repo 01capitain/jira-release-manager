@@ -11,6 +11,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useTheme } from "next-themes";
 import * as React from "react";
 import { ModeToggle } from "~/components/theme/mode-toggle";
 import { Breadcrumbs, type Crumb } from "~/components/ui/breadcrumbs";
@@ -22,6 +23,8 @@ import { api } from "~/trpc/react";
 import { ActionHistoryLog } from "~/components/action-history/action-history-log";
 import { useAuthSession } from "~/hooks/use-auth-session";
 import { useDiscordLogin } from "~/hooks/use-discord-login";
+import { Toaster } from "sonner";
+import "sonner/css";
 import {
   SESSION_QUERY_KEY,
   requestLogout,
@@ -61,12 +64,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { data: session, status: authStatus } = useAuthSession();
+  const { resolvedTheme } = useTheme();
   const [open, setOpen] = React.useState(false);
   const [expanded, setExpanded] = React.useState<Record<string, boolean>>({
     versions: true,
   });
   const { login, isLoggingIn, error: loginError } = useDiscordLogin();
   const [isLoggingOut, setIsLoggingOut] = React.useState(false);
+
+  const toasterTheme = resolvedTheme === "dark" ? "dark" : "light";
 
   React.useEffect(() => {
     if (process.env.NODE_ENV !== "production") {
@@ -271,6 +277,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <ActionHistoryLog />
         </aside>
       </div>
+
+      <Toaster
+        theme={toasterTheme}
+        position="top-right"
+        richColors
+        closeButton
+        gap={12}
+      />
     </div>
   );
 }

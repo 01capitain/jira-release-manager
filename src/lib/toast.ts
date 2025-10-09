@@ -1,14 +1,15 @@
 "use client";
 
-const showAlert = (message: string) => {
-  if (typeof window === "undefined") return;
-  if (typeof window.alert === "function") {
-    window.alert(message);
-  }
-};
+import { toast as sonnerToast } from "sonner";
 
 export const toast = {
   error(message: string) {
-    showAlert(message);
+    sonnerToast.error(message);
+  },
+  success(message: string) {
+    sonnerToast.success(message);
+  },
+  info(message: string) {
+    sonnerToast.info(message);
   },
 };
