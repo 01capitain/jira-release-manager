@@ -1,4 +1,5 @@
 import "~/styles/globals.css";
+import "sonner/dist/styles.css";
 
 import { type Metadata } from "next";
 import { Geist } from "next/font/google";
@@ -23,7 +24,7 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className={geist.variable} suppressHydrationWarning>
-      <body className="min-h-screen bg-neutral-100 text-neutral-900 antialiased dark:bg-neutral-950 dark:text-neutral-100">
+      <body className="min-h-screen bg-neutral-900 text-neutral-900 antialiased dark:bg-neutral-950 dark:text-neutral-100">
         <TRPCReactProvider>
           <ThemeProvider>
             <AppShell>{children}</AppShell>

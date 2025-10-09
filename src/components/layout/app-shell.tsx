@@ -24,7 +24,6 @@ import { ActionHistoryLog } from "~/components/action-history/action-history-log
 import { useAuthSession } from "~/hooks/use-auth-session";
 import { useDiscordLogin } from "~/hooks/use-discord-login";
 import { Toaster } from "sonner";
-import "sonner/css";
 import {
   SESSION_QUERY_KEY,
   requestLogout,
@@ -87,7 +86,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <div className="min-h-screen bg-neutral-900 dark:bg-neutral-100">
+    <div className="min-h-screen bg-neutral-900 dark:bg-neutral-950">
       <div className="mx-auto w-full max-w-7xl space-y-6 p-4 md:p-6 lg:p-8">
         {/* Floating container that includes sidebar + content */}
         <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-lg dark:border-neutral-800 dark:bg-neutral-900">

@@ -19,12 +19,8 @@ export function useDiscordLogin() {
         err instanceof Error ? err.message : "Login failed. Please try again.";
       setError(message);
       console.error("[Login]", err);
-    } catch (err) {
+    } finally {
       setIsLoggingIn(false);
-      const message =
-        err instanceof Error ? err.message : "Login failed. Please try again.";
-      setError(message);
-      console.error("[Login]", err);
     }
   }, []);
 
