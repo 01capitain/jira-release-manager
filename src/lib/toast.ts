@@ -2,9 +2,10 @@
 
 const showAlert = (message: string) => {
   if (typeof window === "undefined") return;
-  if (typeof window.alert === "function") {
-    window.alert(message);
-  }
+const showAlert = (message: string) => {
+  if (typeof window === "undefined") return;
+  window.alert(message);
+};
 };
 
 export const toast = {
