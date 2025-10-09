@@ -23,7 +23,7 @@ type ErrorBody = {
 };
 
 const BAD_REQUEST: ErrorBody = {
-  error: "PROVIDER_UNAVAILABLE",
+  error: "INVALID_PROVIDER",
   message: "Only Discord login is supported",
 };
 
