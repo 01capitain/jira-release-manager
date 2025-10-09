@@ -13,7 +13,7 @@ import type { ReleaseVersionDto as ReleaseVersion } from "~/shared/types/release
 import { api } from "~/trpc/react";
 import { ReleaseVersionCreateSchema } from "~/shared/schemas/release-version";
 import { useAuthSession } from "~/hooks/use-auth-session";
-import { requestDiscordLogin } from "~/lib/auth-client";
+import { useDiscordLogin } from "~/hooks/use-discord-login";
 
 type Phase = "idle" | "loading" | "success";
 
@@ -23,7 +23,7 @@ export default function AddReleaseCard({
   onCreated?: (item: ReleaseVersion) => void;
 }) {
   const { status } = useAuthSession();
-  const [isLoggingIn, setIsLoggingIn] = React.useState(false);
+  const { login, isLoggingIn, error: loginError } = useDiscordLogin();
   const createMutation = api.releaseVersion.create.useMutation();
   const [open, setOpen] = React.useState(false);
   const [name, setName] = React.useState("");
@@ -105,21 +105,16 @@ export default function AddReleaseCard({
               <div className="flex gap-3">
                 <Button
                   disabled={isLoggingIn}
-                  onClick={async () => {
-                    try {
-                      setIsLoggingIn(true);
-                      const url = await requestDiscordLogin();
-                      window.location.assign(url);
-                    } catch (error) {
-                      console.error("[Login]", error);
-                    } finally {
-                      setIsLoggingIn(false);
-                    }
-                  }}
+                  onClick={() => login()}
                 >
                   {isLoggingIn ? "Redirecting…" : "Log in with Discord"}
                 </Button>
               </div>
+              {loginError ? (
+                <p className="mt-2 text-xs text-red-600 dark:text-red-400">
+                  Failed to sign in with Discord: {loginError}
+                </p>
+              ) : null}
             </div>
           </CardContent>
         ) : !open ? (

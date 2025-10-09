@@ -21,9 +21,9 @@ import { RefreshCw } from "lucide-react";
 import { api } from "~/trpc/react";
 import { ActionHistoryLog } from "~/components/action-history/action-history-log";
 import { useAuthSession } from "~/hooks/use-auth-session";
+import { useDiscordLogin } from "~/hooks/use-discord-login";
 import {
   SESSION_QUERY_KEY,
-  requestDiscordLogin,
   requestLogout,
 } from "~/lib/auth-client";
 
@@ -65,7 +65,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [expanded, setExpanded] = React.useState<Record<string, boolean>>({
     versions: true,
   });
-  const [isLoggingIn, setIsLoggingIn] = React.useState(false);
+  const { login, isLoggingIn, error: loginError } = useDiscordLogin();
   const [isLoggingOut, setIsLoggingOut] = React.useState(false);
 
   React.useEffect(() => {
@@ -224,23 +224,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     </Button>
                   </div>
                 ) : (
-                  <Button
-                    className="w-full justify-start"
-                    disabled={isLoggingIn || authStatus === "loading"}
-                    onClick={async () => {
-                      try {
-                        setIsLoggingIn(true);
-                        const url = await requestDiscordLogin();
-                        window.location.assign(url);
-                      } catch (error) {
-                        console.error("[Login]", error);
-                      } finally {
-                        setIsLoggingIn(false);
-                      }
-                    }}
-                  >
-                    {isLoggingIn ? "Redirecting…" : "Log in with Discord"}
-                  </Button>
+                  <div className="w-full">
+                    <Button
+                      className="w-full justify-start"
+                      disabled={isLoggingIn || authStatus === "loading"}
+                      onClick={() => login()}
+                    >
+                      {isLoggingIn ? "Redirecting…" : "Log in with Discord"}
+                    </Button>
+                    {loginError ? (
+                      <p className="mt-2 text-xs text-red-600 dark:text-red-400">
+                        Failed to sign in with Discord: {loginError}
+                      </p>
+                    ) : null}
+                  </div>
                 )}
               </div>
             </aside>

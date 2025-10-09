@@ -7,11 +7,11 @@ import { Label } from "~/components/ui/label";
 import { api } from "~/trpc/react";
 import { CheckCircle, AlertCircle } from "lucide-react";
 import { useAuthSession } from "~/hooks/use-auth-session";
-import { requestDiscordLogin } from "~/lib/auth-client";
+import { useDiscordLogin } from "~/hooks/use-discord-login";
 
 export default function JiraConnectPage() {
   const { data: session } = useAuthSession();
-  const [isLoggingIn, setIsLoggingIn] = React.useState(false);
+  const { login, isLoggingIn, error: loginError } = useDiscordLogin();
   const cfg = api.jira.getConfig.useQuery();
   const cred = api.jira.getCredentials.useQuery(undefined, {
     enabled: !!session,
@@ -110,21 +110,16 @@ export default function JiraConnectPage() {
           <div className="mt-2">
             <Button
               disabled={isLoggingIn}
-              onClick={async () => {
-                try {
-                  setIsLoggingIn(true);
-                  const url = await requestDiscordLogin();
-                  window.location.assign(url);
-                } catch (error) {
-                  console.error("[Login]", error);
-                } finally {
-                  setIsLoggingIn(false);
-                }
-              }}
+              onClick={() => login()}
             >
               {isLoggingIn ? "Redirecting…" : "Sign in with Discord"}
             </Button>
           </div>
+          {loginError ? (
+            <p className="mt-2 text-xs text-red-600 dark:text-red-400">
+              Failed to sign in with Discord: {loginError}
+            </p>
+          ) : null}
         </div>
       ) : null}
 

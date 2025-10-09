@@ -9,7 +9,7 @@ import { Label } from "~/components/ui/label";
 import { cn } from "~/lib/utils";
 import { GlowingEffect } from "~/components/ui/glowing-effect";
 import { useAuthSession } from "~/hooks/use-auth-session";
-import { requestDiscordLogin } from "~/lib/auth-client";
+import { useDiscordLogin } from "~/hooks/use-discord-login";
 import { api } from "~/trpc/react";
 import { BuiltVersionCreateSchema } from "~/shared/schemas/built-version";
 import type { BuiltVersionDto } from "~/shared/types/built-version";
@@ -24,7 +24,7 @@ export default function AddBuiltVersionCard({
   onCreated?: (item: BuiltVersionDto) => void;
 }) {
   const { status } = useAuthSession();
-  const [isLoggingIn, setIsLoggingIn] = React.useState(false);
+  const { login, isLoggingIn, error: loginError } = useDiscordLogin();
   const createMutation = api.builtVersion.create.useMutation();
   const [open, setOpen] = React.useState(false);
   const [name, setName] = React.useState("");
@@ -100,21 +100,16 @@ export default function AddBuiltVersionCard({
               <div className="flex gap-3">
                 <Button
                   disabled={isLoggingIn}
-                  onClick={async () => {
-                    try {
-                      setIsLoggingIn(true);
-                      const url = await requestDiscordLogin();
-                      window.location.assign(url);
-                    } catch (error) {
-                      console.error("[Login]", error);
-                    } finally {
-                      setIsLoggingIn(false);
-                    }
-                  }}
+                  onClick={() => login()}
                 >
                   {isLoggingIn ? "Redirecting…" : "Log in with Discord"}
                 </Button>
               </div>
+              {loginError ? (
+                <p className="mt-2 text-xs text-red-600 dark:text-red-400">
+                  Failed to sign in with Discord: {loginError}
+                </p>
+              ) : null}
             </div>
           </CardContent>
         ) : !open ? (

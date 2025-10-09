@@ -7,7 +7,7 @@ import { Label } from "~/components/ui/label";
 import { api, type RouterOutputs } from "~/trpc/react";
 import { Pagination } from "~/components/ui/pagination";
 import { useAuthSession } from "~/hooks/use-auth-session";
-import { requestDiscordLogin } from "~/lib/auth-client";
+import { useDiscordLogin } from "~/hooks/use-discord-login";
 import { toast } from "~/lib/toast";
 
 type StoredVersionsResponse = RouterOutputs["jira"]["listStoredVersions"];
@@ -36,7 +36,7 @@ export default function JiraReleasesPage() {
   const [includeArchived, setIncludeArchived] = React.useState(false);
 
   const { data: session } = useAuthSession();
-  const [isLoggingIn, setIsLoggingIn] = React.useState(false);
+  const { login, isLoggingIn, error: loginError } = useDiscordLogin();
   // No auto-sync query; syncing happens only on explicit action
 
   const releases = api.releaseVersion.list.useQuery({ page: 1, pageSize: 100 });
@@ -69,6 +69,12 @@ export default function JiraReleasesPage() {
 
   // No connection check here beyond presence; handled by canSyncQuick query
 
+  React.useEffect(() => {
+    if (!loginError) return;
+    const message = `Failed to sign in with Discord: ${loginError}`;
+    toast.error(message);
+  }, [loginError]);
+
   return (
     <div className="mx-auto w-full max-w-6xl">
       <h1 className="text-2xl font-semibold tracking-tight">Jira releases</h1>
@@ -79,32 +85,12 @@ export default function JiraReleasesPage() {
         <div className="mt-4 rounded-md border border-neutral-300 bg-neutral-50 p-3 text-sm dark:border-neutral-700 dark:bg-neutral-900">
           Please sign in to fetch Jira releases.
           <div className="mt-2">
-            <Button
-              disabled={isLoggingIn}
-              onClick={async () => {
-                try {
-                  setIsLoggingIn(true);
-                  const url = await requestDiscordLogin();
-                  window.location.assign(url);
-                } catch (error) {
-                  const detail =
-                    error instanceof Error
-                      ? error.message
-                      : typeof error === "string"
-                        ? error
-                        : null;
-                  const message = detail
-                    ? `Failed to sign in with Discord: ${detail}`
-                    : "Failed to sign in with Discord. Please try again.";
-                  toast.error(message);
-                  console.error("[Login]", error);
-                } finally {
-                  setIsLoggingIn(false);
-                }
-              }}
-            >
-              {isLoggingIn ? "Redirecting…" : "Sign in with Discord"}
-            </Button>
+              <Button
+                disabled={isLoggingIn}
+                onClick={() => login()}
+              >
+                {isLoggingIn ? "Redirecting…" : "Sign in with Discord"}
+              </Button>
           </div>
         </div>
       ) : null}
