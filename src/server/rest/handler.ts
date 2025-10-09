@@ -63,7 +63,7 @@ export const parseJsonBody = async <T extends z.ZodTypeAny>(
   let data: unknown;
   try {
     data = await req.json();
-  } catch (error: unknown) {
+  } catch {
     throw new RestError(400, "INVALID_JSON", "Request body must be valid JSON");
   }
   return schema.parse(data);

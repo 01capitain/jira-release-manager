@@ -32,7 +32,8 @@
     "test:db-schema": "node tests/scripts/test-lint-db-schema.mjs",
     "openapi:generate": "node scripts/run-openapi.cjs",
     "openapi:check": "node scripts/run-openapi.cjs --check",
-    "check-all": "pnpm run env:check && pnpm openapi:check && pnpm format:check && pnpm typecheck && pnpm lint && pnpm run db:lint"
+    "check-all": "pnpm run env:check && pnpm openapi:check && pnpm format:check && pnpm typecheck && pnpm lint && pnpm run db:lint",
+    "prepare": "husky"
   },
   "engines": {
     "node": ">=22.0.0 <23"
