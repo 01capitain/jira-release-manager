@@ -10,18 +10,20 @@ export function useDiscordLogin() {
 
   const login = React.useCallback(async (returnTo?: string) => {
     try {
-      setIsLoggingIn(true);
-      setError(null);
-      const url = await requestDiscordLogin(returnTo);
-      window.location.assign(url);
-    } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Login failed. Please try again.";
-      setError(message);
-      console.error("[Login]", err);
-    } finally {
-      setIsLoggingIn(false);
-    }
+   const login = React.useCallback(async (returnTo?: string) => {
+     try {
+       setIsLoggingIn(true);
+       setError(null);
+       const url = await requestDiscordLogin(returnTo);
+       window.location.assign(url);
+     } catch (err) {
+       setIsLoggingIn(false);
+       const message =
+         err instanceof Error ? err.message : "Login failed. Please try again.";
+       setError(message);
+       console.error("[Login]", err);
+     }
+   }, []);
   }, []);
 
   return { login, isLoggingIn, error };
