@@ -37,7 +37,22 @@ export const POST = async (request: Request): Promise<Response> => {
     const json = (await request.json()) as unknown;
     const parsed = loginSchema.safeParse(json);
     if (!parsed.success) {
-      return Response.json(BAD_REQUEST, { status: 400 });
+      // If provider is the issue, return BAD_REQUEST
+      const providerIssue = parsed.error.issues.find(
+        (issue) => issue.path[0] === "provider"
+      );
+      if (providerIssue) {
+        return Response.json(BAD_REQUEST, { status: 400 });
+      }
+      // Otherwise return specific validation errors
+      return Response.json(
+        {
+          error: "VALIDATION_ERROR",
+          message:
+            parsed.error.issues[0]?.message ?? "Invalid request parameters",
+        },
+        { status: 400 }
+      );
     }
     payload = parsed.data;
   } catch {
