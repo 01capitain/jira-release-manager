@@ -1,12 +1,14 @@
 "use client";
 
 import * as React from "react";
-import { useSession, signIn } from "next-auth/react";
 import Link from "next/link";
 import { Button } from "~/components/ui/button";
 import { Label } from "~/components/ui/label";
 import { api, type RouterOutputs } from "~/trpc/react";
 import { Pagination } from "~/components/ui/pagination";
+import { useAuthSession } from "~/hooks/use-auth-session";
+import { useDiscordLogin } from "~/hooks/use-discord-login";
+import { toast } from "~/lib/toast";
 
 type StoredVersionsResponse = RouterOutputs["jira"]["listStoredVersions"];
 type StoredVersion = StoredVersionsResponse["items"][number];
@@ -33,7 +35,8 @@ export default function JiraReleasesPage() {
   const [includeUnreleased, setIncludeUnreleased] = React.useState(true);
   const [includeArchived, setIncludeArchived] = React.useState(false);
 
-  const { data: session } = useSession();
+  const { data: session } = useAuthSession();
+  const { login, isLoggingIn, error: loginError } = useDiscordLogin();
   // No auto-sync query; syncing happens only on explicit action
 
   const releases = api.releaseVersion.list.useQuery({ page: 1, pageSize: 100 });
@@ -66,6 +69,12 @@ export default function JiraReleasesPage() {
 
   // No connection check here beyond presence; handled by canSyncQuick query
 
+  React.useEffect(() => {
+    if (!loginError) return;
+    const message = `Failed to sign in with Discord: ${loginError}`;
+    toast.error(message);
+  }, [loginError]);
+
   return (
     <div className="mx-auto w-full max-w-6xl">
       <h1 className="text-2xl font-semibold tracking-tight">Jira releases</h1>
@@ -76,7 +85,12 @@ export default function JiraReleasesPage() {
         <div className="mt-4 rounded-md border border-neutral-300 bg-neutral-50 p-3 text-sm dark:border-neutral-700 dark:bg-neutral-900">
           Please sign in to fetch Jira releases.
           <div className="mt-2">
-            <Button onClick={() => void signIn("discord")}>Sign in</Button>
+              <Button
+                disabled={isLoggingIn}
+                onClick={() => login()}
+              >
+                {isLoggingIn ? "Redirecting…" : "Sign in with Discord"}
+              </Button>
           </div>
         </div>
       ) : null}

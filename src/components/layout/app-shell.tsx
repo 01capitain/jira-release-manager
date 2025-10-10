@@ -8,9 +8,10 @@ import {
   Menu,
   Settings,
 } from "lucide-react";
-import { signIn, signOut, useSession } from "next-auth/react";
+import { useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useTheme } from "next-themes";
 import * as React from "react";
 import { ModeToggle } from "~/components/theme/mode-toggle";
 import { Breadcrumbs, type Crumb } from "~/components/ui/breadcrumbs";
@@ -20,6 +21,13 @@ import { cn } from "~/lib/utils";
 import { RefreshCw } from "lucide-react";
 import { api } from "~/trpc/react";
 import { ActionHistoryLog } from "~/components/action-history/action-history-log";
+import { useAuthSession } from "~/hooks/use-auth-session";
+import { useDiscordLogin } from "~/hooks/use-discord-login";
+import { Toaster } from "sonner";
+import {
+  SESSION_QUERY_KEY,
+  requestLogout,
+} from "~/lib/auth-client";
 
 type NavGroup = {
   id: string;
@@ -53,11 +61,17 @@ const NAV_GROUPS: NavGroup[] = [
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { data: session } = useSession();
+  const queryClient = useQueryClient();
+  const { data: session, status: authStatus } = useAuthSession();
+  const { resolvedTheme } = useTheme();
   const [open, setOpen] = React.useState(false);
   const [expanded, setExpanded] = React.useState<Record<string, boolean>>({
     versions: true,
   });
+  const { login, isLoggingIn, error: loginError } = useDiscordLogin();
+  const [isLoggingOut, setIsLoggingOut] = React.useState(false);
+
+  const toasterTheme = resolvedTheme === "dark" ? "dark" : "light";
 
   React.useEffect(() => {
     if (process.env.NODE_ENV !== "production") {
@@ -72,7 +86,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <div className="min-h-screen bg-neutral-900 dark:bg-neutral-100">
+    <div className="min-h-screen bg-neutral-900 dark:bg-neutral-950">
       <div className="mx-auto w-full max-w-7xl space-y-6 p-4 md:p-6 lg:p-8">
         {/* Floating container that includes sidebar + content */}
         <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-lg dark:border-neutral-800 dark:bg-neutral-900">
@@ -194,22 +208,41 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     <Button
                       variant="ghost"
                       className="justify-start gap-2"
+                      disabled={isLoggingOut}
                       onClick={async () => {
-                        await signOut({ redirect: false });
-                        router.refresh();
+                        try {
+                          setIsLoggingOut(true);
+                          await requestLogout();
+                          await queryClient.invalidateQueries({
+                            queryKey: SESSION_QUERY_KEY,
+                          });
+                          router.refresh();
+                        } catch (error) {
+                          console.error("[Logout]", error);
+                        } finally {
+                          setIsLoggingOut(false);
+                        }
                       }}
                     >
                       <LogOut className="h-4 w-4" />
-                      Logout
+                      {isLoggingOut ? "Logging out…" : "Logout"}
                     </Button>
                   </div>
                 ) : (
-                  <Button
-                    className="w-full justify-start"
-                    onClick={() => void signIn("discord")}
-                  >
-                    log in per discord sso
-                  </Button>
+                  <div className="w-full">
+                    <Button
+                      className="w-full justify-start"
+                      disabled={isLoggingIn || authStatus === "loading"}
+                      onClick={() => login()}
+                    >
+                      {isLoggingIn ? "Redirecting…" : "Log in with Discord"}
+                    </Button>
+                    {loginError ? (
+                      <p className="mt-2 text-xs text-red-600 dark:text-red-400">
+                        Failed to sign in with Discord: {loginError}
+                      </p>
+                    ) : null}
+                  </div>
                 )}
               </div>
             </aside>
@@ -243,6 +276,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <ActionHistoryLog />
         </aside>
       </div>
+
+      <Toaster
+        theme={toasterTheme}
+        position="top-right"
+        richColors
+        closeButton
+        gap={12}
+      />
     </div>
   );
 }

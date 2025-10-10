@@ -21,7 +21,7 @@ This document captures the current patterns for surfacing and handling errors in
 ## Client-Side UX
 
 - Components often use minimal inline status messages via `role="status"` + `aria-atomic="true"` for short updates.
-- There is no global error surface/toast mapping today.
+- Cross-route notifications share the `toast` helper (`src/lib/toast.ts`) which wraps the global Sonner `<Toaster />` mounted in the app shell so messages are non-blocking and theme-aware.
 
 ## Known Limitations
 
@@ -29,4 +29,3 @@ This document captures the current patterns for surfacing and handling errors in
 - No standardized error code enum across domains.
 - No correlation IDs or contextual logging attached to errors.
 - Limited user-facing guidance (e.g., remediation, links).
-

@@ -57,9 +57,10 @@
     "react": "19.1.1",
     "react-dom": "19.1.1",
     "server-only": "^0.0.1",
+    "sonner": "1.7.1",
     "superjson": "^2.2.2",
     "tailwind-merge": "^3.3.1",
-    "zod": "^4.1.5"
+    "zod": "^4.1.12"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.1",
@@ -78,7 +79,7 @@
     "prettier": "^3.6.2",
     "prettier-plugin-tailwindcss": "^0.6.14",
     "prisma": "^6.16.0",
-    "prisma-zod-generator": "^1.20.2",
+    "prisma-zod-generator": "^1.27.4",
     "tailwindcss": "^4.1.13",
     "ts-jest": "^29.4.2",
     "ts-node": "^10.9.2",
@@ -92,5 +93,5 @@
   "ct3aMetadata": {
     "initVersion": "7.39.3"
   },
-  "packageManager": "pnpm@10.16.1"
+  "packageManager": "pnpm@10.18.1"
 }
