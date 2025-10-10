@@ -1,2 +1,4 @@
+#!/usr/bin/env sh
+
 pnpm openapi:generate
 pnpm check-all
