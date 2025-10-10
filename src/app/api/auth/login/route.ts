@@ -8,8 +8,11 @@ const loginSchema = z.object({
   returnTo: z
     .string()
     .trim()
-    .refine((value) => value.startsWith("/"), {
-      message: "returnTo must be a relative path",
+    .refine((value) => value.startsWith("/") && !value.startsWith("//"), {
+      message: "returnTo must be a relative path without protocol",
+    })
+    .refine((value) => !value.includes("\\") && !value.includes("//"), {
+      message: "returnTo must not contain backslashes or double slashes",
     })
     .max(1024)
     .optional(),
@@ -50,10 +53,7 @@ export const POST = async (request: Request): Promise<Response> => {
       redirectTo: payload.returnTo,
     })) as unknown;
 
-    if (
-      typeof redirectResult !== "string" ||
-      redirectResult.length === 0
-    ) {
+    if (typeof redirectResult !== "string" || redirectResult.length === 0) {
       return Response.json(
         { error: "INTERNAL_ERROR", message: "Failed to resolve redirect" },
         { status: 500 },
