@@ -3,16 +3,17 @@ set -e
 
 echo "➤ Running pre-commit checks..."
 
-# Get list of staged files
-staged_files=$(git diff --cached --name-only)
-
 has_ts=false
 has_js=false
 has_prisma=false
 has_openapi=false
 
-for file in $staged_files; do
-  case "$file" in
+staged_files=$(git diff --cached --name-only)
+old_ifs=$IFS
+IFS='
+'
+for staged_file in $staged_files; do
+  case "$staged_file" in
     *.ts|*.tsx)
       has_ts=true
       ;;
@@ -27,6 +28,7 @@ for file in $staged_files; do
       ;;
   esac
 done
+IFS=$old_ifs
 
 run_step() {
   local cmd="$1"
