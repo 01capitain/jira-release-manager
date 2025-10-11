@@ -1,18 +1,43 @@
 #!/usr/bin/env sh
 set -e
 
-echo "⚙️ Running pre-commit checks..."
+echo "➤ Running pre-commit checks..."
+
+# Get list of staged files
+staged_files=$(git diff --cached --name-only)
+
+has_ts=false
+has_js=false
+has_prisma=false
+has_openapi=false
+
+for file in $staged_files; do
+  case "$file" in
+    *.ts|*.tsx)
+      has_ts=true
+      ;;
+    *.js|*.jsx|*.mdx)
+      has_js=true
+      ;;
+    prisma/*)
+      has_prisma=true
+      ;;
+    docs/api/openapi.yaml)
+      has_openapi=true
+      ;;
+  esac
+done
 
 run_step() {
   local cmd="$1"
   local description="$2"
 
   # Print initial line (two-space indent)
-  printf "    ⚙️ %s...\r" "$description"
+  printf "    ➤ %s...\r" "$description"
 
   if pnpm run "$cmd" >/dev/null 2>&1; then
     # Clear line, then print success
-    printf "\033[2K\r    ✅ %s passed\n" "$cmd"
+    printf "\033[2K\r    ✔️ %s run and passed\n" "$cmd"
   else
     # Clear line, then print failure
     printf "\033[2K\r    ❌ %s failed. Run manually:\n    pnpm run %s\n" "$cmd" "$cmd"
@@ -20,9 +45,46 @@ run_step() {
   fi
 }
 
-run_step "openapi:generate" "Generating OpenAPI spec"
-run_step "check-all" "Running all checks (env, format, lint, typecheck)"
-run_step "format:write" "Formatting files before commit"
-run_step "lint:fix" "Linting and fixing files before commit"
+skip_step() {
+  local cmd="$1"
+  local reason="$2"
+  printf "    ☑️ %s skipped (%s)\n" "$cmd" "$reason"
+}
 
-echo "✅ All pre-commit checks passed successfully."
+any_checks_run=false
+
+if $has_openapi; then
+  run_step "openapi:check" "Checking OpenAPI spec"
+  any_checks_run=true
+else
+  skip_step "openapi:check" "no OpenAPI spec changes"
+fi
+
+if $has_ts; then
+  run_step "typecheck" "Running typecheck"
+  run_step "lint:fix" "Linting and fixing files before commit"
+  any_checks_run=true
+else
+  skip_step "typecheck" "no TypeScript changes"
+  skip_step "lint:fix" "no TypeScript changes"
+fi
+
+if $has_js; then
+  run_step "format:write" "Formatting files before commit"
+  any_checks_run=true
+else
+  skip_step "format:write" "no JavaScript/MDX changes"
+fi
+
+if $has_prisma; then
+  run_step "db:lint" "Linting Prisma schema"
+  any_checks_run=true
+else
+  skip_step "db:lint" "no Prisma schema changes"
+fi
+
+if ! $any_checks_run; then
+  echo "✅ No relevant files changed. Skipping checks."
+else
+  echo "✅ All pre-commit checks passed successfully."
+fi
