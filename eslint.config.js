@@ -1,6 +1,6 @@
 import { FlatCompat } from "@eslint/eslintrc";
 import tseslint from "typescript-eslint";
-// @ts-expect-error – plugin has no TypeScript types
+// @ts-expect-error - no types
 import jsxA11y from "eslint-plugin-jsx-a11y";
 
 const compat = new FlatCompat({
@@ -8,11 +8,17 @@ const compat = new FlatCompat({
 });
 
 export default tseslint.config(
+  // Ignore Next build artifacts
   {
     ignores: [".next", "next-env.d.ts", ".openapi-tmp"],
   },
-  ...compat.extends("next/core-web-vitals"),
 
+  // Bring in Next.js core + TypeScript rules
+  ...compat.config({
+    extends: ["next/core-web-vitals", "next/typescript"],
+  }),
+
+  // Add TypeScript stylistic and recommended rules
   {
     files: ["**/*.ts", "**/*.tsx"],
     plugins: {
@@ -24,7 +30,7 @@ export default tseslint.config(
       ...tseslint.configs.stylisticTypeChecked,
     ],
     rules: {
-      // Forbid using the old '@/...' alias; use '~/' instead
+      // Custom import alias rule
       "no-restricted-imports": [
         "error",
         {
@@ -37,7 +43,8 @@ export default tseslint.config(
           ],
         },
       ],
-      // Accessibility essentials
+
+      // Accessibility (jsx-a11y) rules
       "jsx-a11y/aria-props": "warn",
       "jsx-a11y/aria-proptypes": "warn",
       "jsx-a11y/aria-role": "warn",
@@ -51,6 +58,8 @@ export default tseslint.config(
       "jsx-a11y/alt-text": "warn",
       "jsx-a11y/no-autofocus": "warn",
       "jsx-a11y/interactive-supports-focus": "warn",
+
+      // TS fine-tuning
       "@typescript-eslint/array-type": "off",
       "@typescript-eslint/consistent-type-definitions": "off",
       "@typescript-eslint/consistent-type-imports": [
@@ -68,6 +77,8 @@ export default tseslint.config(
       ],
     },
   },
+
+  // Base parser and linter options
   {
     linterOptions: {
       reportUnusedDisableDirectives: true,
@@ -76,6 +87,27 @@ export default tseslint.config(
       parserOptions: {
         projectService: true,
       },
+    },
+  },
+
+  // Node scripts and test utilities
+  {
+    files: ["scripts/**/*.{js,cjs,mjs}", "tests/**/*.{js,cjs,mjs}"],
+    languageOptions: {
+      parserOptions: {
+        projectService: false,
+      },
+    },
+    rules: {
+      "@typescript-eslint/no-require-imports": "off",
+    },
+  },
+
+  // Legacy CommonJS tooling that still relies on ts-ignore pragmas
+  {
+    files: ["scripts/run-openapi.cjs"],
+    rules: {
+      "@typescript-eslint/ban-ts-comment": "off",
     },
   },
 );
