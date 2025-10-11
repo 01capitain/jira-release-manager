@@ -1,15 +1,17 @@
 "use client";
 
 import * as React from "react";
-import { useSession, signIn } from "next-auth/react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { api } from "~/trpc/react";
 import { CheckCircle, AlertCircle } from "lucide-react";
+import { useAuthSession } from "~/hooks/use-auth-session";
+import { useDiscordLogin } from "~/hooks/use-discord-login";
 
 export default function JiraConnectPage() {
-  const { data: session } = useSession();
+  const { data: session } = useAuthSession();
+  const { login, isLoggingIn, error: loginError } = useDiscordLogin();
   const cfg = api.jira.getConfig.useQuery();
   const cred = api.jira.getCredentials.useQuery(undefined, {
     enabled: !!session,
@@ -106,8 +108,18 @@ export default function JiraConnectPage() {
         <div className="mt-4 rounded-md border border-neutral-300 bg-neutral-50 p-3 text-sm dark:border-neutral-700 dark:bg-neutral-900">
           Please sign in to configure your Jira credentials.
           <div className="mt-2">
-            <Button onClick={() => void signIn("discord")}>Sign in</Button>
+            <Button
+              disabled={isLoggingIn}
+              onClick={() => login()}
+            >
+              {isLoggingIn ? "Redirecting…" : "Sign in with Discord"}
+            </Button>
           </div>
+          {loginError ? (
+            <p className="mt-2 text-xs text-red-600 dark:text-red-400">
+              Failed to sign in with Discord: {loginError}
+            </p>
+          ) : null}
         </div>
       ) : null}
 

@@ -58,6 +58,7 @@
     "react": "19.1.1",
     "react-dom": "19.1.1",
     "server-only": "^0.0.1",
+    "sonner": "1.7.1",
     "superjson": "^2.2.2",
     "tailwind-merge": "^3.3.1",
     "zod": "^4.1.12"
@@ -105,5 +106,5 @@
   "ct3aMetadata": {
     "initVersion": "7.39.3"
   },
-  "packageManager": "pnpm@10.16.1"
+  "packageManager": "pnpm@10.18.1"
 }

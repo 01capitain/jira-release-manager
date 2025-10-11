@@ -8,7 +8,8 @@ import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { cn } from "~/lib/utils";
 import { GlowingEffect } from "~/components/ui/glowing-effect";
-import { useSession, signIn } from "next-auth/react";
+import { useAuthSession } from "~/hooks/use-auth-session";
+import { useDiscordLogin } from "~/hooks/use-discord-login";
 import { api } from "~/trpc/react";
 import { BuiltVersionCreateSchema } from "~/shared/schemas/built-version";
 import type { BuiltVersionDto } from "~/shared/types/built-version";
@@ -22,7 +23,8 @@ export default function AddBuiltVersionCard({
   versionId: string;
   onCreated?: (item: BuiltVersionDto) => void;
 }) {
-  const { status } = useSession();
+  const { status } = useAuthSession();
+  const { login, isLoggingIn, error: loginError } = useDiscordLogin();
   const createMutation = api.builtVersion.create.useMutation();
   const [open, setOpen] = React.useState(false);
   const [name, setName] = React.useState("");
@@ -96,10 +98,18 @@ export default function AddBuiltVersionCard({
                 You need to be signed in to add a built version.
               </div>
               <div className="flex gap-3">
-                <Button onClick={() => void signIn("discord")}>
-                  Log in with Discord
+                <Button
+                  disabled={isLoggingIn}
+                  onClick={() => login()}
+                >
+                  {isLoggingIn ? "Redirecting…" : "Log in with Discord"}
                 </Button>
               </div>
+              {loginError ? (
+                <p className="mt-2 text-xs text-red-600 dark:text-red-400">
+                  Failed to sign in with Discord: {loginError}
+                </p>
+              ) : null}
             </div>
           </CardContent>
         ) : !open ? (
