@@ -37,7 +37,7 @@ run_step() {
 
   if pnpm run "$cmd" >/dev/null 2>&1; then
     # Clear line, then print success
-    printf "\033[2K\r    ✔️ %s run and passed\n" "$cmd"
+    printf "\033[2K\r    ☑️ %s run and passed\n" "$cmd"
 
     # Check if there are modifications to warn about
     if [ "$cmd" = "lint:fix" ] || [ "$cmd" = "format:write" ]; then
@@ -55,7 +55,7 @@ run_step() {
 skip_step() {
   local cmd="$1"
   local reason="$2"
-  printf "    ☑️ %s skipped (%s)\n" "$cmd" "$reason"
+  printf "    ✔️  %s skipped (%s)\n" "$cmd" "$reason"
 }
 
 any_checks_run=false
