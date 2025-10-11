@@ -42,7 +42,7 @@ run_step() {
     # Check if there are modifications to warn about
     if [ "$cmd" = "lint:fix" ] || [ "$cmd" = "format:write" ]; then
       if [ -n "$(git diff --name-only)" ]; then
-        printf "    ℹ️  Some files were modified. Review and stage them before committing again.\n"
+        printf "    ⚠️  Some files were modified. Review and stage them before committing again.\n"
       fi
     fi
   else
