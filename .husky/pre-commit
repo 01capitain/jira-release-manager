@@ -1,4 +1,28 @@
 #!/usr/bin/env sh
+set -e
 
-pnpm openapi:generate
-pnpm check-all
+echo "⚙️ Running pre-commit checks..."
+
+run_step() {
+  local cmd="$1"
+  local description="$2"
+
+  # Print initial line (two-space indent)
+  printf "    ⚙️ %s...\r" "$description"
+
+  if pnpm run "$cmd" >/dev/null 2>&1; then
+    # Clear line, then print success
+    printf "\033[2K\r    ✅ %s passed\n" "$cmd"
+  else
+    # Clear line, then print failure
+    printf "\033[2K\r    ❌ %s failed. Run manually:\n    pnpm run %s\n" "$cmd" "$cmd"
+    exit 1
+  fi
+}
+
+run_step "openapi:generate" "Generating OpenAPI spec"
+run_step "check-all" "Running all checks (env, format, lint, typecheck)"
+run_step "format:write" "Formatting files before commit"
+run_step "lint:fix" "Linting and fixing files before commit"
+
+echo "✅ All pre-commit checks passed successfully."
