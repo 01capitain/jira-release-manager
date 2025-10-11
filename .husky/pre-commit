@@ -60,20 +60,15 @@ else
   skip_step "openapi:check" "no OpenAPI spec changes"
 fi
 
-if $has_ts; then
+if $has_ts || $has_js;  then
   run_step "typecheck" "Running typecheck"
   run_step "lint:fix" "Linting and fixing files before commit"
-  any_checks_run=true
-else
-  skip_step "typecheck" "no TypeScript changes"
-  skip_step "lint:fix" "no TypeScript changes"
-fi
-
-if $has_js; then
   run_step "format:write" "Formatting files before commit"
   any_checks_run=true
 else
-  skip_step "format:write" "no JavaScript/MDX changes"
+  skip_step "typecheck" "no TS/JS changes"
+  skip_step "lint:fix" "no TS/JS changes"
+  skip_step "format:write" "no TS/JS changes"
 fi
 
 if $has_prisma; then
