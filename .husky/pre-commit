@@ -38,6 +38,13 @@ run_step() {
   if pnpm run "$cmd" >/dev/null 2>&1; then
     # Clear line, then print success
     printf "\033[2K\r    ✔️ %s run and passed\n" "$cmd"
+
+    # Check if there are modifications to warn about
+    if [ "$cmd" = "lint:fix" ] || [ "$cmd" = "format:write" ]; then
+      if [ -n "$(git diff --name-only)" ]; then
+        printf "    ℹ️  Some files were modified. Review and stage them before committing again.\n"
+      fi
+    fi
   else
     # Clear line, then print failure
     printf "\033[2K\r    ❌ %s failed. Run manually:\n    pnpm run %s\n" "$cmd" "$cmd"
