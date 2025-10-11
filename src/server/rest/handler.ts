@@ -11,10 +11,13 @@ import {
 export type RouteParams = Record<string, string>;
 
 const normalizeParams = (
-  params: Record<string, string | string[]> | undefined,
+  params: Record<string, string | string[] | undefined> | undefined,
 ): RouteParams => {
   if (!params) return {};
   return Object.entries(params).reduce<RouteParams>((acc, [key, value]) => {
+    if (value === undefined) {
+      return acc;
+    }
     acc[key] = Array.isArray(value) ? (value[0] ?? "") : value;
     return acc;
   }, {});
@@ -31,14 +34,14 @@ type RestHandler = (args: RestHandlerArgs) => Promise<Response>;
 export const createRestHandler = (handler: RestHandler) => {
   return async (
     req: NextRequest,
-    context: { params?: Record<string, string | string[]> },
+    context: { params: Promise<Record<string, string | string[] | undefined>> },
   ) => {
     try {
       const restContext = await createRestContext(req);
       return await handler({
         req,
         context: restContext,
-        params: normalizeParams(context.params),
+        params: normalizeParams(await context.params),
       });
     } catch (error: unknown) {
       return toRestResponse(normalizeError(error));
