@@ -69,7 +69,7 @@ else
   skip_step "openapi:check" "no OpenAPI spec changes"
 fi
 
-if $has_ts || $has_js;  then
+if $has_ts || $has_js; then
   run_step "typecheck" "Running typecheck"
   run_step "lint:fix" "Linting and fixing files before commit"
   run_step "format:write" "Formatting files before commit"
