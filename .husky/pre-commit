@@ -91,6 +91,7 @@ else
   skip_step "typecheck" "no TS/JS changes"
 fi
 
+run_step "pnpm test" "Running tests" "Test Suites"
 if ! $any_checks_run; then
   echo "✅ No relevant files changed. Skipping checks."
 else
