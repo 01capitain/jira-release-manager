@@ -1,6 +1,6 @@
 # POST Endpoint Implementation Guide
 
-Follow this playbook whenever you introduce a new create mutation so it mirrors the release version POST endpoint added on this branch.
+Follow this playbook whenever you introduce a new create POST endpoint so it mirrors the release version flow added on this branch.
 
 ## Shared Contracts
 
