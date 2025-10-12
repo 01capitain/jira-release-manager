@@ -68,7 +68,7 @@ export function createPaginatedRequestSchema<TSortBy extends string>(
         })
         .describe(
           descriptions.sortBy ??
-            `Sort field. Use "-" prefix for descending order.}`,
+            `Sort field. Use "-" prefix for descending order.`,
         ),
     })
     .transform((value): NormalizedPaginatedRequest<TSortBy> => {

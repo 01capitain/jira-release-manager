@@ -34,7 +34,7 @@ paths:
         - in: query
           name: sortBy
           schema:
-            description: Sort field. Use "-" prefix for descending order.}
+            description: Sort field. Use "-" prefix for descending order.
             default: -createdAt
             type: string
             enum:
@@ -42,7 +42,7 @@ paths:
               - name
               - -createdAt
               - -name
-          description: Sort field. Use "-" prefix for descending order.}
+          description: Sort field. Use "-" prefix for descending order.
       responses:
         "200":
           description: Release versions page
