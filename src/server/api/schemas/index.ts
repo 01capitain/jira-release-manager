@@ -1,5 +1,8 @@
 import { z } from "zod";
 
+import { createPaginatedRequestSchema } from "~/shared/schemas/pagination";
+import type { NormalizedPaginatedRequest } from "~/shared/types/pagination";
+
 export const ComponentVersionListByBuiltSchema = z.object({
   builtVersionId: z.uuidv7({ error: "Invalid built version id" }),
 });
@@ -8,12 +11,27 @@ export type ComponentVersionListByBuiltInput = z.infer<
   typeof ComponentVersionListByBuiltSchema
 >;
 
-export const ReleaseVersionListInputSchema = z
-  .object({
-    page: z.number().int().min(1).optional(),
-    pageSize: z.number().int().min(1).max(100).optional(),
-  })
-  .optional();
+export const RELEASE_VERSION_SORT_FIELDS = ["createdAt", "name"] as const;
+
+export type ReleaseVersionSortableField =
+  (typeof RELEASE_VERSION_SORT_FIELDS)[number];
+
+export const DEFAULT_RELEASE_VERSION_LIST_INPUT: NormalizedPaginatedRequest<ReleaseVersionSortableField> =
+  {
+    page: 1,
+    pageSize: 9,
+    sortBy: "-createdAt",
+  };
+
+export const ReleaseVersionListInputSchema = createPaginatedRequestSchema(
+  RELEASE_VERSION_SORT_FIELDS,
+  {
+    defaultPage: DEFAULT_RELEASE_VERSION_LIST_INPUT.page,
+    defaultPageSize: DEFAULT_RELEASE_VERSION_LIST_INPUT.pageSize,
+    defaultSortBy: DEFAULT_RELEASE_VERSION_LIST_INPUT.sortBy,
+    maxPageSize: 100,
+  },
+).optional();
 
 export type ReleaseVersionListInput = z.infer<
   typeof ReleaseVersionListInputSchema

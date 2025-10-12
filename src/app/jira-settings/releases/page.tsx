@@ -13,7 +13,7 @@ import { toast } from "~/lib/toast";
 type StoredVersionsResponse = RouterOutputs["jira"]["listStoredVersions"];
 type StoredVersion = StoredVersionsResponse["items"][number];
 type ReleaseVersionsResponse = RouterOutputs["releaseVersion"]["list"];
-type ReleaseVersionItem = ReleaseVersionsResponse["items"][number];
+type ReleaseVersionItem = ReleaseVersionsResponse["data"][number];
 
 const formatReleaseDate = (
   value: StoredVersion["releaseDate"] | string,
@@ -62,8 +62,8 @@ export default function JiraReleasesPage() {
   const storedItems: StoredVersion[] = storedData?.items
     ? [...storedData.items]
     : [];
-  const releaseItems: ReleaseVersionItem[] = releases.data?.items
-    ? [...releases.data.items]
+  const releaseItems: ReleaseVersionItem[] = releases.data?.data
+    ? [...releases.data.data]
     : [];
   const hasStoredItems = storedItems.length > 0;
 
@@ -85,12 +85,9 @@ export default function JiraReleasesPage() {
         <div className="mt-4 rounded-md border border-neutral-300 bg-neutral-50 p-3 text-sm dark:border-neutral-700 dark:bg-neutral-900">
           Please sign in to fetch Jira releases.
           <div className="mt-2">
-              <Button
-                disabled={isLoggingIn}
-                onClick={() => login()}
-              >
-                {isLoggingIn ? "Redirecting…" : "Sign in with Discord"}
-              </Button>
+            <Button disabled={isLoggingIn} onClick={() => login()}>
+              {isLoggingIn ? "Redirecting…" : "Sign in with Discord"}
+            </Button>
           </div>
         </div>
       ) : null}

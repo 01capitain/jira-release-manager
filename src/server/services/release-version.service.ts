@@ -16,24 +16,42 @@ import {
 } from "~/server/zod/dto/release-version.dto";
 import type { ReleaseVersionDto } from "~/shared/types/release-version";
 import type { ReleaseVersionWithBuildsDto } from "~/shared/types/release-version-with-builds";
+import type {
+  NormalizedPaginatedRequest,
+  PaginatedResponse,
+} from "~/shared/types/pagination";
+import { buildPaginatedResponse } from "~/server/rest/pagination";
 
 export class ReleaseVersionService {
   constructor(private readonly db: PrismaClient) {}
 
   async list(
-    page: number,
-    pageSize: number,
-  ): Promise<{ total: number; items: ReleaseVersionDto[] }> {
+    params: NormalizedPaginatedRequest<"createdAt" | "name">,
+  ): Promise<PaginatedResponse<ReleaseVersionDto>> {
+    const { page, pageSize, sortBy } = params;
+    const isDescending = sortBy.startsWith("-");
+    const sortField = (isDescending ? sortBy.slice(1) : sortBy) as
+      | "createdAt"
+      | "name";
+    const orderDirection = (isDescending ? "desc" : "asc") as Prisma.SortOrder;
+    const orderBy: Prisma.ReleaseVersionOrderByWithRelationInput = {
+      [sortField]: orderDirection,
+    };
     const [total, rows] = await Promise.all([
       this.db.releaseVersion.count(),
       this.db.releaseVersion.findMany({
-        orderBy: { createdAt: "desc" },
+        orderBy,
         select: { id: true, name: true, createdAt: true },
         skip: (page - 1) * pageSize,
         take: pageSize,
       }),
     ]);
-    return { total, items: mapToReleaseVersionDtos(rows) };
+    return buildPaginatedResponse(
+      mapToReleaseVersionDtos(rows),
+      page,
+      pageSize,
+      total,
+    );
   }
 
   async create(

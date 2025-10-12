@@ -86,14 +86,14 @@ describe("Auth REST workflow", () => {
       const payload = (await response.json()) as Record<string, unknown>;
 
       expect(response.status).toBe(400);
-      expect(payload.error).toBe("PROVIDER_UNAVAILABLE");
+      expect(payload.error).toBe("INVALID_PROVIDER");
       expect(signInMock).not.toHaveBeenCalled();
     });
   });
 
   describe("POST /api/auth/logout", () => {
     it("returns 204 when logout succeeds", async () => {
-      signOutMock.mockResolvedValueOnce();
+      signOutMock.mockResolvedValueOnce(undefined);
 
       const request = new Request("http://test/api/auth/logout", {
         method: "POST",

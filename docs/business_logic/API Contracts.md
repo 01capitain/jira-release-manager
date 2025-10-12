@@ -1,6 +1,7 @@
 # API Contracts and Token Values
 
-- API endpoints (tRPC now, REST later) return DTOs from `src/shared/types`. This ensures the same contract is reused across clients.
+- API endpoints (tRPC, REST) return DTOs from `src/shared/types`. This ensures the same contract is reused across clients.
+- List endpoints return `PaginatedResponse<T>` (see `src/shared/types/pagination.ts`) so every response includes `data` alongside `pagination { page, pageSize, totalItems, hasNextPage }`. Use `createPaginatedRequestSchema` to normalize inputs and `buildPaginatedResponse` to hydrate responses.
 - For build and component versioning, we store a `tokenValues` JSON object alongside records. Shape is defined by `TokenValues`:
 
 ```ts
@@ -8,7 +9,7 @@ type TokenValues = {
   release_version: string;
   built_version?: string;
   increment: number;
-}
+};
 ```
 
 - Services compute names from patterns and persist the token snapshot using `Prisma.InputJsonValue` at the database boundary.

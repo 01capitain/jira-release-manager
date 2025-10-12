@@ -6,7 +6,7 @@ echo "➤ Running pre-commit checks..."
 has_ts=false
 has_js=false
 has_prisma=false
-has_openapi=false
+has_openapi=true
 
 staged_files=$(git diff --cached --name-only)
 old_ifs=$IFS
@@ -22,9 +22,6 @@ for staged_file in $staged_files; do
       ;;
     prisma/*)
       has_prisma=true
-      ;;
-    docs/api/openapi.yaml)
-      has_openapi=true
       ;;
   esac
 done
@@ -91,8 +88,6 @@ else
   skip_step "typecheck" "no TS/JS changes"
 fi
 
-if ! $any_checks_run; then
-  echo "✅ No relevant files changed. Skipping checks."
-else
-  echo "✅ All pre-commit checks passed successfully."
-fi
+run_step "pnpm test" "Running tests" "Test Suites"
+
+echo "✅ All pre-commit checks passed successfully."

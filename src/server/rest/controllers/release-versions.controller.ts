@@ -8,25 +8,35 @@ import type { RestContext } from "~/server/rest/context";
 import { ensureAuthenticated } from "~/server/rest/auth";
 import { RestError } from "~/server/rest/errors";
 import { jsonErrorResponse } from "~/server/rest/openapi";
+import {
+  DEFAULT_RELEASE_VERSION_LIST_INPUT,
+  RELEASE_VERSION_SORT_FIELDS,
+} from "~/server/api/schemas";
+import {
+  createPaginatedRequestSchema,
+  createPaginatedResponseSchema,
+} from "~/shared/schemas/pagination";
 import { ReleaseVersionCreateSchema } from "~/shared/schemas/release-version";
 
 export { ReleaseVersionCreateSchema } from "~/shared/schemas/release-version";
 
-export const ReleaseVersionListQuerySchema = z.object({
-  page: z.coerce.number().int().min(1).optional(),
-  pageSize: z.coerce.number().int().min(1).max(100).optional(),
-});
+export const ReleaseVersionListQuerySchema = createPaginatedRequestSchema(
+  RELEASE_VERSION_SORT_FIELDS,
+  {
+    defaultPage: DEFAULT_RELEASE_VERSION_LIST_INPUT.page,
+    defaultPageSize: DEFAULT_RELEASE_VERSION_LIST_INPUT.pageSize,
+    defaultSortBy: DEFAULT_RELEASE_VERSION_LIST_INPUT.sortBy,
+    maxPageSize: 100,
+  },
+);
 
 export type ReleaseVersionListQuery = z.infer<
   typeof ReleaseVersionListQuerySchema
 >;
 
-export const ReleaseVersionListResponseSchema = z.object({
-  total: z.number().int(),
-  page: z.number().int(),
-  pageSize: z.number().int(),
-  items: z.array(ReleaseVersionDtoSchema),
-});
+export const ReleaseVersionListResponseSchema = createPaginatedResponseSchema(
+  ReleaseVersionDtoSchema,
+);
 
 export const ReleaseVersionDetailSchema = ReleaseVersionDtoSchema.extend({
   builtVersions: z.array(BuiltVersionDtoSchema),
@@ -42,22 +52,16 @@ export const listReleaseVersions = async (
   context: RestContext,
   query: ReleaseVersionListQuery,
 ) => {
+  ensureAuthenticated(context);
   const svc = new ReleaseVersionService(context.db);
-  const page = query.page ?? 1;
-  const pageSize = query.pageSize ?? 9;
-  const result = await svc.list(page, pageSize);
-  return {
-    page,
-    pageSize,
-    total: result.total,
-    items: result.items,
-  } satisfies z.infer<typeof ReleaseVersionListResponseSchema>;
+  return svc.list(query);
 };
 
 export const getReleaseVersion = async (
   context: RestContext,
   releaseId: string,
 ) => {
+  ensureAuthenticated(context);
   const svc = new ReleaseVersionService(context.db);
   return svc.getById(releaseId);
 };
