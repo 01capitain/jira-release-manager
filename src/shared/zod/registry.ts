@@ -15,7 +15,7 @@ export function registerSchema<T extends z.ZodTypeAny>(
   options?: { skipRegistry?: boolean },
 ): T {
   if (!options?.skipRegistry) {
-    schema.register(appRegistry, meta);
+    appRegistry.add(schema, meta);
   }
   return schema;
 }

@@ -2,13 +2,11 @@ import { z } from "zod";
 
 import { toRestJsonSchema } from "~/shared/zod/json-schema";
 
-const RestErrorDetailsSchema = z
-  .unknown()
-  .meta({
-    id: "RestErrorDetails",
-    title: "REST Error Details",
-    description: "Arbitrary structured data providing additional error context.",
-  });
+const RestErrorDetailsSchema = z.unknown().meta({
+  id: "RestErrorDetails",
+  title: "REST Error Details",
+  description: "Arbitrary structured data providing additional error context.",
+});
 
 export const RestErrorSchema = z
   .object({

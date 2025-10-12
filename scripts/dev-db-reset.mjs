@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+
+/* eslint-env node */
 import { execSync } from "node:child_process";
 
 const env = process.env.NODE_ENV ?? "";
@@ -28,5 +30,6 @@ try {
   console.log("✔ Database reset complete (development only)");
 } catch (err) {
   console.error("✖ Database reset failed");
+  console.error(err);
   process.exit(1);
 }

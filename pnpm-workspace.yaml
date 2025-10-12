@@ -1,0 +1,9 @@
+ignoredBuiltDependencies:
+  - '@tailwindcss/oxide'
+  - sharp
+
+onlyBuiltDependencies:
+  - '@prisma/client'
+  - '@prisma/engines'
+  - prisma
+  - prisma-zod-generator

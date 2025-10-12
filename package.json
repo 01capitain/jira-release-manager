@@ -5,8 +5,7 @@
   "type": "module",
   "scripts": {
     "env:check": "node scripts/check-node.mjs",
-    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,mdx}\" --cache",
-    "format:write": "prettier --write \"**/*.{ts,tsx,js,jsx,mdx}\" --cache",
+    "prettier:check": "prettier --check \"**/*.{ts,tsx,js,jsx,mdx}\" --cache",
     "preinstall": "node scripts/check-node.mjs",
     "postinstall": "prisma generate",
     "build": "next build",
@@ -32,26 +31,27 @@
     "test:db-schema": "node tests/scripts/test-lint-db-schema.mjs",
     "openapi:generate": "node scripts/run-openapi.cjs",
     "openapi:check": "node scripts/run-openapi.cjs --check",
-    "check-all": "pnpm run env:check && pnpm openapi:check && pnpm format:check && pnpm typecheck && pnpm lint && pnpm run db:lint"
+    "check-all": "pnpm run env:check && pnpm openapi:check && pnpm prettier:check && pnpm typecheck && pnpm lint && pnpm run db:lint",
+    "prepare": "husky"
   },
   "engines": {
     "node": ">=22.0.0 <23"
   },
   "dependencies": {
-    "@auth/prisma-adapter": "^2.10.0",
-    "@prisma/client": "^6.16.0",
+    "@auth/prisma-adapter": "^2.11.0",
+    "@prisma/client": "^6.17.0",
     "@radix-ui/react-scroll-area": "^1.2.10",
     "@radix-ui/react-separator": "^1.1.7",
     "@radix-ui/react-slot": "^1.2.3",
     "@t3-oss/env-nextjs": "^0.13.8",
-    "@tanstack/react-query": "^5.87.4",
-    "@trpc/client": "^11.5.1",
-    "@trpc/react-query": "^11.5.1",
-    "@trpc/server": "^11.5.1",
+    "@tanstack/react-query": "^5.90.2",
+    "@trpc/client": "^11.6.0",
+    "@trpc/react-query": "^11.6.0",
+    "@trpc/server": "^11.6.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.543.0",
-    "next": "^15.5.2",
+    "next": "^15.5.4",
     "next-auth": "5.0.0-beta.25",
     "next-themes": "^0.4.6",
     "react": "19.1.1",
@@ -64,31 +64,43 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.1",
-    "@tailwindcss/postcss": "^4.1.13",
+    "@tailwindcss/postcss": "^4.1.14",
     "@types/jest": "^30.0.0",
-    "@types/node": "^20.19.13",
-    "@types/react": "^19.1.12",
-    "@types/react-dom": "^19.1.9",
+    "@types/node": "^20.19.20",
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.1",
     "esbuild": "^0.25.10",
     "esbuild-register": "^3.6.0",
-    "eslint": "^9.35.0",
-    "eslint-config-next": "^15.5.2",
+    "eslint": "^9.37.0",
+    "eslint-config-next": "^15.5.4",
     "eslint-plugin-jsx-a11y": "^6.10.2",
-    "jest": "^30.1.3",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.2.9",
+    "jest": "^29.7.0",
     "postcss": "^8.5.6",
     "prettier": "^3.6.2",
     "prettier-plugin-tailwindcss": "^0.6.14",
-    "prisma": "^6.16.0",
+    "prisma": "^6.17.0",
     "prisma-zod-generator": "^1.27.4",
-    "tailwindcss": "^4.1.13",
-    "ts-jest": "^29.4.2",
+    "tailwindcss": "^4.1.14",
+    "ts-jest": "^29.4.4",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
     "tsx": "^4.20.6",
-    "typescript": "^5.9.2",
-    "typescript-eslint": "^8.43.0",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.46.0",
     "yaml": "^2.8.1",
-    "zod-openapi": "^5.4.2"
+    "zod-openapi": "^5.4.3"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "prisma/schema.prisma": [
+      "pnpm run db:lint",
+      "prisma validate"
+    ]
   },
   "ct3aMetadata": {
     "initVersion": "7.39.3"
