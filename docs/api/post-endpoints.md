@@ -1,10 +1,10 @@
 # POST Endpoint Implementation Guide
 
-Follow this playbook whenever you introduce a new create mutation so it mirrors the release version POST endpoint added on this branch.
+Follow this playbook whenever you introduce a new create POST endpoint so it mirrors the release version flow added on this branch.
 
 ## Shared Contracts
 
-- Define the input schema under `src/shared/schemas/<entity>.ts` using Zod. Trim and validate strings (`z.string().trim().min(1, { error: "…" })`) so both transport layers enforce identical rules (see `src/shared/schemas/release-version.ts`).
+- Define the input schema under `src/shared/schemas/<entity>.ts` using Zod. Trim and validate strings (`z.string().trim().min(1, { message: "…" })`) so both transport layers enforce identical rules (see `src/shared/schemas/release-version.ts`).
 - Export the corresponding DTO from `src/shared/types/<entity>.ts` to describe the success payload returned by services, routers, and clients.
 - If the endpoint needs reusable error codes, document them beside the schema or in shared `RestError` helpers so clients can map them consistently.
 - Update `docs/api/openapi.yaml` to add or adjust the POST path. Mirror the release version definition: request body referencing the shared Zod schema and a `201` response returning the DTO.
@@ -34,7 +34,7 @@ REST handlers are now the default transport for create operations. Always comple
 - Validate form input on the client with the same shared schema (e.g., `ReleaseVersionCreateSchema.safeParse`) to provide immediate feedback before firing the request.
 - Wrap the POST call with `postJson` from `src/lib/rest-client.ts`, which handles headers and converts non-2xx responses into `RestApiError`.
 - Use React Query `useMutation` helpers (`src/app/versions/releases/api.ts`) to expose a typed mutation hook that returns the shared DTO and surfaces `RestApiError` instances for UI error states.
-- After a successful mutation, invalidate any cached queries that depend on the created entity. The release creation flow calls `utils.builtVersion.listReleasesWithBuilds.invalidate()` to refresh accordions.
+- After a successful mutation, invalidate any cached queries that depend on the created entity. For React Query, call `queryClient.invalidateQueries({ queryKey: ['releaseVersions', 'list'] })` (adjust the key to your app) to refresh views.
 
 ## Testing Expectations
 
