@@ -7,10 +7,12 @@ import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { ReleaseVersionCreateSchema } from "~/shared/schemas/release-version";
+import { useCreateReleaseMutation } from "./api";
+import { isRestApiError } from "~/lib/rest-client";
 
 export default function VersionsReleasesPage() {
   const utils = api.useUtils();
-  const createMutation = api.releaseVersion.create.useMutation();
+  const createMutation = useCreateReleaseMutation();
   const [open, setOpen] = React.useState(false);
   const [name, setName] = React.useState("");
   const [error, setError] = React.useState<string | null>(null);
@@ -32,8 +34,12 @@ export default function VersionsReleasesPage() {
       setName("");
       setOpen(false);
       await utils.builtVersion.listReleasesWithBuilds.invalidate();
-    } catch {
-      setError("Failed to create release. Please try again.");
+    } catch (err) {
+      setError(
+        isRestApiError(err)
+          ? err.message
+          : "Failed to create release. Please try again.",
+      );
     } finally {
       setSaving(false);
     }

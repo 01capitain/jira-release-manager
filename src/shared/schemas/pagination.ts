@@ -1,0 +1,91 @@
+import { z } from "zod";
+
+import type {
+  NormalizedPaginatedRequest,
+  PaginatedRequest,
+  PaginationInfo,
+} from "~/shared/types/pagination";
+
+const positiveInt = z.coerce.number().int().min(1);
+
+export function createPaginatedRequestSchema<TSortBy extends string>(
+  sortFields: readonly TSortBy[],
+  options?: {
+    defaultPage?: number;
+    defaultPageSize?: number;
+    defaultSortBy?: TSortBy | `-${TSortBy}`;
+    maxPageSize?: number;
+  },
+) {
+  if (sortFields.length === 0) {
+    throw new Error(
+      "createPaginatedRequestSchema requires at least one sort field",
+    );
+  }
+
+  const allowedSorts = new Set<string>([
+    ...sortFields,
+    ...sortFields.map((field) => `-${field}`),
+  ]);
+
+  const defaultSort =
+    options?.defaultSortBy ?? (sortFields[0] as TSortBy | `-${TSortBy}`);
+  if (!allowedSorts.has(defaultSort)) {
+    throw new Error(
+      `Default sort "${defaultSort}" is not part of the allowed sort fields`,
+    );
+  }
+
+  const defaultPage = options?.defaultPage ?? 1;
+  const defaultPageSize = options?.defaultPageSize ?? 20;
+  const maxPageSize = options?.maxPageSize ?? Infinity;
+
+  return z
+    .object({
+      page: positiveInt.optional(),
+      pageSize: positiveInt.optional(),
+      pagesize: positiveInt.optional(),
+      sortBy: z.string().optional(),
+    })
+    .superRefine((value, ctx) => {
+      const candidate = value.sortBy ?? defaultSort;
+      if (!allowedSorts.has(candidate)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `sortBy must be one of: ${Array.from(allowedSorts).join(
+            ", ",
+          )}`,
+          path: ["sortBy"],
+          fatal: true,
+        });
+      }
+    })
+    .transform((value): NormalizedPaginatedRequest<TSortBy> => {
+      const rawPageSize =
+        value.pageSize ?? value.pagesize ?? defaultPageSize ?? 20;
+      const pageSize = Math.min(rawPageSize, maxPageSize);
+      return {
+        page: value.page ?? defaultPage,
+        pageSize,
+        sortBy: (value.sortBy ?? defaultSort) as TSortBy | `-${TSortBy}`,
+      };
+    });
+}
+
+export const PaginationInfoSchema: z.ZodType<PaginationInfo> = z.object({
+  page: z.number().int().min(1),
+  pageSize: z.number().int().min(1),
+  totalItems: z.number().int().min(0),
+  hasNextPage: z.boolean(),
+});
+
+export const createPaginatedResponseSchema = <T extends z.ZodTypeAny>(
+  itemSchema: T,
+) =>
+  z.object({
+    data: z.array(itemSchema),
+    pagination: PaginationInfoSchema,
+  });
+
+export type PaginatedRequestInput<TSortBy extends string> =
+  PaginatedRequest<TSortBy>;
