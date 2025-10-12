@@ -21,7 +21,7 @@ type TokenValues = {
 - Mutations triggered by authenticated users (release creation, built creation, status transitions, successor arrangement, release component creation) emit audit entries stored in `ActionLog` and `ActionSubactionLog` tables.
 - Each action captures: UUIDv7 id, `actionType`, human-readable `message`, execution `status` (`success | failed | cancelled`), triggering `userId`, and the current session token to scope the feed.
 - Subactions provide a single-depth trace for service-level steps (e.g., auto-created successor, seeded component versions) and inherit the parent action id.
-- The tRPC endpoint `actionHistory.current` returns the chronological session feed as `ActionHistoryEntryDto` (and `subactions`) for rendering the terminal-style history UI. Responses are paginated in slices of 5 parent actions to keep the scrollback responsive, regardless of how many subactions each action carries.
+- The REST endpoint `GET /api/v1/action-history` returns the chronological session feed as a `PaginatedResponse<ActionHistoryEntryDto>` for rendering the terminal-style history UI. Responses default to five parent actions per page to keep the scrollback responsive, regardless of how many subactions each action carries.
 - Entries persist even when domain operations throw; failure metadata (error message, action context) is stored on the parent action to aid troubleshooting.
 
 ## Authentication Endpoints

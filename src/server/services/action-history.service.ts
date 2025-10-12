@@ -1,7 +1,12 @@
 import { Prisma, type PrismaClient } from "@prisma/client";
 
+import { buildPaginatedResponse } from "~/server/rest/pagination";
 import { mapToActionHistoryEntryDtos } from "~/server/zod/dto/action-history.dto";
 import type { ActionHistoryEntryDto } from "~/shared/types/action-history";
+import type {
+  NormalizedPaginatedRequest,
+  PaginatedResponse,
+} from "~/shared/types/pagination";
 
 export type ActionStatus = "success" | "failed" | "cancelled";
 
@@ -190,27 +195,12 @@ export class ActionHistoryService {
   async listBySession(
     sessionToken: string | null | undefined,
     userId: string | null | undefined,
-    limit = 5,
-    cursor?: string | null,
-  ): Promise<{
-    items: ActionHistoryEntryDto[];
-    nextCursor: string | null;
-    hasMore: boolean;
-  }> {
+    params: NormalizedPaginatedRequest<"createdAt">,
+  ): Promise<PaginatedResponse<ActionHistoryEntryDto>> {
     const delegates = getDelegates(this.db);
-    if (!delegates) {
-      return {
-        items: [],
-        nextCursor: null,
-        hasMore: false,
-      };
-    }
-    if (!sessionToken && !userId) {
-      return {
-        items: [],
-        nextCursor: null,
-        hasMore: false,
-      };
+    const { page, pageSize, sortBy } = params;
+    if (!delegates || (!sessionToken && !userId)) {
+      return buildPaginatedResponse([], page, pageSize, 0);
     }
 
     const where: Prisma.ActionLogWhereInput = {};
@@ -219,42 +209,34 @@ export class ActionHistoryService {
     } else if (typeof userId === "string" && userId.length > 0) {
       where.createdById = userId;
     }
-    const take = limit + 1;
 
-    const rows = await delegates.actionLog.findMany({
-      where,
-      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-      include: {
-        createdBy: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
+    const isDescending = sortBy.startsWith("-");
+    const direction = (isDescending ? "desc" : "asc") as Prisma.SortOrder;
+    const orderField = "createdAt" as const;
+
+    const [total, rows] = await Promise.all([
+      delegates.actionLog.count({ where }),
+      delegates.actionLog.findMany({
+        where,
+        orderBy: [{ [orderField]: direction }, { id: direction }],
+        include: {
+          createdBy: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+          subactions: {
+            orderBy: { createdAt: "asc" },
           },
         },
-        subactions: {
-          orderBy: { createdAt: "asc" },
-        },
-      },
-      take,
-      ...(cursor
-        ? {
-            cursor: { id: cursor },
-            skip: 1,
-          }
-        : {}),
-    });
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+    ]);
 
-    const hasMore = rows.length > limit;
-    const slice = hasMore ? rows.slice(0, limit) : rows;
-    const items = mapToActionHistoryEntryDtos(slice);
-    const last = slice.at(-1);
-    const nextCursor = hasMore && last ? last.id : null;
-
-    return {
-      items,
-      nextCursor,
-      hasMore,
-    };
+    const items = mapToActionHistoryEntryDtos(rows);
+    return buildPaginatedResponse(items, page, pageSize, total);
   }
 }

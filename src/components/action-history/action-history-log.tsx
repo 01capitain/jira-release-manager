@@ -1,6 +1,6 @@
 "use client";
 
-import { TRPCClientError } from "@trpc/client";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import {
   CheckCircle2,
   Clock3,
@@ -15,7 +15,8 @@ import type {
   ActionExecutionStatus,
   ActionHistoryEntryDto,
 } from "~/shared/types/action-history";
-import { api } from "~/trpc/react";
+import type { PaginatedResponse } from "~/shared/types/pagination";
+import { getJson, isRestApiError } from "~/lib/rest-client";
 
 const PAGE_SIZE = 5;
 
@@ -67,19 +68,25 @@ const displayUser = (entry: ActionHistoryEntryDto): string => {
   return info.id ?? "unknown";
 };
 
-const isUnauthorizedTrpcError = (error: unknown): boolean => {
-  if (!(error instanceof TRPCClientError)) {
-    return false;
-  }
-  const maybeData = (error as { data?: unknown }).data;
-  if (!maybeData || typeof maybeData !== "object") {
-    return false;
-  }
-  const code = (maybeData as { code?: unknown }).code;
-  if (typeof code !== "string") {
-    return false;
-  }
-  return code === "UNAUTHORIZED";
+const ACTION_HISTORY_ENDPOINT = "/api/v1/action-history";
+const DEFAULT_SORT = "-createdAt";
+
+const fetchActionHistoryPage = async (
+  page: number,
+  pageSize: number,
+): Promise<PaginatedResponse<ActionHistoryEntryDto>> => {
+  const params = new URLSearchParams({
+    page: String(page),
+    pageSize: String(pageSize),
+    sortBy: DEFAULT_SORT,
+  });
+  return getJson<PaginatedResponse<ActionHistoryEntryDto>>(
+    `${ACTION_HISTORY_ENDPOINT}?${params.toString()}`,
+  );
+};
+
+const isUnauthorizedRestError = (error: unknown): boolean => {
+  return isRestApiError(error) && error.status === 401;
 };
 
 function EmptyState({
@@ -109,29 +116,37 @@ export function ActionHistoryLog() {
     fetchNextPage,
     hasNextPage,
     error,
-  } = api.actionHistory.current.useInfiniteQuery(
-    { limit: PAGE_SIZE },
-    {
-      getNextPageParam: (lastPage) =>
-        lastPage.hasMore ? (lastPage.nextCursor ?? undefined) : undefined,
-      refetchOnWindowFocus: false,
-      staleTime: 10_000,
-      retry: (failureCount, err) => {
-        if (isUnauthorizedTrpcError(err)) {
-          return false;
-        }
-        return failureCount < 2;
-      },
+  } = useInfiniteQuery<PaginatedResponse<ActionHistoryEntryDto>>({
+    queryKey: ["action-history", PAGE_SIZE, DEFAULT_SORT],
+    initialPageParam: 1,
+    queryFn: async ({ pageParam }) => {
+      const targetPage =
+        typeof pageParam === "number" && Number.isFinite(pageParam)
+          ? pageParam
+          : 1;
+      return fetchActionHistoryPage(targetPage, PAGE_SIZE);
     },
-  );
+    getNextPageParam: (lastPage) =>
+      lastPage.pagination.hasNextPage
+        ? lastPage.pagination.page + 1
+        : undefined,
+    refetchOnWindowFocus: false,
+    staleTime: 10_000,
+    retry: (failureCount, err) => {
+      if (isUnauthorizedRestError(err)) {
+        return false;
+      }
+      return failureCount < 2;
+    },
+  });
 
-  const unauthorized = isUnauthorizedTrpcError(error);
+  const unauthorized = isUnauthorizedRestError(error);
 
   const rawEntries = useMemo(() => {
     if (unauthorized) {
       return [];
     }
-    return data?.pages.flatMap((page) => page.items) ?? [];
+    return data?.pages.flatMap((page) => page.data) ?? [];
   }, [data, unauthorized]);
 
   const entries = useMemo(() => {
