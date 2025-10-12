@@ -4,7 +4,7 @@ Follow this playbook whenever you introduce a new create POST endpoint so it mir
 
 ## Shared Contracts
 
-- Define the input schema under `src/shared/schemas/<entity>.ts` using Zod. Trim and validate strings (`z.string().trim().min(1, { error: "…" })`) so both transport layers enforce identical rules (see `src/shared/schemas/release-version.ts`).
+- Define the input schema under `src/shared/schemas/<entity>.ts` using Zod. Trim and validate strings (`z.string().trim().min(1, { message: "…" })`) so both transport layers enforce identical rules (see `src/shared/schemas/release-version.ts`).
 - Export the corresponding DTO from `src/shared/types/<entity>.ts` to describe the success payload returned by services, routers, and clients.
 - If the endpoint needs reusable error codes, document them beside the schema or in shared `RestError` helpers so clients can map them consistently.
 - Update `docs/api/openapi.yaml` to add or adjust the POST path. Mirror the release version definition: request body referencing the shared Zod schema and a `201` response returning the DTO.
