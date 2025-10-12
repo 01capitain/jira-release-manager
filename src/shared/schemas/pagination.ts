@@ -15,6 +15,11 @@ export function createPaginatedRequestSchema<TSortBy extends string>(
     defaultPageSize?: number;
     defaultSortBy?: TSortBy | `-${TSortBy}`;
     maxPageSize?: number;
+    descriptions?: {
+      page?: string;
+      pageSize?: string;
+      sortBy?: string;
+    };
   },
 ) {
   if (sortFields.length === 0) {
@@ -39,6 +44,7 @@ export function createPaginatedRequestSchema<TSortBy extends string>(
   const defaultPage = options?.defaultPage ?? 1;
   const defaultPageSize = options?.defaultPageSize ?? 10;
   const maxPageSize = options?.maxPageSize ?? 20;
+  const descriptions = options?.descriptions ?? {};
 
   /**
    * Creates a Zod schema for paginated requests.
@@ -48,14 +54,22 @@ export function createPaginatedRequestSchema<TSortBy extends string>(
    */
   return z
     .object({
-      page: positiveInt.optional(),
-      pageSize: positiveInt.optional(),
+      page: positiveInt
+        .optional()
+        .describe(descriptions.page ?? "Requested Page number"),
+      pageSize: positiveInt
+        .optional()
+        .describe(descriptions.pageSize ?? "Number of items per page"),
       sortBy: z
         .string()
         .default(defaultSort)
         .refine((v) => allowedSorts.has(v), {
           message: `sortBy must be one of: ${Array.from(allowedSorts).join(", ")}`,
-        }),
+        })
+        .describe(
+          descriptions.sortBy ??
+            `Sort field. Use "-" prefix for descending order. Allowed values: ${Array.from(allowedSorts).join(", ")}`,
+        ),
     })
     .transform((value): NormalizedPaginatedRequest<TSortBy> => {
       const rawPageSize = value.pageSize ?? defaultPageSize;
