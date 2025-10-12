@@ -93,7 +93,7 @@ describe("Auth REST workflow", () => {
 
   describe("POST /api/auth/logout", () => {
     it("returns 204 when logout succeeds", async () => {
-      signOutMock.mockResolvedValueOnce();
+      signOutMock.mockResolvedValueOnce(undefined);
 
       const request = new Request("http://test/api/auth/logout", {
         method: "POST",
