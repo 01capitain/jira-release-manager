@@ -86,7 +86,7 @@ describe("Auth REST workflow", () => {
       const payload = (await response.json()) as Record<string, unknown>;
 
       expect(response.status).toBe(400);
-      expect(payload.error).toBe("PROVIDER_UNAVAILABLE");
+      expect(payload.error).toBe("INVALID_PROVIDER");
       expect(signInMock).not.toHaveBeenCalled();
     });
   });

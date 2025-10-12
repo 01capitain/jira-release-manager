@@ -41,19 +41,12 @@ export type PaginationBehaviorOptions<TItem, TSortBy extends string> = {
  * Registers a suite of reusable pagination behavior tests.
  * Validates pagination boundaries, limit enforcement, max page size clamping,
  * and all valid sort options.
- * 
+ *
  * @template TItem - The type of items in the paginated response
  * @template TSortBy - Union type of allowed sort field names
  * @param options - Configuration for the test suite
  * @throws {Error} If sortFields array is empty
  */
-export const registerPaginationBehaviorTests = <TItem, TSortBy extends string>(
-  options: PaginationBehaviorOptions<TItem, TSortBy>,
-  // …
-) => {
-  // implementation…
-};
-
 export const registerPaginationBehaviorTests = <TItem, TSortBy extends string>(
   options: PaginationBehaviorOptions<TItem, TSortBy>,
 ) => {
@@ -66,6 +59,12 @@ export const registerPaginationBehaviorTests = <TItem, TSortBy extends string>(
     maxPageSize,
     assertSorted,
   } = options;
+
+  if (scenario.totalItems < 0 || scenario.pageSize <= 0) {
+    throw new Error(
+      "Invalid scenario: totalItems must be >= 0 and pageSize must be > 0",
+    );
+  }
 
   const [defaultSort] = sortFields;
   if (!defaultSort) {

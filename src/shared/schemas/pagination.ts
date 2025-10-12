@@ -40,6 +40,13 @@ export function createPaginatedRequestSchema<TSortBy extends string>(
   const defaultPageSize = options?.defaultPageSize ?? 10;
   const maxPageSize = options?.maxPageSize ?? 20;
 
+  /**
+   * Creates a Zod schema for paginated requests.
+   *
+   * @remarks
+   * - pageSize takes precedence over pagesize (case-insensitive alias)
+   * - Final pageSize is clamped to maxPageSize
+   */
   return z
     .object({
       page: positiveInt.optional(),

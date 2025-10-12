@@ -79,3 +79,23 @@ export const postJson = async <TInput, TResponse>(
     ...init,
   });
 };
+
+export const getJson = async <TResponse>(
+  url: string,
+  init?: Omit<RequestInit, "method" | "body">,
+): Promise<TResponse> => {
+  return requestJson<TResponse>(url, {
+    method: "GET",
+    ...init,
+  });
+};
+
+export const getListJson = async <TResponse>(
+  url: string,
+  init?: Omit<RequestInit, "method" | "body">,
+): Promise<TResponse[]> => {
+  return requestJson<TResponse[]>(url, {
+    method: "GET",
+    ...init,
+  });
+};
