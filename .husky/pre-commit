@@ -30,26 +30,34 @@ for staged_file in $staged_files; do
 done
 IFS=$old_ifs
 
+should_run_lint_staged=false
+
+if $has_ts || $has_js || $has_prisma; then
+  should_run_lint_staged=true
+fi
+
 run_step() {
-  local cmd="$1"
+  local exec_cmd="$1"
   local description="$2"
+  local label="$3"
+  local warn_on_changes="${4:-false}"
 
   # Print initial line (two-space indent)
   printf "    ➤ %s...\r" "$description"
 
-  if pnpm run "$cmd" >/dev/null 2>&1; then
+  if sh -c "$exec_cmd" >/dev/null 2>&1; then
     # Clear line, then print success
-    printf "\033[2K\r    ☑️ %s run and passed\n" "$cmd"
+    printf "\033[2K\r    ☑️ %s run and passed\n" "$label"
 
     # Check if there are modifications to warn about
-    if [ "$cmd" = "lint:fix" ] || [ "$cmd" = "format:write" ]; then
+    if [ "$warn_on_changes" = "true" ]; then
       if [ -n "$(git diff --name-only)" ]; then
         printf "    ⚠️  Some files were modified. Review and stage them before committing again.\n"
       fi
     fi
   else
     # Clear line, then print failure
-    printf "\033[2K\r    ❌ %s failed. Run manually:\n    pnpm run %s\n" "$cmd" "$cmd"
+    printf "\033[2K\r    ❌ %s failed. Run manually:\n    %s\n" "$label" "$exec_cmd"
     exit 1
   fi
 }
@@ -63,28 +71,24 @@ skip_step() {
 any_checks_run=false
 
 if $has_openapi; then
-  run_step "openapi:check" "Checking OpenAPI spec"
+  run_step "pnpm run openapi:check" "Checking OpenAPI spec" "openapi:check"
   any_checks_run=true
 else
   skip_step "openapi:check" "no OpenAPI spec changes"
 fi
 
+if $should_run_lint_staged; then
+  run_step "pnpm lint-staged" "Running lint-staged checks" "lint-staged" "true"
+  any_checks_run=true
+else
+  skip_step "lint-staged" "no matching staged files"
+fi
+
 if $has_ts || $has_js; then
-  run_step "typecheck" "Running typecheck"
-  run_step "lint:fix" "Linting and fixing files before commit"
-  run_step "format:write" "Formatting files before commit"
+  run_step "pnpm run typecheck" "Running typecheck" "typecheck"
   any_checks_run=true
 else
   skip_step "typecheck" "no TS/JS changes"
-  skip_step "lint:fix" "no TS/JS changes"
-  skip_step "format:write" "no TS/JS changes"
-fi
-
-if $has_prisma; then
-  run_step "db:lint" "Linting Prisma schema"
-  any_checks_run=true
-else
-  skip_step "db:lint" "no Prisma schema changes"
 fi
 
 if ! $any_checks_run; then

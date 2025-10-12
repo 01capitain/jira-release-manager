@@ -5,8 +5,7 @@
   "type": "module",
   "scripts": {
     "env:check": "node scripts/check-node.mjs",
-    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,mdx}\" --cache",
-    "format:write": "prettier --write \"**/*.{ts,tsx,js,jsx,mdx}\" --cache",
+    "prettier:check": "prettier --check \"**/*.{ts,tsx,js,jsx,mdx}\" --cache",
     "preinstall": "node scripts/check-node.mjs",
     "postinstall": "prisma generate",
     "build": "next build",
