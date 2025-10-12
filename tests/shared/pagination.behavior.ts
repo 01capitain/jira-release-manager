@@ -118,5 +118,15 @@ export const registerPaginationBehaviorTests = <TItem, TSortBy extends string>(
         }
       }
     });
+    test("handles out-of-bounds page requests", async () => {
+      const params = normalizeParams({
+        page: 9999,
+        pageSize: scenario.pageSize,
+        sortBy: `-${defaultSort}` as const,
+      });
+      const page = await makeRequest(params);
+      expect(page.data).toHaveLength(0);
+      expect(page.pagination.hasNextPage).toBe(false);
+    });
   });
 };

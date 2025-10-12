@@ -37,8 +37,8 @@ export function createPaginatedRequestSchema<TSortBy extends string>(
   }
 
   const defaultPage = options?.defaultPage ?? 1;
-  const defaultPageSize = options?.defaultPageSize ?? 20;
-  const maxPageSize = options?.maxPageSize ?? Infinity;
+  const defaultPageSize = options?.defaultPageSize ?? 10;
+  const maxPageSize = options?.maxPageSize ?? 20;
 
   return z
     .object({
@@ -61,8 +61,7 @@ export function createPaginatedRequestSchema<TSortBy extends string>(
       }
     })
     .transform((value): NormalizedPaginatedRequest<TSortBy> => {
-      const rawPageSize =
-        value.pageSize ?? value.pagesize ?? defaultPageSize ?? 20;
+      const rawPageSize = value.pageSize ?? value.pagesize ?? defaultPageSize;
       const pageSize = Math.min(rawPageSize, maxPageSize);
       return {
         page: value.page ?? defaultPage,
