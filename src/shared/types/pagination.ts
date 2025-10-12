@@ -1,7 +1,6 @@
 export type PaginatedRequest<TSortBy extends string> = {
   page?: number;
   pageSize?: number;
-  pagesize?: number;
   sortBy?: TSortBy | `-${TSortBy}`;
 };
 

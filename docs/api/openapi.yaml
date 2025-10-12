@@ -28,12 +28,6 @@ paths:
             minimum: 1
             maximum: 9007199254740991
         - in: query
-          name: pagesize
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 9007199254740991
-        - in: query
           name: sortBy
           schema:
             type: string

@@ -50,7 +50,7 @@ This guide explains how to add a new domain entity so that server and client sta
 
 ## Pagination, caching, and refresh policy
 
-- Pagination: use the shared `PaginatedRequest<TSort>` / `NormalizedPaginatedRequest<TSort>` types from `src/shared/types/pagination.ts`. Parse inbound params with `createPaginatedRequestSchema(sortFields, { defaultSortBy, maxPageSize })` so every endpoint enforces defaults (`page = 1`, `pageSize = 9` unless overridden), accepts the `pagesize` alias, and clamps the requested limit.
+- Pagination: use the shared `PaginatedRequest<TSort>` / `NormalizedPaginatedRequest<TSort>` types from `src/shared/types/pagination.ts`. Parse inbound params with `createPaginatedRequestSchema(sortFields, { defaultSortBy, maxPageSize })` so every endpoint enforces defaults (`page = 1`, `pageSize = 9` unless overridden) and clamps the requested limit.
 - Responses: wrap list payloads in `PaginatedResponse<T>` via `buildPaginatedResponse` (or the equivalent helper) so all endpoints return the same `pagination` block (`page`, `pageSize`, `totalItems`, `hasNextPage`).
 - Caching: use React Query with `staleTime: Infinity` so previously fetched pages are reused when navigating away and back.
 - Refresh behavior: the Refresh action always navigates to page 1 and refetches page 1 only. It does not refetch other pages.

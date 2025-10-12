@@ -44,14 +44,12 @@ export function createPaginatedRequestSchema<TSortBy extends string>(
    * Creates a Zod schema for paginated requests.
    *
    * @remarks
-   * - pageSize takes precedence over pagesize (case-insensitive alias)
    * - Final pageSize is clamped to maxPageSize
    */
   return z
     .object({
       page: positiveInt.optional(),
       pageSize: positiveInt.optional(),
-      pagesize: positiveInt.optional(),
       sortBy: z.string().optional(),
     })
     .superRefine((value, ctx) => {
@@ -68,7 +66,7 @@ export function createPaginatedRequestSchema<TSortBy extends string>(
       }
     })
     .transform((value): NormalizedPaginatedRequest<TSortBy> => {
-      const rawPageSize = value.pageSize ?? value.pagesize ?? defaultPageSize;
+      const rawPageSize = value.pageSize ?? defaultPageSize;
       const pageSize = Math.min(rawPageSize, maxPageSize);
       return {
         page: value.page ?? defaultPage,
