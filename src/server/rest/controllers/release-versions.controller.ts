@@ -52,6 +52,7 @@ export const listReleaseVersions = async (
   context: RestContext,
   query: ReleaseVersionListQuery,
 ) => {
+  ensureAuthenticated(context);
   const svc = new ReleaseVersionService(context.db);
   return svc.list(query);
 };
@@ -60,6 +61,7 @@ export const getReleaseVersion = async (
   context: RestContext,
   releaseId: string,
 ) => {
+  ensureAuthenticated(context);
   const svc = new ReleaseVersionService(context.db);
   return svc.getById(releaseId);
 };
