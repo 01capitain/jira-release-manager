@@ -13,16 +13,45 @@ type NormalizeParams<TSortBy extends string> = (
   input: Partial<PaginatedRequest<TSortBy>>,
 ) => NormalizedPaginatedRequest<TSortBy>;
 
+/**
+ * Configuration options for generating reusable pagination behavior tests.
+ * @template TItem - The type of items in the paginated response
+ * @template TSortBy - Union type of allowed sort field names
+ */
 export type PaginationBehaviorOptions<TItem, TSortBy extends string> = {
+  /** Name for the test suite (used in describe()) */
   suiteName: string;
+  /** Test scenario defining the dataset size and page size */
   scenario: PaginationScenario;
+  /** Maximum allowed page size for clamping validation */
   maxPageSize: number;
+  /** Array of valid sort field names (at least one required) */
   sortFields: readonly TSortBy[];
+  /** Function to fetch a page of data with normalized params */
   makeRequest: (
     params: NormalizedPaginatedRequest<TSortBy>,
   ) => Promise<PaginatedResponse<TItem>>;
+  /** Function to normalize partial pagination params */
   normalizeParams: NormalizeParams<TSortBy>;
+  /** Optional function to assert correct sort order of results */
   assertSorted?: (items: TItem[], sortBy: TSortBy | `-${TSortBy}`) => void;
+};
+
+/**
+ * Registers a suite of reusable pagination behavior tests.
+ * Validates pagination boundaries, limit enforcement, max page size clamping,
+ * and all valid sort options.
+ * 
+ * @template TItem - The type of items in the paginated response
+ * @template TSortBy - Union type of allowed sort field names
+ * @param options - Configuration for the test suite
+ * @throws {Error} If sortFields array is empty
+ */
+export const registerPaginationBehaviorTests = <TItem, TSortBy extends string>(
+  options: PaginationBehaviorOptions<TItem, TSortBy>,
+  // …
+) => {
+  // implementation…
 };
 
 export const registerPaginationBehaviorTests = <TItem, TSortBy extends string>(
