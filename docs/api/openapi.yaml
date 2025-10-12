@@ -1040,17 +1040,31 @@ paths:
         - Action History
       parameters:
         - in: query
-          name: limit
+          name: page
           schema:
+            description: Requested Page number
             type: integer
             minimum: 1
-            maximum: 200
+            maximum: 9007199254740991
+          description: Requested Page number
         - in: query
-          name: cursor
+          name: pageSize
           schema:
+            description: Number of items per page
+            type: integer
+            minimum: 1
+            maximum: 9007199254740991
+          description: Number of items per page
+        - in: query
+          name: sortBy
+          schema:
+            description: Sort field. Use "-" prefix for descending order.
+            default: -createdAt
             type: string
-            format: uuid
-            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$
+            enum:
+              - createdAt
+              - -createdAt
+          description: Sort field. Use "-" prefix for descending order.
       responses:
         "200":
           description: Action history page
@@ -1059,7 +1073,7 @@ paths:
               schema:
                 type: object
                 properties:
-                  items:
+                  data:
                     type: array
                     items:
                       type: object
@@ -1141,19 +1155,39 @@ paths:
                         - createdBy
                         - subactions
                       additionalProperties: false
-                  nextCursor:
-                    anyOf:
-                      - type: string
-                        format: uuid
-                        pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$
-                      - type: "null"
-                  hasMore:
-                    type: boolean
+                  pagination:
+                    type: object
+                    properties:
+                      page:
+                        type: integer
+                        minimum: 1
+                        maximum: 9007199254740991
+                      pageSize:
+                        type: integer
+                        minimum: 1
+                        maximum: 9007199254740991
+                      totalItems:
+                        type: integer
+                        minimum: 0
+                        maximum: 9007199254740991
+                      hasNextPage:
+                        type: boolean
+                    required:
+                      - page
+                      - pageSize
+                      - totalItems
+                      - hasNextPage
+                    additionalProperties: false
                 required:
-                  - items
-                  - nextCursor
-                  - hasMore
+                  - data
+                  - pagination
                 additionalProperties: false
+        "400":
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestError"
         "401":
           description: Authentication required
           content:

@@ -1,23 +1,20 @@
-import { z } from "zod";
+import { type z } from "zod";
 
+import { ActionHistoryListInputSchema } from "~/server/api/schemas";
 import { ActionHistoryService } from "~/server/services/action-history.service";
 import { ActionHistoryEntryDtoSchema } from "~/server/zod/dto/action-history.dto";
 import type { RestContext } from "~/server/rest/context";
 import { ensureAuthenticated } from "~/server/rest/auth";
 import { jsonErrorResponse } from "~/server/rest/openapi";
+import { createPaginatedResponseSchema } from "~/shared/schemas/pagination";
 
-export const ActionHistoryQuerySchema = z.object({
-  limit: z.coerce.number().int().min(1).max(200).optional(),
-  cursor: z.uuidv7().optional(),
-});
+export const ActionHistoryQuerySchema = ActionHistoryListInputSchema;
 
-export type ActionHistoryQuery = z.infer<typeof ActionHistoryQuerySchema>;
+export type ActionHistoryQuery = z.infer<typeof ActionHistoryListInputSchema>;
 
-export const ActionHistoryListResponseSchema = z.object({
-  items: z.array(ActionHistoryEntryDtoSchema),
-  nextCursor: z.uuidv7().nullable(),
-  hasMore: z.boolean(),
-});
+export const ActionHistoryListResponseSchema = createPaginatedResponseSchema(
+  ActionHistoryEntryDtoSchema,
+);
 
 export const listActionHistory = async (
   context: RestContext,
@@ -25,10 +22,8 @@ export const listActionHistory = async (
 ) => {
   const svc = new ActionHistoryService(context.db);
   const userId = ensureAuthenticated(context);
-  const limit = query.limit ?? 50;
-  const cursor = query.cursor ?? null;
   const sessionToken = context.sessionToken ?? null;
-  return svc.listBySession(sessionToken, userId, limit, cursor);
+  return svc.listBySession(sessionToken, userId, query);
 };
 
 export const actionHistoryPaths = {
@@ -49,6 +44,7 @@ export const actionHistoryPaths = {
             },
           },
         },
+        400: jsonErrorResponse("Invalid query parameters"),
         401: jsonErrorResponse("Authentication required"),
       },
     },

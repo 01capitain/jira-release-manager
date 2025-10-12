@@ -82,12 +82,27 @@ export type JiraFetchVersionsInput = z.infer<
 
 export const JiraVerifyConnectionSchema = JiraCredentialsSchema;
 
-export const ActionHistoryListInputSchema = z
-  .object({
-    limit: z.number().int().min(1).max(200).optional(),
-    cursor: z.uuidv7({ error: "Invalid action history cursor" }).optional(),
-  })
-  .optional();
+export const ACTION_HISTORY_SORT_FIELDS = ["createdAt"] as const;
+
+export type ActionHistorySortableField =
+  (typeof ACTION_HISTORY_SORT_FIELDS)[number];
+
+export const DEFAULT_ACTION_HISTORY_LIST_INPUT: NormalizedPaginatedRequest<ActionHistorySortableField> =
+  {
+    page: 1,
+    pageSize: 5,
+    sortBy: "-createdAt",
+  };
+
+export const ActionHistoryListInputSchema = createPaginatedRequestSchema(
+  ACTION_HISTORY_SORT_FIELDS,
+  {
+    defaultPage: DEFAULT_ACTION_HISTORY_LIST_INPUT.page,
+    defaultPageSize: DEFAULT_ACTION_HISTORY_LIST_INPUT.pageSize,
+    defaultSortBy: DEFAULT_ACTION_HISTORY_LIST_INPUT.sortBy,
+    maxPageSize: 50,
+  },
+);
 
 export type ActionHistoryListInput = z.infer<
   typeof ActionHistoryListInputSchema
