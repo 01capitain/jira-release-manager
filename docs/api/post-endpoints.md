@@ -34,7 +34,7 @@ REST handlers are now the default transport for create operations. Always comple
 - Validate form input on the client with the same shared schema (e.g., `ReleaseVersionCreateSchema.safeParse`) to provide immediate feedback before firing the request.
 - Wrap the POST call with `postJson` from `src/lib/rest-client.ts`, which handles headers and converts non-2xx responses into `RestApiError`.
 - Use React Query `useMutation` helpers (`src/app/versions/releases/api.ts`) to expose a typed mutation hook that returns the shared DTO and surfaces `RestApiError` instances for UI error states.
-- After a successful mutation, invalidate any cached queries that depend on the created entity. The release creation flow calls `utils.builtVersion.listReleasesWithBuilds.invalidate()` to refresh accordions.
+- After a successful mutation, invalidate any cached queries that depend on the created entity. For React Query, call `queryClient.invalidateQueries({ queryKey: ['releaseVersions', 'list'] })` (adjust the key to your app) to refresh views.
 
 ## Testing Expectations
 
