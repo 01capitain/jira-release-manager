@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "~/components/ui/card";
 import { api } from "~/trpc/react";
 import type { BuiltVersionAction } from "~/shared/types/built-version-status";
@@ -17,6 +18,10 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { ScrollArea } from "~/components/ui/scroll-area";
 import { Modal } from "~/components/ui/modal";
 import { colorClasses } from "~/shared/ui/color-classes";
+import {
+  prefetchReleaseComponents,
+  useReleaseComponentsQuery,
+} from "../../components/api";
 
 export default function BuiltVersionCard({
   id,
@@ -27,6 +32,7 @@ export default function BuiltVersionCard({
   name: string;
   createdAt?: string;
 }) {
+  const queryClient = useQueryClient();
   const [entered, setEntered] = React.useState(false);
   const [hydrated, setHydrated] = React.useState(false);
   React.useEffect(() => {
@@ -118,23 +124,23 @@ export default function BuiltVersionCard({
     submitting ||
     startDeploymentRaw.isPending ||
     createSuccessorBuilt.isPending;
-  const { data: componentsData } = api.releaseComponent.list.useQuery(
-    undefined,
-    {
-      enabled: false, // enabled only when entering selection mode
-    },
-  );
+  const { data: releaseComponentsPage } = useReleaseComponentsQuery({
+    enabled: false,
+  });
   const defaultSel = api.builtVersion.defaultSelection.useQuery(
     { builtVersionId: id },
     { enabled: selecting },
+  );
+  const releaseComponents = React.useMemo(
+    () => releaseComponentsPage?.items ?? [],
+    [releaseComponentsPage],
   );
 
   // Color classes imported from shared util to ensure visual parity
   React.useEffect(() => {
     if (!selecting) return;
-    // Lazy enable fetch when selection starts
-    void utils.releaseComponent.list.fetch();
-  }, [selecting, utils.releaseComponent.list]);
+    void prefetchReleaseComponents(queryClient);
+  }, [selecting, queryClient]);
   React.useEffect(() => {
     if (!selecting) return;
     const ids = defaultSel.data?.selectedReleaseComponentIds;
@@ -146,10 +152,10 @@ export default function BuiltVersionCard({
   React.useEffect(() => {
     if (!selecting) return;
     if ((selectedIds?.length ?? 0) > 0) return;
-    if (componentsData && componentsData.length > 0) {
-      setSelectedIds(componentsData.map((c) => c.id));
+    if (releaseComponents.length > 0) {
+      setSelectedIds(releaseComponents.map((c) => c.id));
     }
-  }, [selecting, componentsData, selectedIds]);
+  }, [selecting, releaseComponents, selectedIds]);
 
   const mutationByAction = {
     cancelDeployment: cancelDeployment.mutateAsync,
@@ -340,13 +346,13 @@ export default function BuiltVersionCard({
         <div className="space-y-4">
           <div className="text-sm font-medium">Components</div>
           <ScrollArea className="relative h-60 rounded border border-neutral-200 p-2 dark:border-neutral-800">
-            {(componentsData?.length ?? 0) === 0 ? (
+            {releaseComponents.length === 0 ? (
               <div className="p-2 text-sm text-amber-700 dark:text-amber-400">
                 No components available. Create release components first.
               </div>
             ) : (
               <div className="flex flex-col items-start gap-2 p-1">
-                {(componentsData ?? []).map((c) => {
+                {releaseComponents.map((c) => {
                   const isSelected = selectedIds.includes(c.id);
                   const palette = colorClasses(c.color ?? "neutral");
                   const cls = [
