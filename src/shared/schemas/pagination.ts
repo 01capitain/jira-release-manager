@@ -61,14 +61,14 @@ export function createPaginatedRequestSchema<TSortBy extends string>(
         .optional()
         .describe(descriptions.pageSize ?? "Number of items per page"),
       sortBy: z
-        .string()
+        .enum(Array.from(allowedSorts))
         .default(defaultSort)
         .refine((v) => allowedSorts.has(v), {
           message: `sortBy must be one of: ${Array.from(allowedSorts).join(", ")}`,
         })
         .describe(
           descriptions.sortBy ??
-            `Sort field. Use "-" prefix for descending order. Allowed values: ${Array.from(allowedSorts).join(", ")}`,
+            `Sort field. Use "-" prefix for descending order.}`,
         ),
     })
     .transform((value): NormalizedPaginatedRequest<TSortBy> => {

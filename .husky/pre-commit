@@ -6,7 +6,7 @@ echo "➤ Running pre-commit checks..."
 has_ts=false
 has_js=false
 has_prisma=false
-has_openapi=false
+has_openapi=true
 
 staged_files=$(git diff --cached --name-only)
 old_ifs=$IFS
@@ -22,9 +22,6 @@ for staged_file in $staged_files; do
       ;;
     prisma/*)
       has_prisma=true
-      ;;
-    docs/api/openapi.yaml)
-      has_openapi=true
       ;;
   esac
 done

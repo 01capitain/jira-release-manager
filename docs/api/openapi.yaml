@@ -18,19 +18,31 @@ paths:
         - in: query
           name: page
           schema:
+            description: Requested Page number
             type: integer
             minimum: 1
             maximum: 9007199254740991
+          description: Requested Page number
         - in: query
           name: pageSize
           schema:
+            description: Number of items per page
             type: integer
             minimum: 1
             maximum: 9007199254740991
+          description: Number of items per page
         - in: query
           name: sortBy
           schema:
+            description: Sort field. Use "-" prefix for descending order.}
+            default: -createdAt
             type: string
+            enum:
+              - createdAt
+              - name
+              - -createdAt
+              - -name
+          description: Sort field. Use "-" prefix for descending order.}
       responses:
         "200":
           description: Release versions page
