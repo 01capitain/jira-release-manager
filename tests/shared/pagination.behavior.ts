@@ -100,13 +100,15 @@ export const registerPaginationBehaviorTests = <TItem, TSortBy extends string>(
         sortBy: firstParams.sortBy,
       });
       const secondPage = await makeRequest(secondParams);
-      const expectedSecondLength = Math.max(
-        scenario.totalItems - scenario.pageSize,
-        0,
+      // Remaining items after first page, capped by pageSize
+      const expectedSecondLength = Math.min(
+        Math.max(scenario.totalItems - scenario.pageSize, 0),
+        scenario.pageSize,
       );
       expect(secondPage.pagination.page).toBe(2);
       expect(secondPage.data).toHaveLength(expectedSecondLength);
-      expect(secondPage.pagination.hasNextPage).toBe(false);
+      const expectedHasNextSecond = scenario.totalItems > scenario.pageSize * 2;
+      expect(secondPage.pagination.hasNextPage).toBe(expectedHasNextSecond);
     });
 
     test("respects explicit limits", async () => {

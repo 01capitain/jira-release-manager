@@ -50,20 +50,12 @@ export function createPaginatedRequestSchema<TSortBy extends string>(
     .object({
       page: positiveInt.optional(),
       pageSize: positiveInt.optional(),
-      sortBy: z.string().optional(),
-    })
-    .superRefine((value, ctx) => {
-      const candidate = value.sortBy ?? defaultSort;
-      if (!allowedSorts.has(candidate)) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: `sortBy must be one of: ${Array.from(allowedSorts).join(
-            ", ",
-          )}`,
-          path: ["sortBy"],
-          fatal: true,
-        });
-      }
+      sortBy: z
+        .string()
+        .default(defaultSort)
+        .refine((v) => allowedSorts.has(v), {
+          message: `sortBy must be one of: ${Array.from(allowedSorts).join(", ")}`,
+        }),
     })
     .transform((value): NormalizedPaginatedRequest<TSortBy> => {
       const rawPageSize = value.pageSize ?? defaultPageSize;
@@ -71,7 +63,7 @@ export function createPaginatedRequestSchema<TSortBy extends string>(
       return {
         page: value.page ?? defaultPage,
         pageSize,
-        sortBy: (value.sortBy ?? defaultSort) as TSortBy | `-${TSortBy}`,
+        sortBy: value.sortBy as TSortBy | `-${TSortBy}`,
       };
     });
 }
