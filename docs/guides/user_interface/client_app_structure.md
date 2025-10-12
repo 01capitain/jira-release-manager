@@ -27,8 +27,9 @@ This project uses Next.js App Router with tRPC and shared schemas/types. This gu
 
 ## Data Fetching
 
-- Use `api.<router>.<procedure>.useQuery()` and `.useMutation()` from `~/trpc/react` inside client components.
-- Keep optimistic updates localized by invalidating or setting query data via `api.useUtils()`.
+- Use `api.<router>.<procedure>.useQuery()` / `.useMutation()` from `~/trpc/react` when a tRPC router exists for the flow.
+- For REST endpoints (e.g., `/api/v1/release-components`), colocate React Query helpers under the route directory (see `src/app/versions/components/api.ts`). Wrap calls with `getJson` / `postJson` from `src/lib/rest-client.ts` so transport errors surface as `RestApiError`.
+- Keep optimistic updates localized by invalidating or updating cached data through React Query (either via `api.useUtils()` for tRPC or `queryClient.setQueryData()` for REST) and follow the page-1 insertion policy from `docs/guides/business_logic/entity_management_policies.md`.
 
 ## Accessibility & Themes
 

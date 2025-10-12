@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { api } from "~/trpc/react";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent } from "~/components/ui/card";
 import { Input } from "~/components/ui/input";
@@ -12,11 +11,15 @@ import {
 } from "~/shared/schemas/release-component";
 import type { ReleaseComponentDto } from "~/shared/types/release-component";
 import { ColorSwatchPicker } from "~/components/ui/color-swatch-picker";
+import {
+  useCreateReleaseComponentMutation,
+  useReleaseComponentsQuery,
+} from "./api";
+import { isRestApiError } from "~/lib/rest-client";
 
 type Phase = "idle" | "loading" | "success";
 
 export default function VersionsComponentsPage() {
-  const utils = api.useUtils();
   const [name, setName] = React.useState("");
   const [pattern, setPattern] = React.useState(
     "{release_version}-{built_version}-{increment}",
@@ -25,8 +28,9 @@ export default function VersionsComponentsPage() {
     React.useState<(typeof AllowedBaseColors)[number]>("blue");
   const [error, setError] = React.useState<string | null>(null);
   const [phase, setPhase] = React.useState<Phase>("idle");
-  const createMutation = api.releaseComponent.create.useMutation();
-  const { data: components } = api.releaseComponent.list.useQuery();
+  const createMutation = useCreateReleaseComponentMutation();
+  const { data: componentsPage } = useReleaseComponentsQuery();
+  const components = componentsPage?.items ?? [];
   const handleColorChange = React.useCallback((nextColor: string) => {
     if (
       AllowedBaseColors.includes(
@@ -57,11 +61,14 @@ export default function VersionsComponentsPage() {
       setName("");
       setPattern("{release_version}-{built_version}-{increment}");
       setColor("blue");
-      await utils.releaseComponent.list.invalidate();
       setPhase("idle");
-    } catch {
+    } catch (err) {
       setPhase("idle");
-      setError("Failed to create component. Please try again.");
+      setError(
+        isRestApiError(err)
+          ? err.message
+          : "Failed to create component. Please try again.",
+      );
     }
   }
 
@@ -137,7 +144,7 @@ export default function VersionsComponentsPage() {
       </Card>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
-        {(components ?? []).map((c: ReleaseComponentDto) => (
+        {components.map((c: ReleaseComponentDto) => (
           <Card key={c.id}>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">

@@ -1,20 +1,25 @@
 "use client";
 
 import * as React from "react";
-import { api } from "~/trpc/react";
 import { colorClasses } from "~/shared/ui/color-classes";
+import { api } from "~/trpc/react";
+import { useReleaseComponentsQuery } from "../../components/api";
 
 export function ComponentVersionLabels({
   builtVersionId,
 }: {
   builtVersionId: string;
 }) {
-  const { data: comps } = api.releaseComponent.list.useQuery();
+  const { data: releaseComponentsPage } = useReleaseComponentsQuery();
+  const comps = React.useMemo(
+    () => releaseComponentsPage?.items ?? [],
+    [releaseComponentsPage],
+  );
 
   // Map componentId -> color
   const colorByComponent = React.useMemo(() => {
     const m = new Map<string, string>();
-    (comps ?? []).forEach((c) => m.set(c.id, c.color));
+    comps.forEach((c) => m.set(c.id, c.color));
     return m;
   }, [comps]);
 

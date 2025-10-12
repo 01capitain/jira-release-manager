@@ -1,6 +1,6 @@
 # Entity Management Policies
 
-This guide explains how to add a new domain entity so that server and client stay in sync across transport layers (tRPC today, potential REST later), while keeping a single place of truth for validation and exposed fields.
+This guide explains how to add a new domain entity so that server and client stay in sync across transport layers (tRPC and REST), while keeping a single place of truth for validation and exposed fields.
 
 ## Goals
 
