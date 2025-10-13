@@ -4,20 +4,29 @@ import * as React from "react";
 import Link from "next/link";
 import { Button } from "~/components/ui/button";
 import { Label } from "~/components/ui/label";
-import { api, type RouterOutputs } from "~/trpc/react";
 import { Pagination } from "~/components/ui/pagination";
 import { useAuthSession } from "~/hooks/use-auth-session";
 import { useDiscordLogin } from "~/hooks/use-discord-login";
 import { toast } from "~/lib/toast";
+import { useJiraSetupStatusQuery } from "~/app/jira-settings/api";
+import {
+  storedVersionsQueryKey,
+  useStoredVersionsQuery,
+  useSyncStoredVersionsMutation,
+} from "~/app/jira-settings/releases/api";
+import type { JiraStoredVersion } from "~/app/jira-settings/releases/api";
+import {
+  fetchReleaseVersions,
+  releaseVersionListQueryKey,
+} from "~/app/versions/releases/api";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import type { ReleaseVersionDto } from "~/shared/types/release-version";
+import type { PaginatedResponse } from "~/shared/types/pagination";
 
-type StoredVersionsResponse = RouterOutputs["jira"]["listStoredVersions"];
-type StoredVersion = StoredVersionsResponse["items"][number];
-type ReleaseVersionsResponse = RouterOutputs["releaseVersion"]["list"];
-type ReleaseVersionItem = ReleaseVersionsResponse["data"][number];
+type StoredVersion = JiraStoredVersion;
+type ReleaseVersionItem = ReleaseVersionDto;
 
-const formatReleaseDate = (
-  value: StoredVersion["releaseDate"] | string,
-): string | null => {
+const formatReleaseDate = (value: unknown): string | null => {
   if (value instanceof Date) {
     return value.toISOString().slice(0, 10);
   }
@@ -39,32 +48,32 @@ export default function JiraReleasesPage() {
   const { login, isLoggingIn, error: loginError } = useDiscordLogin();
   // No auto-sync query; syncing happens only on explicit action
 
-  const releases = api.releaseVersion.list.useQuery({ page: 1, pageSize: 100 });
-  const canSyncQuick = api.jira.canSyncQuick.useQuery(undefined, {
-    enabled: !!session,
+  const queryClient = useQueryClient();
+  const releases = useQuery<PaginatedResponse<ReleaseVersionDto>>({
+    queryKey: releaseVersionListQueryKey({ page: 1, pageSize: 100 }),
+    queryFn: () => fetchReleaseVersions({ page: 1, pageSize: 100 }),
   });
+  const canSyncQuick = useJiraSetupStatusQuery({ enabled: !!session });
   const [page, setPage] = React.useState(1);
   const pageSize = 50;
-  const listStored = api.jira.listStoredVersions.useQuery({
-    page,
-    pageSize,
-    includeReleased,
-    includeUnreleased,
-    includeArchived,
-  });
-  const sync = api.jira.syncVersions.useMutation({
-    onSuccess: async () => {
-      await listStored.refetch();
-    },
-  });
+  const storedQueryParams = React.useMemo(
+    () => ({
+      page,
+      pageSize,
+      includeReleased,
+      includeUnreleased,
+      includeArchived,
+    }),
+    [page, pageSize, includeReleased, includeUnreleased, includeArchived],
+  );
+  const listStored = useStoredVersionsQuery(storedQueryParams);
+  const sync = useSyncStoredVersionsMutation();
 
   const storedData = listStored.data;
-  const storedItems: StoredVersion[] = storedData?.items
-    ? [...storedData.items]
-    : [];
-  const releaseItems: ReleaseVersionItem[] = releases.data?.data
-    ? [...releases.data.data]
-    : [];
+  const storedItems = storedData?.items ?? ([] as StoredVersion[]);
+  const releaseData: PaginatedResponse<ReleaseVersionDto> | undefined =
+    releases.data;
+  const releaseItems = releaseData?.data ?? ([] as ReleaseVersionItem[]);
   const hasStoredItems = storedItems.length > 0;
 
   // No connection check here beyond presence; handled by canSyncQuick query
@@ -161,14 +170,18 @@ export default function JiraReleasesPage() {
               </Button>
             </fieldset>
             <Button
-              onClick={() =>
-                void sync.mutateAsync({
+              onClick={async () => {
+                await sync.mutateAsync({
                   includeArchived,
                   includeReleased,
                   includeUnreleased,
                   pageSize,
-                })
-              }
+                });
+                await queryClient.invalidateQueries({
+                  queryKey: storedVersionsQueryKey(storedQueryParams),
+                });
+                await listStored.refetch();
+              }}
               disabled={!session || sync.isPending}
               aria-label="Sync releases from Jira"
               title="Sync releases from Jira"

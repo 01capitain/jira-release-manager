@@ -10,9 +10,9 @@ import { cn } from "~/lib/utils";
 import { GlowingEffect } from "~/components/ui/glowing-effect";
 import { useAuthSession } from "~/hooks/use-auth-session";
 import { useDiscordLogin } from "~/hooks/use-discord-login";
-import { api } from "~/trpc/react";
 import { BuiltVersionCreateSchema } from "~/shared/schemas/built-version";
 import type { BuiltVersionDto } from "~/shared/types/built-version";
+import { useCreateBuiltVersionMutation } from "../api";
 
 type Phase = "idle" | "loading" | "success";
 
@@ -25,7 +25,7 @@ export default function AddBuiltVersionCard({
 }) {
   const { status } = useAuthSession();
   const { login, isLoggingIn, error: loginError } = useDiscordLogin();
-  const createMutation = api.builtVersion.create.useMutation();
+  const createMutation = useCreateBuiltVersionMutation();
   const [open, setOpen] = React.useState(false);
   const [name, setName] = React.useState("");
   const [phase, setPhase] = React.useState<Phase>("idle");
@@ -65,9 +65,13 @@ export default function AddBuiltVersionCard({
         reset();
       }, 700);
       timersRef.current.push(t);
-    } catch {
+    } catch (err) {
       setPhase("idle");
-      setError("Failed to create built version. Please try again.");
+      const message =
+        err instanceof Error
+          ? err.message
+          : "Failed to create built version. Please try again.";
+      setError(message || "Failed to create built version. Please try again.");
     }
   }
 
@@ -98,10 +102,7 @@ export default function AddBuiltVersionCard({
                 You need to be signed in to add a built version.
               </div>
               <div className="flex gap-3">
-                <Button
-                  disabled={isLoggingIn}
-                  onClick={() => login()}
-                >
+                <Button disabled={isLoggingIn} onClick={() => login()}>
                   {isLoggingIn ? "Redirecting…" : "Log in with Discord"}
                 </Button>
               </div>

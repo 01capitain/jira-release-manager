@@ -10,6 +10,9 @@ import { builtVersionPaths } from "../src/server/rest/controllers/built-version-
 import { releaseComponentPaths } from "../src/server/rest/controllers/release-components.controller";
 import { releaseVersionPaths } from "../src/server/rest/controllers/release-versions.controller";
 import { userPaths } from "../src/server/rest/controllers/users.controller";
+import { builtVersionManagementPaths } from "../src/server/rest/controllers/built-versions.controller";
+import { jiraSetupPaths } from "../src/server/rest/controllers/jira-setup.controller";
+import { jiraReleasesPaths } from "../src/server/rest/controllers/jira-releases.controller";
 
 const isCheck = process.argv.includes("--check");
 
@@ -22,6 +25,9 @@ const paths = {
   ...releaseComponentPaths,
   ...builtVersionPaths,
   ...actionHistoryPaths,
+  ...builtVersionManagementPaths,
+  ...jiraSetupPaths,
+  ...jiraReleasesPaths,
   ...userPaths,
   // TypeScript rejects a direct cast because zod-openapi's types rely on zod/v4
   // internals and mutable arrays, while our controllers export readonly arrays

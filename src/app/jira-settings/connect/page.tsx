@@ -4,20 +4,26 @@ import * as React from "react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
-import { api } from "~/trpc/react";
 import { CheckCircle, AlertCircle } from "lucide-react";
 import { useAuthSession } from "~/hooks/use-auth-session";
 import { useDiscordLogin } from "~/hooks/use-discord-login";
+import {
+  jiraStatusQueryKey,
+  useJiraConfigQuery,
+  useJiraCredentialsQuery,
+  useSaveJiraCredentialsMutation,
+  useVerifyJiraConnectionMutation,
+} from "~/app/jira-settings/api";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function JiraConnectPage() {
   const { data: session } = useAuthSession();
   const { login, isLoggingIn, error: loginError } = useDiscordLogin();
-  const cfg = api.jira.getConfig.useQuery();
-  const cred = api.jira.getCredentials.useQuery(undefined, {
-    enabled: !!session,
-  });
-  const save = api.jira.saveCredentials.useMutation();
-  const verify = api.jira.verifyConnection.useMutation();
+  const queryClient = useQueryClient();
+  const cfg = useJiraConfigQuery();
+  const cred = useJiraCredentialsQuery({ enabled: !!session });
+  const save = useSaveJiraCredentialsMutation();
+  const verify = useVerifyJiraConnectionMutation();
 
   const [email, setEmail] = React.useState("");
   const [token, setToken] = React.useState("");
@@ -41,6 +47,12 @@ export default function JiraConnectPage() {
       };
       if (trimmedToken.length > 0) payload.apiToken = trimmedToken;
       await save.mutateAsync(payload);
+      if (session) {
+        await Promise.all([
+          cred.refetch(),
+          queryClient.invalidateQueries({ queryKey: jiraStatusQueryKey }),
+        ]);
+      }
       setStatus({
         kind: "success",
         text: "Saved. Token stored securely and not shown.",
@@ -69,7 +81,7 @@ export default function JiraConnectPage() {
           text: `Connection verified (${who}).`,
         });
       } else {
-        const reason = res.bodyText || res.statusText || `HTTP ${res.status}`;
+        const reason = res.bodyText ?? res.statusText ?? `HTTP ${res.status}`;
         setVerifyStatus({ kind: "error", text: String(reason).slice(0, 800) });
       }
     } catch (err) {
@@ -78,6 +90,7 @@ export default function JiraConnectPage() {
     }
     // After a connection try, de-emphasize Verify back to secondary
     setVerifyPrimary(false);
+    await queryClient.invalidateQueries({ queryKey: jiraStatusQueryKey });
   }
 
   // Auto-dismiss success messages after a short timeout
@@ -108,10 +121,7 @@ export default function JiraConnectPage() {
         <div className="mt-4 rounded-md border border-neutral-300 bg-neutral-50 p-3 text-sm dark:border-neutral-700 dark:bg-neutral-900">
           Please sign in to configure your Jira credentials.
           <div className="mt-2">
-            <Button
-              disabled={isLoggingIn}
-              onClick={() => login()}
-            >
+            <Button disabled={isLoggingIn} onClick={() => login()}>
               {isLoggingIn ? "Redirecting…" : "Sign in with Discord"}
             </Button>
           </div>

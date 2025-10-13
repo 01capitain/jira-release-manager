@@ -57,7 +57,7 @@ Also specify the schema when a new enum is defined.
 
 ## Timestamps: Public API Type
 
-When exposing timestamps to clients (via tRPC/REST), use the shared `ISO8601` type:
+When exposing timestamps to clients, use the shared `ISO8601` type:
 
 - Type location: `src/shared/types/iso8601.ts`
 - Format: strict UTC ISO 8601 ending with `Z` (e.g., `2025-01-01T12:34:56.000Z`)

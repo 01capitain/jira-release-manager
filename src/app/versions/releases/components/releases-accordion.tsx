@@ -1,10 +1,11 @@
 "use client";
 
 import * as React from "react";
-import { api } from "~/trpc/react";
 import type { ReleaseVersionWithBuildsDto } from "~/shared/types/release-version-with-builds";
 import BuiltVersionCard from "../../builds/components/built-version-card";
 import { ChevronDown } from "lucide-react";
+import { useBuiltVersionStatusQuery } from "../../builds/api";
+import { useReleasesWithBuildsQuery } from "../api";
 
 function LatestActiveTag({
   builtVersionIds,
@@ -16,24 +17,36 @@ function LatestActiveTag({
   // Query at most the first 5 builds for status to find the latest active,
   // but keep hook count/order stable across renders to satisfy the Rules of Hooks.
   const NIL_UUID = "00000000-0000-0000-0000-000000000000";
-  const slots = [0, 1, 2, 3, 4] as const;
-  const queries = slots.map((i) =>
-    api.builtVersion.getStatus.useQuery(
-      { builtVersionId: builtVersionIds[i] ?? NIL_UUID },
-      {
-        staleTime: Infinity,
-        enabled: builtVersionIds[i] !== undefined,
-      },
-    ),
-  );
+  const q0 = useBuiltVersionStatusQuery(builtVersionIds[0] ?? NIL_UUID, {
+    staleTime: Infinity,
+    enabled: builtVersionIds[0] !== undefined,
+  });
+  const q1 = useBuiltVersionStatusQuery(builtVersionIds[1] ?? NIL_UUID, {
+    staleTime: Infinity,
+    enabled: builtVersionIds[1] !== undefined,
+  });
+  const q2 = useBuiltVersionStatusQuery(builtVersionIds[2] ?? NIL_UUID, {
+    staleTime: Infinity,
+    enabled: builtVersionIds[2] !== undefined,
+  });
+  const q3 = useBuiltVersionStatusQuery(builtVersionIds[3] ?? NIL_UUID, {
+    staleTime: Infinity,
+    enabled: builtVersionIds[3] !== undefined,
+  });
+  const q4 = useBuiltVersionStatusQuery(builtVersionIds[4] ?? NIL_UUID, {
+    staleTime: Infinity,
+    enabled: builtVersionIds[4] !== undefined,
+  });
+  const queries = [q0, q1, q2, q3, q4];
 
-  const activeIdx = React.useMemo(() => {
+  const activeIdx = (() => {
     for (let i = 0; i < queries.length; i++) {
-      const status = queries[i]?.data?.status;
-      if (status === "active") return i;
+      if (queries[i]?.data?.status === "active") {
+        return i;
+      }
     }
     return -1;
-  }, [queries]);
+  })();
 
   if (activeIdx < 0) return null;
   const name = builtVersionNames[activeIdx]!;
@@ -68,15 +81,10 @@ export default function ReleasesAccordion() {
     [],
   );
 
-  const { data, isFetching } = api.builtVersion.listReleasesWithBuilds.useQuery(
-    undefined,
-    {
-      staleTime: Infinity,
-      gcTime: 5 * 60 * 1000,
-      refetchOnWindowFocus: false,
-      placeholderData: () => (hydrated ? readCache() : undefined),
-    },
-  );
+  const { data, isFetching } = useReleasesWithBuildsQuery({
+    enabled: true,
+    placeholderData: () => (hydrated ? readCache() : undefined),
+  });
 
   React.useEffect(() => {
     if (data) writeCache(data);
@@ -119,6 +127,7 @@ export default function ReleasesAccordion() {
                     id={b.id}
                     name={b.name}
                     createdAt={b.createdAt}
+                    releaseId={rel.id}
                   />
                 ))}
                 {hydrated && isFetching && (

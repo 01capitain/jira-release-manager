@@ -17,6 +17,7 @@ import {
   createPaginatedResponseSchema,
 } from "~/shared/schemas/pagination";
 import { ReleaseVersionCreateSchema } from "~/shared/schemas/release-version";
+import type { ReleaseVersionWithBuildsDto } from "~/shared/types/release-version-with-builds";
 
 export { ReleaseVersionCreateSchema } from "~/shared/schemas/release-version";
 
@@ -41,6 +42,8 @@ export const ReleaseVersionListResponseSchema = createPaginatedResponseSchema(
 export const ReleaseVersionDetailSchema = ReleaseVersionDtoSchema.extend({
   builtVersions: z.array(BuiltVersionDtoSchema),
 });
+
+export const ReleaseVersionWithBuildsSchema = ReleaseVersionDetailSchema;
 
 export const ReleaseVersionIdParamSchema = z.object({
   releaseId: z.uuidv7(),
@@ -99,6 +102,14 @@ export const createReleaseVersion = async (
     });
     throw error;
   }
+};
+
+export const listReleaseVersionsWithBuilds = async (
+  context: RestContext,
+): Promise<ReleaseVersionWithBuildsDto[]> => {
+  const svc = new ReleaseVersionService(context.db);
+  const rows = await svc.listWithBuilds();
+  return z.array(ReleaseVersionWithBuildsSchema).parse(rows);
 };
 
 export const releaseVersionPaths = {
@@ -167,6 +178,23 @@ export const releaseVersionPaths = {
           },
         },
         404: jsonErrorResponse("Release not found"),
+      },
+    },
+  },
+  "/release-versions/with-builds": {
+    get: {
+      operationId: "listReleaseVersionsWithBuilds",
+      summary: "List release versions with attached builds",
+      tags: ["Release Versions"],
+      responses: {
+        200: {
+          description: "Release versions with builds",
+          content: {
+            "application/json": {
+              schema: z.array(ReleaseVersionWithBuildsSchema),
+            },
+          },
+        },
       },
     },
   },

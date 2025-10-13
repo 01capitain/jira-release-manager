@@ -1,6 +1,6 @@
 # API Contracts and Token Values
 
-- API endpoints (tRPC, REST) return DTOs from `src/shared/types`. This ensures the same contract is reused across clients.
+- API endpoints return DTOs from `src/shared/types`. This ensures the same contract is reused across clients.
 - List endpoints return `PaginatedResponse<T>` (see `src/shared/types/pagination.ts`) so every response includes `data` alongside `pagination { page, pageSize, totalItems, hasNextPage }`. Use `createPaginatedRequestSchema` to normalize inputs and `buildPaginatedResponse` to hydrate responses.
 - For build and component versioning, we store a `tokenValues` JSON object alongside records. Shape is defined by `TokenValues`:
 

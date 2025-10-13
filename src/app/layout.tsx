@@ -4,9 +4,9 @@ import "sonner/dist/styles.css";
 import { type Metadata } from "next";
 import { Geist } from "next/font/google";
 
-import { TRPCReactProvider } from "~/trpc/react";
 import { ThemeProvider } from "~/components/theme/theme-provider";
 import { AppShell } from "~/components/layout/app-shell";
+import { ReactQueryProvider } from "~/components/providers/react-query-provider";
 
 export const metadata: Metadata = {
   title: "Create T3 App",
@@ -25,11 +25,11 @@ export default function RootLayout({
   return (
     <html lang="en" className={geist.variable} suppressHydrationWarning>
       <body className="min-h-screen bg-neutral-900 text-neutral-900 antialiased dark:bg-neutral-950 dark:text-neutral-100">
-        <TRPCReactProvider>
+        <ReactQueryProvider>
           <ThemeProvider>
             <AppShell>{children}</AppShell>
           </ThemeProvider>
-        </TRPCReactProvider>
+        </ReactQueryProvider>
       </body>
     </html>
   );

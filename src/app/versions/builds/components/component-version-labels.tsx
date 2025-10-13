@@ -2,8 +2,8 @@
 
 import * as React from "react";
 import { colorClasses } from "~/shared/ui/color-classes";
-import { api } from "~/trpc/react";
 import { useReleaseComponentsQuery } from "../../components/api";
+import { useComponentVersionsByBuiltQuery } from "../api";
 
 export function ComponentVersionLabels({
   builtVersionId,
@@ -23,9 +23,7 @@ export function ComponentVersionLabels({
     return m;
   }, [comps]);
 
-  const { data, isLoading } = api.componentVersion.listByBuilt.useQuery({
-    builtVersionId,
-  });
+  const { data, isLoading } = useComponentVersionsByBuiltQuery(builtVersionId);
   const versions = data ?? [];
 
   if (!isLoading && versions.length === 0) {
