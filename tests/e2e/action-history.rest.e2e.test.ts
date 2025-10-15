@@ -189,6 +189,25 @@ describe("GET /api/v1/action-history", () => {
     jest.clearAllMocks();
     clearActionRecords();
     authMock.mockReset();
+    globalThis.__createRestContextMock = async (req: NextRequest) => {
+      const cookieHeader = req.headers.get("cookie") ?? "";
+      const sessionToken =
+        cookieHeader
+          .split(";")
+          .map((entry: string) => entry.trim())
+          .find((entry: string) => entry.startsWith("next-auth.session-token="))
+          ?.split("=")[1] ?? null;
+      return {
+        db: mockDb,
+        session: await authMock(),
+        sessionToken,
+        headers: req.headers,
+      };
+    };
+  });
+
+  afterEach(() => {
+    globalThis.__createRestContextMock = undefined;
   });
 
   it("returns paginated action history for an authenticated session", async () => {
@@ -376,3 +395,22 @@ describe("GET /api/v1/action-history", () => {
     ).not.toHaveBeenCalled();
   });
 });
+declare global {
+  var __createRestContextMock:
+    | ((req: NextRequest) => Promise<{
+        db: Record<string, unknown>;
+        session: Session | null;
+        sessionToken: string | null;
+        headers: Headers;
+      }>)
+    | undefined;
+}
+
+jest.mock("~/server/rest/context", () => ({
+  createRestContext: jest.fn(async (req: NextRequest) => {
+    if (typeof globalThis.__createRestContextMock !== "function") {
+      throw new Error("createRestContext mock not initialized");
+    }
+    return globalThis.__createRestContextMock(req);
+  }),
+}));

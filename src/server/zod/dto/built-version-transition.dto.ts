@@ -34,17 +34,19 @@ export function toBuiltVersionTransitionDto(
     createdAt: true,
     createdById: true,
   }).parse(model);
-  const dto: BuiltVersionTransitionDto = {
+  const raw = {
     id: parsed.id,
     builtVersionId: parsed.builtVersionId,
-    fromStatus: parsed.fromStatus as BuiltVersionTransitionDto["fromStatus"],
-    toStatus: parsed.toStatus as BuiltVersionTransitionDto["toStatus"],
-    action: parsed.action as BuiltVersionTransitionDto["action"],
+    fromStatus: parsed.fromStatus,
+    toStatus: parsed.toStatus,
+    action: parsed.action,
     createdAt:
       parsed.createdAt.toISOString() as BuiltVersionTransitionDto["createdAt"],
     createdById: parsed.createdById,
   };
-  return BuiltVersionTransitionDtoSchema.parse(dto);
+  return BuiltVersionTransitionDtoSchema.parse(
+    raw,
+  ) as BuiltVersionTransitionDto;
 }
 
 export function mapToBuiltVersionTransitionDtos(

@@ -22,7 +22,6 @@ paths:
             type: integer
             minimum: 1
             maximum: 9007199254740991
-          description: Requested Page number
         - in: query
           name: pageSize
           schema:
@@ -30,33 +29,33 @@ paths:
             type: integer
             minimum: 1
             maximum: 9007199254740991
-          description: Number of items per page
         - in: query
           name: sortBy
           schema:
             description: Sort field. Use "-" prefix for descending order.
-            default: -createdAt
             type: string
             enum:
               - createdAt
               - name
               - -createdAt
               - -name
-          description: Sort field. Use "-" prefix for descending order.
         - in: query
           name: relations
-          description: |
-            Optional relation keys to include. Repeat the parameter or supply comma-separated values.
-            Nested options (builtVersions.deployedComponents, builtVersions.transitions) must also specify `builtVersions`.
           schema:
+            description: Optional relation keys to include in the response. Repeat the query
+              param or pass a comma-separated string. Nested options
+              (builtVersions.deployedComponents, builtVersions.transitions) must
+              be accompanied by their parent relation.
             type: array
             items:
               type: string
               enum:
                 - creater
                 - builtVersions
-          style: form
-          explode: true
+          description: Optional relation keys to include in the response. Repeat the query
+            param or pass a comma-separated string. Nested options
+            (builtVersions.deployedComponents, builtVersions.transitions) must
+            be accompanied by their parent relation.
       responses:
         "200":
           description: Release versions page
@@ -82,11 +81,13 @@ paths:
                             id:
                               type: string
                             name:
-                              type: string
-                              nullable: true
+                              anyOf:
+                                - type: string
+                                - type: "null"
                             email:
-                              type: string
-                              nullable: true
+                              anyOf:
+                                - type: string
+                                - type: "null"
                           required:
                             - id
                             - name
@@ -120,6 +121,8 @@ paths:
                                       type: string
                                     increment:
                                       type: integer
+                                      minimum: 0
+                                      maximum: 9007199254740991
                                     createdAt:
                                       $ref: "#/components/schemas/iso8601Timestamp"
                                   required:
@@ -145,13 +148,6 @@ paths:
                                       type: string
                                     action:
                                       type: string
-                                      enum:
-                                        - start_deployment
-                                        - cancel_deployment
-                                        - mark_active
-                                        - revert_to_deployment
-                                        - deprecate
-                                        - reactivate
                                     createdAt:
                                       $ref: "#/components/schemas/iso8601Timestamp"
                                     createdById:
@@ -279,18 +275,21 @@ paths:
           required: true
         - in: query
           name: relations
-          description: |
-            Optional relation keys to include. Repeat the parameter or supply comma-separated values.
-            Nested options (builtVersions.deployedComponents, builtVersions.transitions) must also specify `builtVersions`.
           schema:
+            description: Optional relation keys to include in the response. Repeat the query
+              param or pass a comma-separated string. Nested options
+              (builtVersions.deployedComponents, builtVersions.transitions) must
+              be accompanied by their parent relation.
             type: array
             items:
               type: string
               enum:
                 - creater
                 - builtVersions
-          style: form
-          explode: true
+          description: Optional relation keys to include in the response. Repeat the query
+            param or pass a comma-separated string. Nested options
+            (builtVersions.deployedComponents, builtVersions.transitions) must
+            be accompanied by their parent relation.
       responses:
         "200":
           description: Release version
@@ -311,11 +310,13 @@ paths:
                       id:
                         type: string
                       name:
-                        type: string
-                        nullable: true
+                        anyOf:
+                          - type: string
+                          - type: "null"
                       email:
-                        type: string
-                        nullable: true
+                        anyOf:
+                          - type: string
+                          - type: "null"
                     required:
                       - id
                       - name
@@ -349,6 +350,8 @@ paths:
                                 type: string
                               increment:
                                 type: integer
+                                minimum: 0
+                                maximum: 9007199254740991
                               createdAt:
                                 $ref: "#/components/schemas/iso8601Timestamp"
                             required:
@@ -374,13 +377,6 @@ paths:
                                 type: string
                               action:
                                 type: string
-                                enum:
-                                  - start_deployment
-                                  - cancel_deployment
-                                  - mark_active
-                                  - revert_to_deployment
-                                  - deprecate
-                                  - reactivate
                               createdAt:
                                 $ref: "#/components/schemas/iso8601Timestamp"
                               createdById:

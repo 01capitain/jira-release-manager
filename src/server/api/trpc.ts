@@ -119,7 +119,7 @@ export const createTRPCContext = async (opts: { headers: Headers }) => {
  */
 const t = initTRPC.context<typeof createTRPCContext>().create({
   transformer: superjson,
-  errorFormatter({ shape, error }) {
+  errorFormatter({ shape, error }: { shape: any; error: any }) {
     return {
       ...shape,
       data: {
@@ -158,22 +158,24 @@ export const createTRPCRouter = t.router;
  * You can remove this if you don't like it, but it can help catch unwanted waterfalls by simulating
  * network latency that would occur in production but not in local development.
  */
-const timingMiddleware = t.middleware(async ({ next, path }) => {
-  const start = Date.now();
+const timingMiddleware = t.middleware(
+  async ({ next, path }: { next: () => Promise<any>; path: string }) => {
+    const start = Date.now();
 
-  if (t._config.isDev) {
-    // artificial delay in dev
-    const waitMs = Math.floor(Math.random() * 400) + 100;
-    await new Promise((resolve) => setTimeout(resolve, waitMs));
-  }
+    if (process.env.NODE_ENV !== "production") {
+      // artificial delay in dev
+      const waitMs = Math.floor(Math.random() * 400) + 100;
+      await new Promise((resolve) => setTimeout(resolve, waitMs));
+    }
 
-  const result = await next();
+    const result = await next();
 
-  const end = Date.now();
-  console.log(`[TRPC] ${path} took ${end - start}ms to execute`);
+    const end = Date.now();
+    console.log(`[TRPC] ${path} took ${end - start}ms to execute`);
 
-  return result;
-});
+    return result;
+  },
+);
 
 /**
  * Public (unauthenticated) procedure
@@ -194,7 +196,7 @@ export const publicProcedure = t.procedure.use(timingMiddleware);
  */
 export const protectedProcedure = t.procedure
   .use(timingMiddleware)
-  .use(({ ctx, next }) => {
+  .use(({ ctx, next }: { ctx: any; next: (opts?: any) => Promise<any> }) => {
     const session = ctx.session;
     if (!session?.user) {
       throw new TRPCError({ code: "UNAUTHORIZED" });

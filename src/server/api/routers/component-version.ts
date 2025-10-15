@@ -6,8 +6,16 @@ import { ComponentVersionService } from "~/server/services/component-version.ser
 export const componentVersionRouter = createTRPCRouter({
   listByBuilt: publicProcedure
     .input(ComponentVersionListByBuiltSchema)
-    .query(async ({ ctx, input }): Promise<ComponentVersionDto[]> => {
-      const svc = new ComponentVersionService(ctx.db);
-      return svc.listByBuilt(input.builtVersionId);
-    }),
+    .query(
+      async ({
+        ctx,
+        input,
+      }: {
+        ctx: any;
+        input: { builtVersionId: string };
+      }): Promise<ComponentVersionDto[]> => {
+        const svc = new ComponentVersionService(ctx.db);
+        return svc.listByBuilt(input.builtVersionId);
+      },
+    ),
 });

@@ -3,6 +3,8 @@
 import * as React from "react";
 import { colorClasses } from "~/shared/ui/color-classes";
 import { api } from "~/trpc/react";
+import type { ComponentVersionDto } from "~/shared/types/component-version";
+import type { ReleaseComponentDto } from "~/shared/types/release-component";
 import { useReleaseComponentsQuery } from "../../components/api";
 
 export function ComponentVersionLabels({
@@ -11,7 +13,7 @@ export function ComponentVersionLabels({
   builtVersionId: string;
 }) {
   const { data: releaseComponentsPage } = useReleaseComponentsQuery();
-  const comps = React.useMemo(
+  const comps = React.useMemo<ReleaseComponentDto[]>(
     () => releaseComponentsPage?.items ?? [],
     [releaseComponentsPage],
   );
@@ -26,7 +28,7 @@ export function ComponentVersionLabels({
   const { data, isLoading } = api.componentVersion.listByBuilt.useQuery({
     builtVersionId,
   });
-  const versions = data ?? [];
+  const versions = (data ?? []) as ComponentVersionDto[];
 
   if (!isLoading && versions.length === 0) {
     return (

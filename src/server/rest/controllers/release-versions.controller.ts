@@ -3,7 +3,7 @@ import { z } from "zod";
 import { ActionHistoryService } from "~/server/services/action-history.service";
 import { ReleaseVersionService } from "~/server/services/release-version.service";
 import {
-  RELEASE_VERSION_RELATION_ALLOW_LIST,
+  RELEASE_VERSION_TOP_LEVEL_RELATIONS,
   validateReleaseVersionRelations,
 } from "~/server/services/release-version.relations";
 import { collectRelationParams } from "~/server/rest/relations";
@@ -43,15 +43,8 @@ export type ReleaseVersionListQuery = z.infer<
   typeof ReleaseVersionListQuerySchema
 >;
 
-const ReleaseVersionTopLevelRelations = RELEASE_VERSION_RELATION_ALLOW_LIST.filter(
-  (key) => !key.includes("."),
-) as ReleaseVersionRelationKey[];
-
 const ReleaseVersionTopLevelRelationEnum = z.enum(
-  ReleaseVersionTopLevelRelations as [
-    ReleaseVersionRelationKey,
-    ...ReleaseVersionRelationKey[],
-  ],
+  RELEASE_VERSION_TOP_LEVEL_RELATIONS,
 );
 
 const ReleaseVersionRelationsDocSchema = z.object({
@@ -73,11 +66,12 @@ const BuiltVersionWithRelationsSchema = BuiltVersionDtoSchema.extend({
   transitions: z.array(BuiltVersionTransitionDtoSchema).optional(),
 });
 
-export const ReleaseVersionWithRelationsSchema =
-  ReleaseVersionDtoSchema.extend({
+export const ReleaseVersionWithRelationsSchema = ReleaseVersionDtoSchema.extend(
+  {
     creater: UserSummaryDtoSchema.optional(),
     builtVersions: z.array(BuiltVersionWithRelationsSchema).optional(),
-  });
+  },
+);
 
 export const ReleaseVersionListResponseSchema = createPaginatedResponseSchema(
   ReleaseVersionWithRelationsSchema,
@@ -100,12 +94,7 @@ const ReleaseVersionSortEnum = z.enum(ReleaseVersionSortOptions);
 
 export const ReleaseVersionListQueryDocSchema = z
   .object({
-    page: z
-      .number()
-      .int()
-      .min(1)
-      .describe("Requested Page number")
-      .optional(),
+    page: z.number().int().min(1).describe("Requested Page number").optional(),
     pageSize: z
       .number()
       .int()
@@ -113,7 +102,7 @@ export const ReleaseVersionListQueryDocSchema = z
       .describe("Number of items per page")
       .optional(),
     sortBy: ReleaseVersionSortEnum.describe(
-      "Sort field. Use \"-\" prefix for descending order.",
+      'Sort field. Use "-" prefix for descending order.',
     ).optional(),
   })
   .merge(ReleaseVersionRelationsDocSchema);

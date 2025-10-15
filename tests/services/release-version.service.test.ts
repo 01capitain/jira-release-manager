@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-argument */
 import { ReleaseVersionService } from "~/server/services/release-version.service";
 import { BuiltVersionService } from "~/server/services/built-version.service";
 import { BuiltVersionStatusService } from "~/server/services/built-version-status.service";
@@ -255,23 +254,26 @@ describe("ReleaseVersion and BuiltVersion behavior", () => {
         ],
       },
     ]);
-    const findManyCalls =
-      (db.releaseVersion.findMany as jest.Mock).mock
-        .calls as Array<[Record<string, unknown>]>;
+    const findManyCalls = (db.releaseVersion.findMany as jest.Mock).mock
+      .calls as Array<[Record<string, unknown>]>;
     const args = findManyCalls[0]?.[0] ?? {};
-    const include = (args as {
-      include?: {
-        createdBy?: { select?: Record<string, boolean> };
-        builtVersions?: { select?: Record<string, unknown> };
-      };
-    }).include;
+    const include = (
+      args as {
+        include?: {
+          createdBy?: { select?: Record<string, boolean> };
+          builtVersions?: { select?: Record<string, unknown> };
+        };
+      }
+    ).include;
     expect(include?.createdBy?.select).toEqual({
       id: true,
       name: true,
       email: true,
     });
     expect(include?.builtVersions?.select?.componentVersions).toBeDefined();
-    expect(include?.builtVersions?.select?.BuiltVersionTransition).toBeDefined();
+    expect(
+      include?.builtVersions?.select?.BuiltVersionTransition,
+    ).toBeDefined();
   });
 
   test("getById returns relations only when requested", async () => {
@@ -330,13 +332,14 @@ describe("ReleaseVersion and BuiltVersion behavior", () => {
         transitions: [],
       },
     ]);
-    const findUniqueCalls =
-      (db.releaseVersion.findUnique as jest.Mock).mock
-        .calls as Array<[Record<string, unknown>]>;
+    const findUniqueCalls = (db.releaseVersion.findUnique as jest.Mock).mock
+      .calls as Array<[Record<string, unknown>]>;
     const args = findUniqueCalls.at(-1)?.[0] ?? {};
-    const include = (args as {
-      include?: { builtVersions?: { orderBy?: Record<string, unknown> } };
-    }).include;
+    const include = (
+      args as {
+        include?: { builtVersions?: { orderBy?: Record<string, unknown> } };
+      }
+    ).include;
     expect(include?.builtVersions?.orderBy).toEqual({ createdAt: "desc" });
   });
 

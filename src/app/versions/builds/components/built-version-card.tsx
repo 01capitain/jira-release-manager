@@ -4,7 +4,10 @@ import * as React from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "~/components/ui/card";
 import { api } from "~/trpc/react";
-import type { BuiltVersionAction } from "~/shared/types/built-version-status";
+import type {
+  BuiltVersionAction,
+  BuiltVersionStatus,
+} from "~/shared/types/built-version-status";
 import {
   labelForAction,
   targetStatusForAction,
@@ -45,67 +48,63 @@ export default function BuiltVersionCard({
 
   const { data: statusData, isFetching: fetchingStatus } =
     api.builtVersion.getStatus.useQuery({ builtVersionId: id });
-  const currentStatus = statusData?.status ?? "in_development";
+  const currentStatus = (statusData?.status ??
+    "in_development") as BuiltVersionStatus;
   const utils = api.useUtils();
   const handleTransitionSuccess = async () => {
     await utils.builtVersion.getStatus.invalidate({ builtVersionId: id });
+  };
+
+  const formatError = (prefix: string, error: unknown) => {
+    const message = error instanceof Error ? error.message : String(error);
+    setLastMessage(`${prefix}: ${message}`);
+    if (clearTimerRef.current) clearTimeout(clearTimerRef.current);
+    clearTimerRef.current = window.setTimeout(() => setLastMessage(""), 3000);
   };
 
   const cancelDeployment = api.builtVersion.cancelDeployment.useMutation({
     onSuccess: async () => {
       await handleTransitionSuccess();
     },
-    onError: (error) => {
-      setLastMessage(`Failed to cancel deployment: ${error.message}`);
-      if (clearTimerRef.current) clearTimeout(clearTimerRef.current);
-      clearTimerRef.current = window.setTimeout(() => setLastMessage(""), 3000);
+    onError: (error: unknown) => {
+      formatError("Failed to cancel deployment", error);
     },
   });
   const markActive = api.builtVersion.markActive.useMutation({
     onSuccess: async () => {
       await handleTransitionSuccess();
     },
-    onError: (error) => {
-      setLastMessage(`Failed to mark active: ${error.message}`);
-      if (clearTimerRef.current) clearTimeout(clearTimerRef.current);
-      clearTimerRef.current = window.setTimeout(() => setLastMessage(""), 3000);
+    onError: (error: unknown) => {
+      formatError("Failed to mark active", error);
     },
   });
   const revertToDeployment = api.builtVersion.revertToDeployment.useMutation({
     onSuccess: async () => {
       await handleTransitionSuccess();
     },
-    onError: (error) => {
-      setLastMessage(`Failed to revert to deployment: ${error.message}`);
-      if (clearTimerRef.current) clearTimeout(clearTimerRef.current);
-      clearTimerRef.current = window.setTimeout(() => setLastMessage(""), 3000);
+    onError: (error: unknown) => {
+      formatError("Failed to revert to deployment", error);
     },
   });
   const deprecate = api.builtVersion.deprecate.useMutation({
     onSuccess: async () => {
       await handleTransitionSuccess();
     },
-    onError: (error) => {
-      setLastMessage(`Failed to deprecate: ${error.message}`);
-      if (clearTimerRef.current) clearTimeout(clearTimerRef.current);
-      clearTimerRef.current = window.setTimeout(() => setLastMessage(""), 3000);
+    onError: (error: unknown) => {
+      formatError("Failed to deprecate", error);
     },
   });
   const reactivate = api.builtVersion.reactivate.useMutation({
     onSuccess: async () => {
       await handleTransitionSuccess();
     },
-    onError: (error) => {
-      setLastMessage(`Failed to reactivate: ${error.message}`);
-      if (clearTimerRef.current) clearTimeout(clearTimerRef.current);
-      clearTimerRef.current = window.setTimeout(() => setLastMessage(""), 3000);
+    onError: (error: unknown) => {
+      formatError("Failed to reactivate", error);
     },
   });
   const startDeploymentRaw = api.builtVersion.startDeployment.useMutation({
-    onError: (error) => {
-      setLastMessage(`Failed to start deployment: ${error.message}`);
-      if (clearTimerRef.current) clearTimeout(clearTimerRef.current);
-      clearTimerRef.current = window.setTimeout(() => setLastMessage(""), 3000);
+    onError: (error: unknown) => {
+      formatError("Failed to start deployment", error);
     },
   });
   const createSuccessorBuilt =

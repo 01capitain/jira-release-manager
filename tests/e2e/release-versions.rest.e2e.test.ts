@@ -67,7 +67,9 @@ const cloneTransition = (
   record: BuiltVersionTransitionRecord,
 ): BuiltVersionTransitionRecord => ({ ...record });
 
-const cloneBuiltVersionRecord = (record: BuiltVersionRecord): BuiltVersionRecord => ({
+const cloneBuiltVersionRecord = (
+  record: BuiltVersionRecord,
+): BuiltVersionRecord => ({
   ...record,
   componentVersions: record.componentVersions
     ? record.componentVersions.map(cloneComponentVersion)
@@ -397,6 +399,25 @@ describe("Release Versions REST endpoints", () => {
     jest.clearAllMocks();
     clearReleaseRecords();
     authMock.mockReset();
+    globalThis.__createRestContextMock = async (req: NextRequest) => {
+      const cookieHeader = req.headers.get("cookie") ?? "";
+      const sessionToken =
+        cookieHeader
+          .split(";")
+          .map((entry: string) => entry.trim())
+          .find((entry: string) => entry.startsWith("next-auth.session-token="))
+          ?.split("=")[1] ?? null;
+      return {
+        db: mockDb,
+        session: await authMock(),
+        sessionToken,
+        headers: req.headers,
+      };
+    };
+  });
+
+  afterEach(() => {
+    globalThis.__createRestContextMock = undefined;
   });
 
   describe("GET /api/v1/release-versions", () => {
@@ -454,10 +475,8 @@ describe("Release Versions REST endpoints", () => {
         },
       });
       expect(parsed.data[0]).not.toHaveProperty("builtVersions");
-      const findManyCalls = (
-        (mockDb.releaseVersion as { findMany: jest.Mock }).findMany.mock
-          .calls as Array<[Record<string, unknown>]>
-      );
+      const findManyCalls = (mockDb.releaseVersion as { findMany: jest.Mock })
+        .findMany.mock.calls as Array<[Record<string, unknown>]>;
       const args = findManyCalls[0]?.[0] ?? {};
       expect(args).toMatchObject({
         orderBy: { createdAt: "desc" },
@@ -518,7 +537,11 @@ describe("Release Versions REST endpoints", () => {
           id: releaseId,
           name: "Release With Relations",
           createdAt: new Date("2024-06-01T09:00:00.000Z"),
-          createdBy: { id: "user-1", name: "Owner", email: "owner@example.com" },
+          createdBy: {
+            id: "user-1",
+            name: "Owner",
+            email: "owner@example.com",
+          },
           builtVersions: [
             {
               id: builtId,
@@ -573,31 +596,31 @@ describe("Release Versions REST endpoints", () => {
             increment: 0,
           }),
         ],
-        transitions: [
-          expect.objectContaining({ action: "start_deployment" }),
-        ],
+        transitions: [expect.objectContaining({ action: "start_deployment" })],
       });
 
-      const findManyCalls = (
-        (mockDb.releaseVersion as { findMany: jest.Mock }).findMany.mock
-          .calls as Array<[Record<string, unknown>]>
-      );
+      const findManyCalls = (mockDb.releaseVersion as { findMany: jest.Mock })
+        .findMany.mock.calls as Array<[Record<string, unknown>]>;
       const args = findManyCalls[0]?.[0] ?? {};
-      const include = (args as {
-        include?: {
-          createdBy?: { select?: Record<string, boolean> };
-          builtVersions?: {
-            select?: Record<string, unknown>;
+      const include = (
+        args as {
+          include?: {
+            createdBy?: { select?: Record<string, boolean> };
+            builtVersions?: {
+              select?: Record<string, unknown>;
+            };
           };
-        };
-      }).include;
+        }
+      ).include;
       expect(include?.createdBy?.select).toEqual({
         id: true,
         name: true,
         email: true,
       });
       expect(include?.builtVersions?.select?.componentVersions).toBeDefined();
-      expect(include?.builtVersions?.select?.BuiltVersionTransition).toBeDefined();
+      expect(
+        include?.builtVersions?.select?.BuiltVersionTransition,
+      ).toBeDefined();
     });
 
     it("returns 400 when an unknown relation is requested", async () => {
@@ -755,7 +778,11 @@ describe("Release Versions REST endpoints", () => {
           id: releaseId,
           name: "Release Detail Relations",
           createdAt: new Date("2024-05-12T08:00:00.000Z"),
-          createdBy: { id: "user-42", name: "Owner", email: "owner@example.com" },
+          createdBy: {
+            id: "user-42",
+            name: "Owner",
+            email: "owner@example.com",
+          },
           builtVersions: [
             {
               id: builtId,
@@ -810,15 +837,16 @@ describe("Release Versions REST endpoints", () => {
         transitions: [expect.objectContaining({ action: "mark_active" })],
       });
       const findUniqueCalls = (
-        (mockDb.releaseVersion as { findUnique: jest.Mock }).findUnique.mock
-          .calls as Array<[Record<string, unknown>]>
-      );
+        mockDb.releaseVersion as { findUnique: jest.Mock }
+      ).findUnique.mock.calls as Array<[Record<string, unknown>]>;
       const args = findUniqueCalls.at(-1)?.[0] ?? {};
-      const include = (args as {
-        include?: {
-          builtVersions?: { select?: Record<string, unknown> };
-        };
-      }).include;
+      const include = (
+        args as {
+          include?: {
+            builtVersions?: { select?: Record<string, unknown> };
+          };
+        }
+      ).include;
       expect(include?.builtVersions?.select?.componentVersions).toBeDefined();
     });
 
@@ -884,3 +912,22 @@ describe("Release Versions REST endpoints", () => {
     });
   });
 });
+declare global {
+  var __createRestContextMock:
+    | ((req: NextRequest) => Promise<{
+        db: Record<string, unknown>;
+        session: Session | null;
+        sessionToken: string | null;
+        headers: Headers;
+      }>)
+    | undefined;
+}
+
+jest.mock("~/server/rest/context", () => ({
+  createRestContext: jest.fn(async (req: NextRequest) => {
+    if (typeof globalThis.__createRestContextMock !== "function") {
+      throw new Error("createRestContext mock not initialized");
+    }
+    return globalThis.__createRestContextMock(req);
+  }),
+}));

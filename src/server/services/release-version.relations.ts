@@ -1,6 +1,14 @@
 import type { ReleaseVersionRelationKey } from "~/shared/types/release-version-relations";
 
-type ParentMap = Record<ReleaseVersionRelationKey, ReleaseVersionRelationKey | null>;
+const TopLevelRelations = [
+  "creater",
+  "builtVersions",
+] as const satisfies readonly ReleaseVersionRelationKey[];
+
+type ParentMap = Record<
+  ReleaseVersionRelationKey,
+  ReleaseVersionRelationKey | null
+>;
 
 const ParentRelation: ParentMap = {
   creater: null,
@@ -10,8 +18,7 @@ const ParentRelation: ParentMap = {
 };
 
 const AllowedRelations = new Set<ReleaseVersionRelationKey>([
-  "creater",
-  "builtVersions",
+  ...TopLevelRelations,
   "builtVersions.deployedComponents",
   "builtVersions.transitions",
 ]);
@@ -83,3 +90,4 @@ export const buildReleaseVersionRelationState = (
 export const RELEASE_VERSION_RELATION_ALLOW_LIST: ReleaseVersionRelationKey[] =
   Array.from(AllowedRelations);
 
+export const RELEASE_VERSION_TOP_LEVEL_RELATIONS = TopLevelRelations;
