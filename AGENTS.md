@@ -44,3 +44,12 @@ let it run as long as it needs and fix any issues.
 
 All components must support both light and dark mode.
 Use aria-live="polite" only for short, ephemeral status messages (e.g., form submit state). Prefer role="status" with aria-atomic="true"; do not place aria-live on large containers or pages.
+
+# Development process
+
+Your tasks and tone can be defined based of the github issue you work on:
+
+## to-refine github label
+
+If the github issue has the label to-refine do not implement any code.
+Instead refine what needs to be done and make a detailed description of what would need to be implemented. Showcase core principles, draw mermaid diagrams to improve understandability and most important: Follow you instructions given in the [PO role](docs/development-process/po.md)
