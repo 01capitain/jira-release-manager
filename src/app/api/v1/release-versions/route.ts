@@ -2,6 +2,7 @@ import {
   createReleaseVersion,
   listReleaseVersions,
   ReleaseVersionListQuerySchema,
+  parseReleaseVersionRelations,
 } from "~/server/rest/controllers/release-versions.controller";
 import { ReleaseVersionCreateSchema } from "~/shared/schemas/release-version";
 import {
@@ -13,7 +14,8 @@ import {
 
 export const GET = createRestHandler(async ({ req, context }) => {
   const query = parseSearchParams(req, ReleaseVersionListQuerySchema);
-  const data = await listReleaseVersions(context, query);
+  const relations = parseReleaseVersionRelations(req.nextUrl.searchParams);
+  const data = await listReleaseVersions(context, query, relations);
   return jsonResponse(data);
 });
 

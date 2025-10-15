@@ -16,7 +16,9 @@ export function toReleaseVersionDto(model: unknown): ReleaseVersionDto {
     id: true,
     name: true,
     createdAt: true,
-  }).parse(model);
+  })
+    .strip()
+    .parse(model);
   const dto: ReleaseVersionDto = {
     id: parsed.id,
     name: parsed.name,

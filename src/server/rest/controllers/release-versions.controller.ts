@@ -2,8 +2,16 @@ import { z } from "zod";
 
 import { ActionHistoryService } from "~/server/services/action-history.service";
 import { ReleaseVersionService } from "~/server/services/release-version.service";
+import {
+  RELEASE_VERSION_RELATION_ALLOW_LIST,
+  validateReleaseVersionRelations,
+} from "~/server/services/release-version.relations";
+import { collectRelationParams } from "~/server/rest/relations";
 import { BuiltVersionDtoSchema } from "~/server/zod/dto/built-version.dto";
+import { BuiltVersionTransitionDtoSchema } from "~/server/zod/dto/built-version-transition.dto";
+import { ComponentVersionDtoSchema } from "~/server/zod/dto/component-version.dto";
 import { ReleaseVersionDtoSchema } from "~/server/zod/dto/release-version.dto";
+import { UserSummaryDtoSchema } from "~/server/zod/dto/user.dto";
 import type { RestContext } from "~/server/rest/context";
 import { ensureAuthenticated } from "~/server/rest/auth";
 import { RestError } from "~/server/rest/errors";
@@ -12,6 +20,7 @@ import {
   DEFAULT_RELEASE_VERSION_LIST_INPUT,
   RELEASE_VERSION_SORT_FIELDS,
 } from "~/server/api/schemas";
+import type { ReleaseVersionRelationKey } from "~/shared/types/release-version-relations";
 import {
   createPaginatedRequestSchema,
   createPaginatedResponseSchema,
@@ -34,13 +43,47 @@ export type ReleaseVersionListQuery = z.infer<
   typeof ReleaseVersionListQuerySchema
 >;
 
-export const ReleaseVersionListResponseSchema = createPaginatedResponseSchema(
-  ReleaseVersionDtoSchema,
+const ReleaseVersionTopLevelRelations = RELEASE_VERSION_RELATION_ALLOW_LIST.filter(
+  (key) => !key.includes("."),
+) as ReleaseVersionRelationKey[];
+
+const ReleaseVersionTopLevelRelationEnum = z.enum(
+  ReleaseVersionTopLevelRelations as [
+    ReleaseVersionRelationKey,
+    ...ReleaseVersionRelationKey[],
+  ],
 );
 
-export const ReleaseVersionDetailSchema = ReleaseVersionDtoSchema.extend({
-  builtVersions: z.array(BuiltVersionDtoSchema),
+const ReleaseVersionRelationsDocSchema = z.object({
+  relations: z
+    .array(ReleaseVersionTopLevelRelationEnum)
+    .optional()
+    .describe(
+      [
+        "Optional relation keys to include in the response.",
+        "Repeat the query param or pass a comma-separated string.",
+        "Nested options (builtVersions.deployedComponents, builtVersions.transitions)",
+        "must be accompanied by their parent relation.",
+      ].join(" "),
+    ),
 });
+
+const BuiltVersionWithRelationsSchema = BuiltVersionDtoSchema.extend({
+  deployedComponents: z.array(ComponentVersionDtoSchema).optional(),
+  transitions: z.array(BuiltVersionTransitionDtoSchema).optional(),
+});
+
+export const ReleaseVersionWithRelationsSchema =
+  ReleaseVersionDtoSchema.extend({
+    creater: UserSummaryDtoSchema.optional(),
+    builtVersions: z.array(BuiltVersionWithRelationsSchema).optional(),
+  });
+
+export const ReleaseVersionListResponseSchema = createPaginatedResponseSchema(
+  ReleaseVersionWithRelationsSchema,
+);
+
+export const ReleaseVersionDetailSchema = ReleaseVersionWithRelationsSchema;
 
 export const ReleaseVersionIdParamSchema = z.object({
   releaseId: z.uuidv7(),
@@ -48,22 +91,78 @@ export const ReleaseVersionIdParamSchema = z.object({
 
 export const ReleaseVersionCreateResponseSchema = ReleaseVersionDtoSchema;
 
+const ReleaseVersionSortOptions = [
+  ...RELEASE_VERSION_SORT_FIELDS,
+  ...RELEASE_VERSION_SORT_FIELDS.map((field) => `-${field}` as const),
+] as const;
+
+const ReleaseVersionSortEnum = z.enum(ReleaseVersionSortOptions);
+
+export const ReleaseVersionListQueryDocSchema = z
+  .object({
+    page: z
+      .number()
+      .int()
+      .min(1)
+      .describe("Requested Page number")
+      .optional(),
+    pageSize: z
+      .number()
+      .int()
+      .min(1)
+      .describe("Number of items per page")
+      .optional(),
+    sortBy: ReleaseVersionSortEnum.describe(
+      "Sort field. Use \"-\" prefix for descending order.",
+    ).optional(),
+  })
+  .merge(ReleaseVersionRelationsDocSchema);
+
+export const ReleaseVersionRelationsQueryDocSchema =
+  ReleaseVersionRelationsDocSchema;
+
+export const parseReleaseVersionRelations = (
+  searchParams: URLSearchParams,
+): ReleaseVersionRelationKey[] => {
+  const requested = collectRelationParams(searchParams);
+  const { valid, invalid, missingParents } =
+    validateReleaseVersionRelations(requested);
+  if (invalid.length === 0 && missingParents.length === 0) {
+    return valid;
+  }
+  const details: Record<string, unknown> = {};
+  if (invalid.length > 0) {
+    details.invalidRelations = invalid;
+  }
+  if (missingParents.length > 0) {
+    details.missingParentRelations = missingParents;
+  }
+  throw new RestError(
+    400,
+    "INVALID_RELATION",
+    "Invalid relations requested",
+    Object.keys(details).length > 0 ? details : undefined,
+  );
+};
+
 export const listReleaseVersions = async (
   context: RestContext,
   query: ReleaseVersionListQuery,
+  relations: ReleaseVersionRelationKey[] = [],
 ) => {
   ensureAuthenticated(context);
   const svc = new ReleaseVersionService(context.db);
-  return svc.list(query);
+  return svc.list(query, { relations });
 };
 
 export const getReleaseVersion = async (
   context: RestContext,
   releaseId: string,
+  relations: ReleaseVersionRelationKey[] = [],
 ) => {
   ensureAuthenticated(context);
   const svc = new ReleaseVersionService(context.db);
-  return svc.getById(releaseId);
+  return svc.getById(releaseId, { relations });
 };
 
 export const createReleaseVersion = async (
@@ -108,7 +207,7 @@ export const releaseVersionPaths = {
       summary: "List release versions",
       tags: ["Release Versions"],
       requestParams: {
-        query: ReleaseVersionListQuerySchema,
+        query: ReleaseVersionListQueryDocSchema,
       },
       responses: {
         200: {
@@ -119,7 +218,7 @@ export const releaseVersionPaths = {
             },
           },
         },
-        400: jsonErrorResponse("Invalid query parameters"),
+        400: jsonErrorResponse("Invalid query parameters or relations"),
       },
     },
     post: {
@@ -156,6 +255,7 @@ export const releaseVersionPaths = {
       tags: ["Release Versions"],
       requestParams: {
         path: ReleaseVersionIdParamSchema,
+        query: ReleaseVersionRelationsQueryDocSchema,
       },
       responses: {
         200: {
@@ -166,6 +266,7 @@ export const releaseVersionPaths = {
             },
           },
         },
+        400: jsonErrorResponse("Invalid relations"),
         404: jsonErrorResponse("Release not found"),
       },
     },

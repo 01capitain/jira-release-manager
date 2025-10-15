@@ -9,25 +9,150 @@ import type {
   ActionLogger,
   SubactionInput,
 } from "~/server/services/action-history.service";
-import { mapToBuiltVersionDtos } from "~/server/zod/dto/built-version.dto";
 import {
-  mapToReleaseVersionDtos,
-  toReleaseVersionDto,
-} from "~/server/zod/dto/release-version.dto";
+  mapToBuiltVersionDtos,
+  toBuiltVersionDto,
+} from "~/server/zod/dto/built-version.dto";
+import { mapToComponentVersionDtos } from "~/server/zod/dto/component-version.dto";
+import { mapToBuiltVersionTransitionDtos } from "~/server/zod/dto/built-version-transition.dto";
+import { toUserSummaryDto } from "~/server/zod/dto/user.dto";
+import { toReleaseVersionDto } from "~/server/zod/dto/release-version.dto";
 import type { ReleaseVersionDto } from "~/shared/types/release-version";
 import type { ReleaseVersionWithBuildsDto } from "~/shared/types/release-version-with-builds";
+import type {
+  BuiltVersionWithRelationsDto,
+  ReleaseVersionRelationKey,
+  ReleaseVersionWithRelationsDto,
+} from "~/shared/types/release-version-relations";
 import type {
   NormalizedPaginatedRequest,
   PaginatedResponse,
 } from "~/shared/types/pagination";
 import { buildPaginatedResponse } from "~/server/rest/pagination";
+import {
+  buildReleaseVersionRelationState,
+  type ReleaseVersionRelationState,
+} from "~/server/services/release-version.relations";
 
 export class ReleaseVersionService {
   constructor(private readonly db: PrismaClient) {}
 
+  private buildRelationsInclude(
+    state: ReleaseVersionRelationState,
+  ): Prisma.ReleaseVersionInclude | undefined {
+    const include: Prisma.ReleaseVersionInclude = {};
+    if (state.includeCreater) {
+      include.createdBy = {
+        select: { id: true, name: true, email: true },
+      };
+    }
+    if (state.includeBuiltVersions) {
+      const builtSelect: Prisma.BuiltVersionSelect = {
+        id: true,
+        name: true,
+        versionId: true,
+        createdAt: true,
+      };
+      if (state.includeBuiltVersionComponents) {
+        builtSelect.componentVersions = {
+          orderBy: { createdAt: "desc" },
+          select: {
+            id: true,
+            releaseComponentId: true,
+            builtVersionId: true,
+            name: true,
+            increment: true,
+            createdAt: true,
+          },
+        };
+      }
+      if (state.includeBuiltVersionTransitions) {
+        builtSelect.BuiltVersionTransition = {
+          orderBy: { createdAt: "desc" },
+          select: {
+            id: true,
+            builtVersionId: true,
+            fromStatus: true,
+            toStatus: true,
+            action: true,
+            createdAt: true,
+            createdById: true,
+          },
+        };
+      }
+      include.builtVersions = {
+        orderBy: { createdAt: "desc" },
+        select: builtSelect,
+      };
+    }
+    return Object.keys(include).length > 0 ? include : undefined;
+  }
+
+  private mapBuiltVersion(
+    row: unknown,
+    state: ReleaseVersionRelationState,
+  ): BuiltVersionWithRelationsDto {
+    const base = toBuiltVersionDto(row);
+    const typed = row as {
+      componentVersions?: unknown[];
+      BuiltVersionTransition?: unknown[];
+    };
+    const result: BuiltVersionWithRelationsDto = { ...base };
+    if (
+      state.includeBuiltVersionComponents &&
+      Array.isArray(typed.componentVersions)
+    ) {
+      result.deployedComponents = mapToComponentVersionDtos(
+        typed.componentVersions,
+      );
+    }
+    if (
+      state.includeBuiltVersionTransitions &&
+      Array.isArray(typed.BuiltVersionTransition)
+    ) {
+      result.transitions = mapToBuiltVersionTransitionDtos(
+        typed.BuiltVersionTransition,
+      );
+    }
+    return result;
+  }
+
+  private mapReleaseVersion(
+    row: unknown,
+    state: ReleaseVersionRelationState,
+  ): ReleaseVersionWithRelationsDto {
+    const base = toReleaseVersionDto(row);
+    const typed = row as {
+      createdBy?: unknown;
+      builtVersions?: unknown[];
+    };
+    const result: ReleaseVersionWithRelationsDto = { ...base };
+    if (state.includeCreater && typed.createdBy) {
+      result.creater = toUserSummaryDto(typed.createdBy);
+    }
+    if (
+      state.includeBuiltVersions &&
+      Array.isArray(typed.builtVersions) &&
+      typed.builtVersions.length > 0
+    ) {
+      result.builtVersions = typed.builtVersions.map((built) =>
+        this.mapBuiltVersion(built, state),
+      );
+    }
+    if (
+      state.includeBuiltVersions &&
+      Array.isArray(typed.builtVersions) &&
+      typed.builtVersions.length === 0
+    ) {
+      result.builtVersions = [];
+    }
+    return result;
+  }
+
   async list(
     params: NormalizedPaginatedRequest<"createdAt" | "name">,
-  ): Promise<PaginatedResponse<ReleaseVersionDto>> {
+    options?: { relations?: ReleaseVersionRelationKey[] },
+  ): Promise<PaginatedResponse<ReleaseVersionWithRelationsDto>> {
     const { page, pageSize, sortBy } = params;
     const isDescending = sortBy.startsWith("-");
     const sortField = (isDescending ? sortBy.slice(1) : sortBy) as
@@ -37,6 +162,8 @@ export class ReleaseVersionService {
     const orderBy: Prisma.ReleaseVersionOrderByWithRelationInput = {
       [sortField]: orderDirection,
     };
+    const state = buildReleaseVersionRelationState(options?.relations ?? []);
+    const include = this.buildRelationsInclude(state);
     const [total, rows] = await Promise.all([
       this.db.releaseVersion.count(),
       this.db.releaseVersion.findMany({
@@ -44,14 +171,11 @@ export class ReleaseVersionService {
         select: { id: true, name: true, createdAt: true },
         skip: (page - 1) * pageSize,
         take: pageSize,
+        ...(include ? { include } : {}),
       }),
     ]);
-    return buildPaginatedResponse(
-      mapToReleaseVersionDtos(rows),
-      page,
-      pageSize,
-      total,
-    );
+    const items = rows.map((row) => this.mapReleaseVersion(row, state));
+    return buildPaginatedResponse(items, page, pageSize, total);
   }
 
   async create(
@@ -181,18 +305,14 @@ export class ReleaseVersionService {
 
   async getById(
     releaseId: ReleaseVersion["id"],
-  ): Promise<ReleaseVersionWithBuildsDto> {
+    options?: { relations?: ReleaseVersionRelationKey[] },
+  ): Promise<ReleaseVersionWithRelationsDto> {
+    const state = buildReleaseVersionRelationState(options?.relations ?? []);
+    const include = this.buildRelationsInclude(state);
     const row = await this.db.releaseVersion.findUnique({
       where: { id: releaseId },
-      select: {
-        id: true,
-        name: true,
-        createdAt: true,
-        builtVersions: {
-          orderBy: { createdAt: "desc" },
-          select: { id: true, name: true, versionId: true, createdAt: true },
-        },
-      },
+      select: { id: true, name: true, createdAt: true },
+      ...(include ? { include } : {}),
     });
 
     if (!row) {
@@ -206,13 +326,6 @@ export class ReleaseVersionService {
       );
     }
 
-    return {
-      ...toReleaseVersionDto({
-        id: row.id,
-        name: row.name,
-        createdAt: row.createdAt,
-      }),
-      builtVersions: mapToBuiltVersionDtos(row.builtVersions),
-    };
+    return this.mapReleaseVersion(row, state);
   }
 }

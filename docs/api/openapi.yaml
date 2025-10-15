@@ -43,6 +43,20 @@ paths:
               - -createdAt
               - -name
           description: Sort field. Use "-" prefix for descending order.
+        - in: query
+          name: relations
+          description: |
+            Optional relation keys to include. Repeat the parameter or supply comma-separated values.
+            Nested options (builtVersions.deployedComponents, builtVersions.transitions) must also specify `builtVersions`.
+          schema:
+            type: array
+            items:
+              type: string
+              enum:
+                - creater
+                - builtVersions
+          style: form
+          explode: true
       responses:
         "200":
           description: Release versions page
@@ -62,6 +76,101 @@ paths:
                           type: string
                         createdAt:
                           $ref: "#/components/schemas/iso8601Timestamp"
+                        creater:
+                          type: object
+                          properties:
+                            id:
+                              type: string
+                            name:
+                              type: string
+                              nullable: true
+                            email:
+                              type: string
+                              nullable: true
+                          required:
+                            - id
+                            - name
+                            - email
+                          additionalProperties: false
+                        builtVersions:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              id:
+                                type: string
+                              name:
+                                type: string
+                              versionId:
+                                type: string
+                              createdAt:
+                                $ref: "#/components/schemas/iso8601Timestamp"
+                              deployedComponents:
+                                type: array
+                                items:
+                                  type: object
+                                  properties:
+                                    id:
+                                      type: string
+                                    releaseComponentId:
+                                      type: string
+                                    builtVersionId:
+                                      type: string
+                                    name:
+                                      type: string
+                                    increment:
+                                      type: integer
+                                    createdAt:
+                                      $ref: "#/components/schemas/iso8601Timestamp"
+                                  required:
+                                    - id
+                                    - releaseComponentId
+                                    - builtVersionId
+                                    - name
+                                    - increment
+                                    - createdAt
+                                  additionalProperties: false
+                              transitions:
+                                type: array
+                                items:
+                                  type: object
+                                  properties:
+                                    id:
+                                      type: string
+                                    builtVersionId:
+                                      type: string
+                                    fromStatus:
+                                      type: string
+                                    toStatus:
+                                      type: string
+                                    action:
+                                      type: string
+                                      enum:
+                                        - start_deployment
+                                        - cancel_deployment
+                                        - mark_active
+                                        - revert_to_deployment
+                                        - deprecate
+                                        - reactivate
+                                    createdAt:
+                                      $ref: "#/components/schemas/iso8601Timestamp"
+                                    createdById:
+                                      type: string
+                                  required:
+                                    - id
+                                    - builtVersionId
+                                    - fromStatus
+                                    - toStatus
+                                    - action
+                                    - createdAt
+                                    - createdById
+                                  additionalProperties: false
+                            required:
+                              - id
+                              - name
+                              - versionId
+                              - createdAt
+                            additionalProperties: false
                       required:
                         - id
                         - name
@@ -95,7 +204,7 @@ paths:
                   - pagination
                 additionalProperties: false
         "400":
-          description: Invalid query parameters
+          description: Invalid query parameters or relations
           content:
             application/json:
               schema:
@@ -168,6 +277,20 @@ paths:
             format: uuid
             pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$
           required: true
+        - in: query
+          name: relations
+          description: |
+            Optional relation keys to include. Repeat the parameter or supply comma-separated values.
+            Nested options (builtVersions.deployedComponents, builtVersions.transitions) must also specify `builtVersions`.
+          schema:
+            type: array
+            items:
+              type: string
+              enum:
+                - creater
+                - builtVersions
+          style: form
+          explode: true
       responses:
         "200":
           description: Release version
@@ -182,6 +305,22 @@ paths:
                     type: string
                   createdAt:
                     $ref: "#/components/schemas/iso8601Timestamp"
+                  creater:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      name:
+                        type: string
+                        nullable: true
+                      email:
+                        type: string
+                        nullable: true
+                    required:
+                      - id
+                      - name
+                      - email
+                    additionalProperties: false
                   builtVersions:
                     type: array
                     items:
@@ -195,6 +334,66 @@ paths:
                           type: string
                         createdAt:
                           $ref: "#/components/schemas/iso8601Timestamp"
+                        deployedComponents:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              id:
+                                type: string
+                              releaseComponentId:
+                                type: string
+                              builtVersionId:
+                                type: string
+                              name:
+                                type: string
+                              increment:
+                                type: integer
+                              createdAt:
+                                $ref: "#/components/schemas/iso8601Timestamp"
+                            required:
+                              - id
+                              - releaseComponentId
+                              - builtVersionId
+                              - name
+                              - increment
+                              - createdAt
+                            additionalProperties: false
+                        transitions:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              id:
+                                type: string
+                              builtVersionId:
+                                type: string
+                              fromStatus:
+                                type: string
+                              toStatus:
+                                type: string
+                              action:
+                                type: string
+                                enum:
+                                  - start_deployment
+                                  - cancel_deployment
+                                  - mark_active
+                                  - revert_to_deployment
+                                  - deprecate
+                                  - reactivate
+                              createdAt:
+                                $ref: "#/components/schemas/iso8601Timestamp"
+                              createdById:
+                                type: string
+                            required:
+                              - id
+                              - builtVersionId
+                              - fromStatus
+                              - toStatus
+                              - action
+                              - createdAt
+                              - createdById
+                            additionalProperties: false
                       required:
                         - id
                         - name
@@ -205,8 +404,13 @@ paths:
                   - id
                   - name
                   - createdAt
-                  - builtVersions
                 additionalProperties: false
+        "400":
+          description: Invalid relations
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestError"
         "404":
           description: Release not found
           content:

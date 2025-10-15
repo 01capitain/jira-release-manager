@@ -16,7 +16,9 @@ export function toBuiltVersionDto(model: unknown): BuiltVersionDto {
     name: true,
     versionId: true,
     createdAt: true,
-  }).parse(model);
+  })
+    .strip()
+    .parse(model);
   const dto: BuiltVersionDto = {
     id: parsed.id,
     name: parsed.name,
