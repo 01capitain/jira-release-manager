@@ -33,7 +33,9 @@ export function toBuiltVersionTransitionDto(
     action: true,
     createdAt: true,
     createdById: true,
-  }).parse(model);
+  })
+    .strip()
+    .parse(model);
   const raw = {
     id: parsed.id,
     builtVersionId: parsed.builtVersionId,
