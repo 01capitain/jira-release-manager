@@ -14,7 +14,9 @@ export function toUserSummaryDto(model: unknown): UserSummaryDto {
     id: true,
     name: true,
     email: true,
-  }).parse(model);
+  })
+    .strip()
+    .parse(model);
   const dto: UserSummaryDto = {
     id: parsed.id,
     name: parsed.name ?? null,
