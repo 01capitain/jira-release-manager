@@ -14,5 +14,5 @@ export const collectRelationParams = (
       result.push(candidate);
     }
   }
-  return result;
+  return [...new Set(result)];
 };
