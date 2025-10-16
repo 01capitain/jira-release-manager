@@ -25,17 +25,7 @@ export const BuiltVersionTransitionDtoSchema = z.object({
 export function toBuiltVersionTransitionDto(
   model: unknown,
 ): BuiltVersionTransitionDto {
-  const parsed = BuiltVersionTransitionModelSchema.pick({
-    id: true,
-    builtVersionId: true,
-    fromStatus: true,
-    toStatus: true,
-    action: true,
-    createdAt: true,
-    createdById: true,
-  })
-    .strip()
-    .parse(model);
+  const parsed = BuiltVersionTransitionModelSchema.strip().parse(model);
   const raw = {
     id: parsed.id,
     builtVersionId: parsed.builtVersionId,
