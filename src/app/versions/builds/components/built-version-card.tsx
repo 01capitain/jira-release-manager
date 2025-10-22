@@ -48,8 +48,8 @@ export default function BuiltVersionCard({
 
   const { data: statusData, isFetching: fetchingStatus } =
     api.builtVersion.getStatus.useQuery({ builtVersionId: id });
-  const currentStatus = (statusData?.status ??
-    "in_development") as BuiltVersionStatus;
+  const currentStatus: BuiltVersionStatus =
+    statusData?.status ?? "in_development";
   const utils = api.useUtils();
   const handleTransitionSuccess = async () => {
     await utils.builtVersion.getStatus.invalidate({ builtVersionId: id });

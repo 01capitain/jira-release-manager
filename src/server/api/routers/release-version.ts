@@ -8,8 +8,8 @@ import {
 export const releaseVersionRouter = createTRPCRouter({
   list: publicProcedure
     .input(ReleaseVersionListInputSchema)
-    .query(async ({ ctx, input }: { ctx: any; input: unknown }) => {
-      const params = (input ?? DEFAULT_RELEASE_VERSION_LIST_INPUT) as any;
+    .query(async ({ ctx, input }) => {
+      const params = input ?? DEFAULT_RELEASE_VERSION_LIST_INPUT;
       const svc = new ReleaseVersionService(ctx.db);
       return svc.list(params);
     }),

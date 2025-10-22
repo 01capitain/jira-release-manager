@@ -30,7 +30,8 @@ function LatestActiveTag({
 
   const activeIdx = React.useMemo(() => {
     for (let i = 0; i < queries.length; i++) {
-      const status = queries[i]?.data?.status as BuiltVersionStatus | undefined;
+      const status: BuiltVersionStatus | undefined =
+        queries[i]?.data?.status ?? undefined;
       if (status === "active") return i;
     }
     return -1;
@@ -83,7 +84,7 @@ export default function ReleasesAccordion() {
     if (data) writeCache(data);
   }, [data, writeCache]);
 
-  const releases = (data ?? []) as ReleaseVersionWithBuildsDto[];
+  const releases: ReleaseVersionWithBuildsDto[] = data ?? [];
 
   return (
     <div className="space-y-5">

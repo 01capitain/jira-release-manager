@@ -9,26 +9,18 @@ import { CheckCircle, AlertCircle } from "lucide-react";
 import { useAuthSession } from "~/hooks/use-auth-session";
 import { useDiscordLogin } from "~/hooks/use-discord-login";
 
-type JiraConfig = RouterOutputs["jira"]["getConfig"];
-type JiraCredentials = RouterOutputs["jira"]["getCredentials"];
 type JiraVerifyResponse = RouterOutputs["jira"]["verifyConnection"];
 
 export default function JiraConnectPage() {
   const { data: session } = useAuthSession();
   const { login, isLoggingIn, error: loginError } = useDiscordLogin();
 
-  const { data: configDataRaw } = api.jira.getConfig.useQuery();
-  const { data: credentialsDataRaw } = api.jira.getCredentials.useQuery(
-    undefined,
-    {
-      enabled: !!session,
-    },
-  );
+  const { data: configData } = api.jira.getConfig.useQuery();
+  const { data: credentials } = api.jira.getCredentials.useQuery(undefined, {
+    enabled: !!session,
+  });
   const saveMutation = api.jira.saveCredentials.useMutation();
   const verifyMutation = api.jira.verifyConnection.useMutation();
-
-  const configData = configDataRaw as JiraConfig | undefined;
-  const credentials = credentialsDataRaw as JiraCredentials | undefined;
 
   const [email, setEmail] = React.useState("");
   const [token, setToken] = React.useState("");

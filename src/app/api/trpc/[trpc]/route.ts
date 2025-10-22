@@ -33,6 +33,6 @@ const handler = (req: NextRequest): Promise<Response> =>
             );
           }
         : undefined,
-  }) as Promise<Response>;
+  });
 
 export { handler as GET, handler as POST };

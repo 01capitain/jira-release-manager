@@ -13,7 +13,7 @@ export function Breadcrumbs({
   items: Crumb[];
   className?: string;
 }) {
-  if (!items || items.length === 0) return null;
+  if (!items?.length) return null;
   return (
     <nav
       aria-label="Breadcrumb"

@@ -28,7 +28,7 @@ export function ComponentVersionLabels({
   const { data, isLoading } = api.componentVersion.listByBuilt.useQuery({
     builtVersionId,
   });
-  const versions = (data ?? []) as ComponentVersionDto[];
+  const versions: ComponentVersionDto[] = data ?? [];
 
   if (!isLoading && versions.length === 0) {
     return (
