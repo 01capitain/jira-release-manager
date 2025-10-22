@@ -25,7 +25,7 @@ export function toReleaseVersionDto(model: unknown): ReleaseVersionDto {
     createdAt: parsed.createdAt.toISOString() as ReleaseVersionDto["createdAt"],
   };
   // Validate the DTO we constructed to ensure the shape remains consistent
-  return ReleaseVersionDtoSchema.parse(dto);
+  return ReleaseVersionDtoSchema.strip().parse(dto);
 }
 
 export function mapToReleaseVersionDtos(

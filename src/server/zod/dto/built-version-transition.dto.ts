@@ -36,7 +36,7 @@ export function toBuiltVersionTransitionDto(
       parsed.createdAt.toISOString() as BuiltVersionTransitionDto["createdAt"],
     createdById: parsed.createdById,
   };
-  return BuiltVersionTransitionDtoSchema.parse(
+  return BuiltVersionTransitionDtoSchema.strip().parse(
     raw,
   ) as BuiltVersionTransitionDto;
 }

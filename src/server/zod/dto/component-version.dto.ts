@@ -20,7 +20,9 @@ export function toComponentVersionDto(model: unknown): ComponentVersionDto {
     name: true,
     increment: true,
     createdAt: true,
-  }).parse(model);
+  })
+    .strip()
+    .parse(model);
   const dto: ComponentVersionDto = {
     id: parsed.id,
     releaseComponentId: parsed.releaseComponentId,
@@ -30,7 +32,7 @@ export function toComponentVersionDto(model: unknown): ComponentVersionDto {
     createdAt:
       parsed.createdAt.toISOString() as ComponentVersionDto["createdAt"],
   };
-  return ComponentVersionDtoSchema.parse(dto);
+  return ComponentVersionDtoSchema.strip().parse(dto);
 }
 
 export function mapToComponentVersionDtos(

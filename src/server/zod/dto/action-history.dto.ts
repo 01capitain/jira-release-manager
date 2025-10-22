@@ -76,10 +76,10 @@ export const ActionHistoryEntryDtoSchema = z.object({
 });
 
 export function toActionHistoryEntryDto(model: unknown): ActionHistoryEntryDto {
-  const parsed = ActionModelSchema.parse(model);
+  const parsed = ActionModelSchema.strip().parse(model);
   const subactions = parsed.subactions.map((sub) => {
     const metadata = toMetadata(sub.metadata);
-    return ActionSubactionDtoSchema.parse({
+    return ActionSubactionDtoSchema.strip().parse({
       id: sub.id,
       subactionType: sub.subactionType,
       message: sub.message,
@@ -110,7 +110,7 @@ export function toActionHistoryEntryDto(model: unknown): ActionHistoryEntryDto {
     subactions,
     ...(metadata !== undefined ? { metadata } : {}),
   };
-  return ActionHistoryEntryDtoSchema.parse(dto);
+  return ActionHistoryEntryDtoSchema.strip().parse(dto);
 }
 
 export function mapToActionHistoryEntryDtos(

@@ -18,7 +18,9 @@ export function toReleaseComponentDto(model: unknown): ReleaseComponentDto {
     color: true,
     namingPattern: true,
     createdAt: true,
-  }).parse(model);
+  })
+    .strip()
+    .parse(model);
   const dto: ReleaseComponentDto = {
     id: parsed.id,
     name: parsed.name,
@@ -27,7 +29,7 @@ export function toReleaseComponentDto(model: unknown): ReleaseComponentDto {
     createdAt:
       parsed.createdAt.toISOString() as ReleaseComponentDto["createdAt"],
   };
-  return ReleaseComponentDtoSchema.parse(dto);
+  return ReleaseComponentDtoSchema.strip().parse(dto);
 }
 
 export function mapToReleaseComponentDtos(

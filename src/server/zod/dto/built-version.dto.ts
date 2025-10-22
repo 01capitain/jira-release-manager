@@ -25,7 +25,7 @@ export function toBuiltVersionDto(model: unknown): BuiltVersionDto {
     versionId: parsed.versionId,
     createdAt: parsed.createdAt.toISOString() as BuiltVersionDto["createdAt"],
   };
-  return BuiltVersionDtoSchema.parse(dto);
+  return BuiltVersionDtoSchema.strip().parse(dto);
 }
 
 export function mapToBuiltVersionDtos(models: unknown[]): BuiltVersionDto[] {

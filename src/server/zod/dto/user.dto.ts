@@ -22,6 +22,5 @@ export function toUserSummaryDto(model: unknown): UserSummaryDto {
     name: parsed.name ?? null,
     email: parsed.email ?? null,
   };
-  return UserSummaryDtoSchema.parse(dto);
+  return UserSummaryDtoSchema.strip().parse(dto);
 }
-
