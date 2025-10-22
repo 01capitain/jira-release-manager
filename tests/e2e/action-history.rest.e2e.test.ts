@@ -1,3 +1,4 @@
+import { parse as parseCookie } from "cookie";
 import type { Session } from "next-auth";
 import { NextRequest } from "next/server";
 
@@ -190,13 +191,9 @@ describe("GET /api/v1/action-history", () => {
     clearActionRecords();
     authMock.mockReset();
     globalThis.__createRestContextMock = async (req: NextRequest) => {
-      const cookieHeader = req.headers.get("cookie") ?? "";
-      const sessionToken =
-        cookieHeader
-          .split(";")
-          .map((entry: string) => entry.trim())
-          .find((entry: string) => entry.startsWith("next-auth.session-token="))
-          ?.split("=")[1] ?? null;
+      const cookieHeader = req.headers.get("cookie");
+      const parsedCookies = cookieHeader ? parseCookie(cookieHeader) : {};
+      const sessionToken = parsedCookies["next-auth.session-token"] ?? null;
       return {
         db: mockDb,
         session: await authMock(),
