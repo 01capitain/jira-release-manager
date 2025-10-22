@@ -164,15 +164,19 @@ export class ReleaseVersionService {
     };
     const state = buildReleaseVersionRelationState(options?.relations ?? []);
     const include = this.buildRelationsInclude(state);
+    const findManyArgs: Prisma.ReleaseVersionFindManyArgs = {
+      orderBy,
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    };
+    if (include) {
+      findManyArgs.include = include;
+    } else {
+      findManyArgs.select = { id: true, name: true, createdAt: true };
+    }
     const [total, rows] = await Promise.all([
       this.db.releaseVersion.count(),
-      this.db.releaseVersion.findMany({
-        orderBy,
-        select: { id: true, name: true, createdAt: true },
-        skip: (page - 1) * pageSize,
-        take: pageSize,
-        ...(include ? { include } : {}),
-      }),
+      this.db.releaseVersion.findMany(findManyArgs),
     ]);
     const items = rows.map((row) => this.mapReleaseVersion(row, state));
     return buildPaginatedResponse(items, page, pageSize, total);
@@ -309,11 +313,15 @@ export class ReleaseVersionService {
   ): Promise<ReleaseVersionWithRelationsDto> {
     const state = buildReleaseVersionRelationState(options?.relations ?? []);
     const include = this.buildRelationsInclude(state);
-    const row = await this.db.releaseVersion.findUnique({
+    const findUniqueArgs: Prisma.ReleaseVersionFindUniqueArgs = {
       where: { id: releaseId },
-      select: { id: true, name: true, createdAt: true },
-      ...(include ? { include } : {}),
-    });
+    };
+    if (include) {
+      findUniqueArgs.include = include;
+    } else {
+      findUniqueArgs.select = { id: true, name: true, createdAt: true };
+    }
+    const row = await this.db.releaseVersion.findUnique(findUniqueArgs);
 
     if (!row) {
       throw new RestError(
