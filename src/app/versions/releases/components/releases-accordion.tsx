@@ -1,11 +1,11 @@
 "use client";
 
+import { ChevronDown } from "lucide-react";
 import * as React from "react";
-import { api } from "~/trpc/react";
 import type { BuiltVersionStatus } from "~/shared/types/built-version-status";
 import type { ReleaseVersionWithBuildsDto } from "~/shared/types/release-version-with-builds";
+import { api } from "~/trpc/react";
 import BuiltVersionCard from "../../builds/components/built-version-card";
-import { ChevronDown } from "lucide-react";
 
 function LatestActiveTag({
   builtVersionIds,
@@ -30,8 +30,7 @@ function LatestActiveTag({
 
   const activeIdx = React.useMemo(() => {
     for (let i = 0; i < queries.length; i++) {
-      const status: BuiltVersionStatus | undefined =
-        queries[i]?.data?.status ?? undefined;
+      const status: BuiltVersionStatus | undefined = queries[i]?.data?.status;
       if (status === "active") return i;
     }
     return -1;

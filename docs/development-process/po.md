@@ -23,7 +23,7 @@ focus: Plan integrity, documentation quality, actionable development tasks, proc
 ## Output
 
 Put down everything you created and described into a `refined.md` file for the user to read.
-Also provide a gh command to update the given issue with the content of the `refined.md` file.
+Also provide a gh command to update the given issue with the content of the `refined.md` file, e.g. `gh issue edit "$ISSUE" --body-file refined.md`
 
 # Credits
 
