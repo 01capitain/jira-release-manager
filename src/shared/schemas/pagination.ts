@@ -5,8 +5,28 @@ import type {
   PaginatedRequest,
   PaginationInfo,
 } from "~/shared/types/pagination";
+import type { AppSchemaMeta } from "~/shared/zod/registry";
 
-const positiveInt = z.coerce.number().int().min(1);
+const INTEGER_MESSAGE = "Expected integer value";
+
+const createIntegerSchema = (min: number, options?: { coerce?: boolean }) => {
+  const base = options?.coerce ? z.coerce.number() : z.number();
+  return base
+    .min(min)
+    .refine(Number.isInteger, { message: INTEGER_MESSAGE })
+    .meta({ type: "integer" });
+};
+
+const positiveIntegerInput = createIntegerSchema(1, { coerce: true });
+const positiveIntegerOutput = createIntegerSchema(1);
+const nonNegativeIntegerOutput = createIntegerSchema(0);
+
+const PAGINATED_RESPONSE_META: AppSchemaMeta = {
+  id: "PaginatedResponse",
+  title: "Paginated Response",
+  description:
+    "Standard paginated response envelope containing result items and pagination details.",
+};
 
 export function createPaginatedRequestSchema<TSortBy extends string>(
   sortFields: readonly TSortBy[],
@@ -54,10 +74,10 @@ export function createPaginatedRequestSchema<TSortBy extends string>(
    */
   return z
     .object({
-      page: positiveInt
+      page: positiveIntegerInput
         .optional()
         .describe(descriptions.page ?? "Requested Page number"),
-      pageSize: positiveInt
+      pageSize: positiveIntegerInput
         .optional()
         .describe(descriptions.pageSize ?? "Number of items per page"),
       sortBy: z
@@ -82,19 +102,31 @@ export function createPaginatedRequestSchema<TSortBy extends string>(
     });
 }
 
-export const PaginationInfoSchema: z.ZodType<PaginationInfo> = z.object({
-  page: z.number().int().min(1),
-  pageSize: z.number().int().min(1),
-  totalItems: z.number().int().min(0),
-  hasNextPage: z.boolean(),
-});
+export const PaginationInfoSchema: z.ZodType<PaginationInfo> = z
+  .object({
+    page: positiveIntegerOutput,
+    pageSize: positiveIntegerOutput,
+    totalItems: nonNegativeIntegerOutput,
+    hasNextPage: z.boolean(),
+  })
+  .meta({
+    id: "PaginationInfo",
+    title: "Pagination Info",
+    description: "Normalized pagination metadata.",
+  });
+
+export const PaginatedResponseEnvelopeSchema = z
+  .object({
+    data: z.array(z.unknown()),
+    pagination: PaginationInfoSchema,
+  })
+  .meta(PAGINATED_RESPONSE_META);
 
 export const createPaginatedResponseSchema = <T extends z.ZodTypeAny>(
   itemSchema: T,
 ) =>
-  z.object({
+  PaginatedResponseEnvelopeSchema.extend({
     data: z.array(itemSchema),
-    pagination: PaginationInfoSchema,
   });
 
 export type PaginatedRequestInput<TSortBy extends string> =

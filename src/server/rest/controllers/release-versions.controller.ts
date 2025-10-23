@@ -82,9 +82,20 @@ export const ReleaseVersionWithRelationsSchema = ReleaseVersionDtoSchema.and(
 
 export const ReleaseVersionListResponseSchema = createPaginatedResponseSchema(
   ReleaseVersionWithRelationsSchema,
-);
+).meta({
+  id: "ReleaseVersionListResponse",
+  title: "Release Version List Response",
+  description: "Paginated release version list response.",
+});
 
 export const ReleaseVersionDetailSchema = ReleaseVersionWithRelationsSchema;
+
+const ReleaseVersionPositiveIntegerDocSchema = () =>
+  z
+    .number()
+    .min(1)
+    .refine(Number.isInteger, { message: "Expected integer value" })
+    .meta({ type: "integer" });
 
 export const ReleaseVersionIdParamSchema = z.object({
   releaseId: z.uuidv7(),
@@ -101,11 +112,10 @@ const ReleaseVersionSortEnum = z.enum(ReleaseVersionSortOptions);
 
 export const ReleaseVersionListQueryDocSchema = z
   .object({
-    page: z.number().int().min(1).describe("Requested Page number").optional(),
-    pageSize: z
-      .number()
-      .int()
-      .min(1)
+    page: ReleaseVersionPositiveIntegerDocSchema()
+      .describe("Requested Page number")
+      .optional(),
+    pageSize: ReleaseVersionPositiveIntegerDocSchema()
       .describe("Number of items per page")
       .optional(),
     sortBy: ReleaseVersionSortEnum.describe(
