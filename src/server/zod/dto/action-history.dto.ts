@@ -5,6 +5,7 @@ import type {
   ActionHistoryEntryDto,
 } from "~/shared/types/action-history";
 import { IsoTimestampSchema } from "~/shared/types/iso8601";
+import { UserSummaryDtoSchema } from "~/server/zod/dto/user.dto";
 
 const statusValues = [
   "success",
@@ -51,29 +52,37 @@ const ActionModelSchema = z.object({
 
 const ActionMetadataSchema = z.object({}).catchall(z.unknown());
 
-const ActionSubactionDtoSchema = z.object({
-  id: z.string(),
-  subactionType: z.string(),
-  message: z.string(),
-  status: StatusSchema,
-  createdAt: IsoTimestampSchema,
-  metadata: ActionMetadataSchema.nullable().optional(),
-});
-
-export const ActionHistoryEntryDtoSchema = z.object({
-  id: z.string(),
-  actionType: z.string(),
-  message: z.string(),
-  status: StatusSchema,
-  createdAt: IsoTimestampSchema,
-  createdBy: z.object({
+const ActionSubactionDtoSchema = z
+  .object({
     id: z.string(),
-    name: z.string().nullable().optional(),
-    email: z.string().nullable().optional(),
-  }),
-  metadata: ActionMetadataSchema.nullable().optional(),
-  subactions: z.array(ActionSubactionDtoSchema),
-});
+    subactionType: z.string(),
+    message: z.string(),
+    status: StatusSchema,
+    createdAt: IsoTimestampSchema,
+    metadata: ActionMetadataSchema.nullable().optional(),
+  })
+  .meta({
+    id: "ActionSubaction",
+    title: "Action Subaction",
+    description: "Subaction entry recorded within a user action history item.",
+  });
+
+export const ActionHistoryEntryDtoSchema = z
+  .object({
+    id: z.string(),
+    actionType: z.string(),
+    message: z.string(),
+    status: StatusSchema,
+    createdAt: IsoTimestampSchema,
+    createdBy: UserSummaryDtoSchema,
+    metadata: ActionMetadataSchema.nullable().optional(),
+    subactions: z.array(ActionSubactionDtoSchema),
+  })
+  .meta({
+    id: "ActionHistoryEntry",
+    title: "Action History Entry",
+    description: "Audit log entry for user or system actions.",
+  });
 
 export function toActionHistoryEntryDto(model: unknown): ActionHistoryEntryDto {
   const parsed = ActionModelSchema.strip().parse(model);

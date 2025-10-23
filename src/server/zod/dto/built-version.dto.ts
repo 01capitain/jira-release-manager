@@ -1,14 +1,21 @@
 import { z } from "zod";
+
 import { IsoTimestampSchema } from "~/shared/types/iso8601";
 import type { BuiltVersionDto } from "~/shared/types/built-version";
 import { BuiltVersionModelSchema } from "~/server/zod/schemas/variants/pure/BuiltVersion.pure";
 
-export const BuiltVersionDtoSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  versionId: z.string(),
-  createdAt: IsoTimestampSchema,
-});
+export const BuiltVersionDtoSchema = z
+  .object({
+    id: z.string(),
+    name: z.string(),
+    versionId: z.string(),
+    createdAt: IsoTimestampSchema,
+  })
+  .meta({
+    id: "BuiltVersion",
+    title: "Built Version",
+    description: "Built version summary information.",
+  });
 
 export function toBuiltVersionDto(model: unknown): BuiltVersionDto {
   const parsed = BuiltVersionModelSchema.pick({

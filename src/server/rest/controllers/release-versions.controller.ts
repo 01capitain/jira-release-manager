@@ -65,6 +65,11 @@ const ReleaseVersionRelationsDocSchema = z.object({
 const BuiltVersionWithRelationsSchema = BuiltVersionDtoSchema.extend({
   deployedComponents: z.array(ComponentVersionDtoSchema).optional(),
   transitions: z.array(BuiltVersionTransitionDtoSchema).optional(),
+}).meta({
+  id: "BuiltVersionWithRelations",
+  title: "Built Version (with relations)",
+  description:
+    "Built version data with optional deployed components and transitions.",
 });
 
 const ReleaseVersionRelationsSchema = z.object({

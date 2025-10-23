@@ -1,15 +1,22 @@
 import { z } from "zod";
+
 import { IsoTimestampSchema } from "~/shared/types/iso8601";
 import type { ReleaseComponentDto } from "~/shared/types/release-component";
 import { ReleaseComponentModelSchema } from "~/server/zod/schemas/variants/pure/ReleaseComponent.pure";
 
-export const ReleaseComponentDtoSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  color: z.string(),
-  namingPattern: z.string(),
-  createdAt: IsoTimestampSchema,
-});
+export const ReleaseComponentDtoSchema = z
+  .object({
+    id: z.string(),
+    name: z.string(),
+    color: z.string(),
+    namingPattern: z.string(),
+    createdAt: IsoTimestampSchema,
+  })
+  .meta({
+    id: "ReleaseComponent",
+    title: "Release Component",
+    description: "Release component metadata.",
+  });
 
 export function toReleaseComponentDto(model: unknown): ReleaseComponentDto {
   const parsed = ReleaseComponentModelSchema.pick({

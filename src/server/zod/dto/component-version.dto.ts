@@ -1,16 +1,23 @@
 import { z } from "zod";
+
 import { IsoTimestampSchema } from "~/shared/types/iso8601";
 import type { ComponentVersionDto } from "~/shared/types/component-version";
 import { ComponentVersionModelSchema } from "~/server/zod/schemas/variants/pure/ComponentVersion.pure";
 
-export const ComponentVersionDtoSchema = z.object({
-  id: z.string(),
-  releaseComponentId: z.string(),
-  builtVersionId: z.string(),
-  name: z.string(),
-  increment: z.number().int().min(0),
-  createdAt: IsoTimestampSchema,
-});
+export const ComponentVersionDtoSchema = z
+  .object({
+    id: z.string(),
+    releaseComponentId: z.string(),
+    builtVersionId: z.string(),
+    name: z.string(),
+    increment: z.number().int().min(0),
+    createdAt: IsoTimestampSchema,
+  })
+  .meta({
+    id: "ComponentVersion",
+    title: "Component Version",
+    description: "Component version details deployed with a built version.",
+  });
 
 export function toComponentVersionDto(model: unknown): ComponentVersionDto {
   const parsed = ComponentVersionModelSchema.pick({

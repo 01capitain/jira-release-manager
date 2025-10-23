@@ -12,15 +12,21 @@ const BuiltVersionTransitionModelSchema = z.object({
   createdById: z.string(),
 });
 
-export const BuiltVersionTransitionDtoSchema = z.object({
-  id: z.string(),
-  builtVersionId: z.string(),
-  fromStatus: z.string(),
-  toStatus: z.string(),
-  action: z.string(),
-  createdAt: IsoTimestampSchema,
-  createdById: z.string(),
-});
+export const BuiltVersionTransitionDtoSchema = z
+  .object({
+    id: z.string(),
+    builtVersionId: z.string(),
+    fromStatus: z.string(),
+    toStatus: z.string(),
+    action: z.string(),
+    createdAt: IsoTimestampSchema,
+    createdById: z.string(),
+  })
+  .meta({
+    id: "BuiltVersionTransition",
+    title: "Built Version Transition",
+    description: "Status transition event for a built version.",
+  });
 
 export function toBuiltVersionTransitionDto(
   model: unknown,

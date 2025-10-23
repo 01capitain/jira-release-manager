@@ -6,11 +6,11 @@ import {
   BuiltVersionDtoSchema,
   toBuiltVersionDto,
 } from "~/server/zod/dto/built-version.dto";
+import { BuiltVersionTransitionDtoSchema } from "~/server/zod/dto/built-version-transition.dto";
 import type { RestContext } from "~/server/rest/context";
 import { ensureAuthenticated } from "~/server/rest/auth";
 import { RestError } from "~/server/rest/errors";
 import { jsonErrorResponse } from "~/server/rest/openapi";
-import { IsoTimestampSchema } from "~/shared/types/iso8601";
 import type { BuiltVersionAction } from "~/shared/types/built-version-status";
 
 export const BuiltVersionTransitionParamSchema = z.object({
@@ -18,20 +18,18 @@ export const BuiltVersionTransitionParamSchema = z.object({
   builtId: z.uuidv7(),
 });
 
-export const BuiltVersionTransitionHistoryEntrySchema = z.object({
-  id: z.uuidv7(),
-  fromStatus: z.string(),
-  toStatus: z.string(),
-  action: z.string(),
-  createdAt: IsoTimestampSchema,
-  createdById: z.uuidv7(),
-});
-
-export const BuiltVersionTransitionResponseSchema = z.object({
-  builtVersion: BuiltVersionDtoSchema,
-  status: z.string(),
-  history: z.array(BuiltVersionTransitionHistoryEntrySchema),
-});
+export const BuiltVersionTransitionResponseSchema = z
+  .object({
+    builtVersion: BuiltVersionDtoSchema,
+    status: z.string(),
+    history: z.array(BuiltVersionTransitionDtoSchema),
+  })
+  .meta({
+    id: "BuiltVersionTransitionResult",
+    title: "Built Version Transition Result",
+    description:
+      "Built version transition response including current status and history.",
+  });
 
 const transitions = [
   {
