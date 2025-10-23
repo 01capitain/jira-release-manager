@@ -22,6 +22,7 @@ import {
 } from "~/server/api/schemas";
 import type { ReleaseVersionRelationKey } from "~/shared/types/release-version-relations";
 import {
+  createPaginatedQueryDocSchema,
   createPaginatedRequestSchema,
   createPaginatedResponseSchema,
 } from "~/shared/schemas/pagination";
@@ -90,13 +91,6 @@ export const ReleaseVersionListResponseSchema = createPaginatedResponseSchema(
 
 export const ReleaseVersionDetailSchema = ReleaseVersionWithRelationsSchema;
 
-const ReleaseVersionPositiveIntegerDocSchema = () =>
-  z
-    .number()
-    .min(1)
-    .refine(Number.isInteger, { message: "Expected integer value" })
-    .meta({ type: "integer" });
-
 export const ReleaseVersionIdParamSchema = z.object({
   releaseId: z.uuidv7(),
 });
@@ -110,19 +104,9 @@ const ReleaseVersionSortOptions = [
 
 const ReleaseVersionSortEnum = z.enum(ReleaseVersionSortOptions);
 
-export const ReleaseVersionListQueryDocSchema = z
-  .object({
-    page: ReleaseVersionPositiveIntegerDocSchema()
-      .describe("Requested Page number")
-      .optional(),
-    pageSize: ReleaseVersionPositiveIntegerDocSchema()
-      .describe("Number of items per page")
-      .optional(),
-    sortBy: ReleaseVersionSortEnum.describe(
-      'Sort field. Use "-" prefix for descending order.',
-    ).optional(),
-  })
-  .merge(ReleaseVersionRelationsDocSchema);
+export const ReleaseVersionListQueryDocSchema = createPaginatedQueryDocSchema(
+  ReleaseVersionSortEnum,
+).merge(ReleaseVersionRelationsDocSchema);
 
 export const ReleaseVersionRelationsQueryDocSchema =
   ReleaseVersionRelationsDocSchema;

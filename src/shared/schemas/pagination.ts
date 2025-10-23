@@ -9,6 +9,8 @@ import type { AppSchemaMeta } from "~/shared/zod/registry";
 
 const INTEGER_MESSAGE = "Expected integer value";
 
+type SortParamSchema = z.ZodType<string>;
+
 const createIntegerSchema = (min: number, options?: { coerce?: boolean }) => {
   const base = options?.coerce ? z.coerce.number() : z.number();
   return base
@@ -21,11 +23,30 @@ const positiveIntegerInput = createIntegerSchema(1, { coerce: true });
 const positiveIntegerOutput = createIntegerSchema(1);
 const nonNegativeIntegerOutput = createIntegerSchema(0);
 
+const createIntegerDocSchema = (min: number) =>
+  z
+    .number()
+    .min(min)
+    .refine(Number.isInteger, { message: INTEGER_MESSAGE })
+    .meta({ type: "integer" });
+
+const defaultDescriptions = {
+  page: "Requested Page number",
+  pageSize: "Number of items per page",
+  sortBy: `Sort field. Use "-" prefix for descending order.`,
+} as const;
+
 const PAGINATED_RESPONSE_META: AppSchemaMeta = {
   id: "PaginatedResponse",
   title: "Paginated Response",
   description:
     "Standard paginated response envelope containing result items and pagination details.",
+};
+
+type PaginatedDescriptions = {
+  page?: string;
+  pageSize?: string;
+  sortBy?: string;
 };
 
 export function createPaginatedRequestSchema<TSortBy extends string>(
@@ -35,11 +56,7 @@ export function createPaginatedRequestSchema<TSortBy extends string>(
     defaultPageSize?: number;
     defaultSortBy?: TSortBy | `-${TSortBy}`;
     maxPageSize?: number;
-    descriptions?: {
-      page?: string;
-      pageSize?: string;
-      sortBy?: string;
-    };
+    descriptions?: PaginatedDescriptions;
   },
 ) {
   if (sortFields.length === 0) {
@@ -128,6 +145,27 @@ export const createPaginatedResponseSchema = <T extends z.ZodTypeAny>(
   PaginatedResponseEnvelopeSchema.extend({
     data: z.array(itemSchema),
   });
+
+export const createPaginatedQueryDocSchema = (
+  sortEnum: SortParamSchema,
+  options?: { descriptions?: PaginatedDescriptions },
+) => {
+  const descriptions = options?.descriptions ?? {};
+  return z
+    .object({
+      page: createIntegerDocSchema(1)
+        .describe(descriptions.page ?? defaultDescriptions.page)
+        .optional(),
+      pageSize: createIntegerDocSchema(1)
+        .describe(descriptions.pageSize ?? defaultDescriptions.pageSize)
+        .optional(),
+    })
+    .extend({
+      sortBy: sortEnum
+        .describe(descriptions.sortBy ?? defaultDescriptions.sortBy)
+        .optional(),
+    });
+};
 
 export type PaginatedRequestInput<TSortBy extends string> =
   PaginatedRequest<TSortBy>;
