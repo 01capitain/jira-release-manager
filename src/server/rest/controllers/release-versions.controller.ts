@@ -66,12 +66,19 @@ const BuiltVersionWithRelationsSchema = BuiltVersionDtoSchema.extend({
   transitions: z.array(BuiltVersionTransitionDtoSchema).optional(),
 });
 
-export const ReleaseVersionWithRelationsSchema = ReleaseVersionDtoSchema.extend(
-  {
-    creater: UserSummaryDtoSchema.optional(),
-    builtVersions: z.array(BuiltVersionWithRelationsSchema).optional(),
-  },
-);
+const ReleaseVersionRelationsSchema = z.object({
+  creater: UserSummaryDtoSchema.optional(),
+  builtVersions: z.array(BuiltVersionWithRelationsSchema).optional(),
+});
+
+export const ReleaseVersionWithRelationsSchema = ReleaseVersionDtoSchema.and(
+  ReleaseVersionRelationsSchema,
+).meta({
+  id: "ReleaseVersionWithRelations",
+  title: "Release Version (with relations)",
+  description:
+    "Release version data including optional creator and built version relations.",
+});
 
 export const ReleaseVersionListResponseSchema = createPaginatedResponseSchema(
   ReleaseVersionWithRelationsSchema,
