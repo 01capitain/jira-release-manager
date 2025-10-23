@@ -1,12 +1,7 @@
 import type { ISO8601 } from "~/shared/types/iso8601";
+import type { UserSummaryDto } from "~/shared/types/user";
 
 export type ActionExecutionStatus = "success" | "failed" | "cancelled";
-
-export type ActionHistoryUserDto = {
-  id: string;
-  name?: string | null;
-  email?: string | null;
-};
 
 export type ActionHistorySubentryDto = {
   id: string;
@@ -23,7 +18,7 @@ export type ActionHistoryEntryDto = {
   message: string;
   status: ActionExecutionStatus;
   createdAt: ISO8601;
-  createdBy: ActionHistoryUserDto;
+  createdBy: UserSummaryDto;
   subactions: ActionHistorySubentryDto[];
   metadata?: Record<string, unknown> | null;
 };
