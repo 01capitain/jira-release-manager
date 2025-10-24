@@ -9,7 +9,7 @@ import type { AppSchemaMeta } from "~/shared/zod/registry";
 
 const INTEGER_MESSAGE = "Expected integer value";
 
-type SortParamSchema = z.ZodType<string>;
+type SortParamSchema = z.ZodEnum<[string, ...string[]]>;
 
 const createIntegerSchema = (min: number, options?: { coerce?: boolean }) => {
   const base = options?.coerce ? z.coerce.number() : z.number();
@@ -33,7 +33,7 @@ const createIntegerDocSchema = (min: number) =>
 const defaultDescriptions = {
   page: "Requested Page number",
   pageSize: "Number of items per page",
-  sortBy: `Sort field. Use "-" prefix for descending order.`,
+  sortBy: 'Sort field. Use "-" prefix for descending order.',
 } as const;
 
 const PAGINATED_RESPONSE_META: AppSchemaMeta = {
