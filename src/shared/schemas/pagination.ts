@@ -33,7 +33,7 @@ const createIntegerDocSchema = (min: number) =>
 const defaultDescriptions = {
   page: "Requested Page number",
   pageSize: "Number of items per page",
-  sortBy: `Sort field. Use "-" prefix for descending order.`,
+  sortBy: 'Sort field. Use "-" prefix for descending order.',
 } as const;
 
 const PAGINATED_RESPONSE_META: AppSchemaMeta = {
