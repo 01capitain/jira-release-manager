@@ -1,15 +1,18 @@
-import { z } from "zod";
-
+import { ReleaseComponentModelSchema } from "~/server/zod/schemas/variants/pure/ReleaseComponent.pure";
 import { IsoTimestampSchema } from "~/shared/types/iso8601";
 import type { ReleaseComponentDto } from "~/shared/types/release-component";
-import { ReleaseComponentModelSchema } from "~/server/zod/schemas/variants/pure/ReleaseComponent.pure";
 
-export const ReleaseComponentDtoSchema = z
-  .object({
-    id: z.string(),
-    name: z.string(),
-    color: z.string(),
-    namingPattern: z.string(),
+const ReleaseComponentModelFieldsSchema = ReleaseComponentModelSchema.pick({
+  id: true,
+  name: true,
+  color: true,
+  namingPattern: true,
+  createdAt: true,
+}).strip();
+export const ReleaseComponentDtoSchema = ReleaseComponentModelFieldsSchema.omit(
+  { createdAt: true },
+)
+  .extend({
     createdAt: IsoTimestampSchema,
   })
   .meta({

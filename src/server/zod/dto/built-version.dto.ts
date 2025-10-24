@@ -1,16 +1,17 @@
-import { z } from "zod";
-
-import { IsoTimestampSchema } from "~/shared/types/iso8601";
-import type { BuiltVersionDto } from "~/shared/types/built-version";
 import { BuiltVersionModelSchema } from "~/server/zod/schemas/variants/pure/BuiltVersion.pure";
+import type { BuiltVersionDto } from "~/shared/types/built-version";
+import { IsoTimestampSchema } from "~/shared/types/iso8601";
 
-export const BuiltVersionDtoSchema = z
-  .object({
-    id: z.string(),
-    name: z.string(),
-    versionId: z.string(),
-    createdAt: IsoTimestampSchema,
-  })
+const BuiltVersionModelFieldsSchema = BuiltVersionModelSchema.pick({
+  id: true,
+  name: true,
+  versionId: true,
+  createdAt: true,
+}).strip();
+export const BuiltVersionDtoSchema = BuiltVersionModelFieldsSchema.omit({
+  createdAt: true,
+})
+  .extend({ createdAt: IsoTimestampSchema })
   .meta({
     id: "BuiltVersion",
     title: "Built Version",

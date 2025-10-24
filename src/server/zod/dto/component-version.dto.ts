@@ -1,16 +1,19 @@
-import { z } from "zod";
-
-import { IsoTimestampSchema } from "~/shared/types/iso8601";
-import type { ComponentVersionDto } from "~/shared/types/component-version";
 import { ComponentVersionModelSchema } from "~/server/zod/schemas/variants/pure/ComponentVersion.pure";
+import type { ComponentVersionDto } from "~/shared/types/component-version";
+import { IsoTimestampSchema } from "~/shared/types/iso8601";
 
-export const ComponentVersionDtoSchema = z
-  .object({
-    id: z.string(),
-    releaseComponentId: z.string(),
-    builtVersionId: z.string(),
-    name: z.string(),
-    increment: z.number().int().min(0),
+const ComponentVersionModelFieldsSchema = ComponentVersionModelSchema.pick({
+  id: true,
+  releaseComponentId: true,
+  builtVersionId: true,
+  name: true,
+  increment: true,
+  createdAt: true,
+}).strip();
+export const ComponentVersionDtoSchema = ComponentVersionModelFieldsSchema.omit(
+  { createdAt: true },
+)
+  .extend({
     createdAt: IsoTimestampSchema,
   })
   .meta({
