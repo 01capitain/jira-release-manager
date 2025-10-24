@@ -10,7 +10,10 @@ import { collectRelationParams } from "~/server/rest/relations";
 import { BuiltVersionDtoSchema } from "~/server/zod/dto/built-version.dto";
 import { BuiltVersionTransitionDtoSchema } from "~/server/zod/dto/built-version-transition.dto";
 import { ComponentVersionDtoSchema } from "~/server/zod/dto/component-version.dto";
-import { ReleaseVersionDtoSchema } from "~/server/zod/dto/release-version.dto";
+import {
+  ReleaseVersionDtoSchema,
+  ReleaseVersionIdSchema,
+} from "~/server/zod/dto/release-version.dto";
 import { UserSummaryDtoSchema } from "~/server/zod/dto/user.dto";
 import type { RestContext } from "~/server/rest/context";
 import { ensureAuthenticated } from "~/server/rest/auth";
@@ -97,7 +100,7 @@ export const ReleaseVersionListResponseSchema = createPaginatedResponseSchema(
 export const ReleaseVersionDetailSchema = ReleaseVersionWithRelationsSchema;
 
 export const ReleaseVersionIdParamSchema = z.object({
-  releaseId: z.uuidv7(),
+  releaseId: ReleaseVersionIdSchema,
 });
 
 export const ReleaseVersionCreateResponseSchema = ReleaseVersionDtoSchema;
@@ -107,7 +110,7 @@ const ReleaseVersionSortOptions = [
   ...RELEASE_VERSION_SORT_FIELDS.map((field) => `-${field}` as const),
 ] as const;
 
-const ReleaseVersionSortEnum = z.enum(ReleaseVersionSortOptions);
+const ReleaseVersionSortEnum = z.enum([...ReleaseVersionSortOptions]);
 
 export const ReleaseVersionListQueryDocSchema = createPaginatedQueryDocSchema(
   ReleaseVersionSortEnum,

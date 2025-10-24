@@ -119,10 +119,9 @@ paths:
         - in: path
           name: releaseId
           schema:
-            type: string
-            format: uuid
-            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$
+            $ref: "#/components/schemas/uuidv7"
           required: true
+          description: Universally unique identifier (version 7).
         - in: query
           name: relations
           schema:
@@ -334,17 +333,15 @@ paths:
         - in: path
           name: releaseId
           schema:
-            type: string
-            format: uuid
-            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$
+            $ref: "#/components/schemas/uuidv7"
           required: true
+          description: Universally unique identifier (version 7).
         - in: path
           name: builtId
           schema:
-            type: string
-            format: uuid
-            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$
+            $ref: "#/components/schemas/uuidv7"
           required: true
+          description: Universally unique identifier (version 7).
       responses:
         "200":
           description: Transition result
@@ -380,17 +377,15 @@ paths:
         - in: path
           name: releaseId
           schema:
-            type: string
-            format: uuid
-            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$
+            $ref: "#/components/schemas/uuidv7"
           required: true
+          description: Universally unique identifier (version 7).
         - in: path
           name: builtId
           schema:
-            type: string
-            format: uuid
-            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$
+            $ref: "#/components/schemas/uuidv7"
           required: true
+          description: Universally unique identifier (version 7).
       responses:
         "200":
           description: Transition result
@@ -426,17 +421,15 @@ paths:
         - in: path
           name: releaseId
           schema:
-            type: string
-            format: uuid
-            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$
+            $ref: "#/components/schemas/uuidv7"
           required: true
+          description: Universally unique identifier (version 7).
         - in: path
           name: builtId
           schema:
-            type: string
-            format: uuid
-            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$
+            $ref: "#/components/schemas/uuidv7"
           required: true
+          description: Universally unique identifier (version 7).
       responses:
         "200":
           description: Transition result
@@ -472,17 +465,15 @@ paths:
         - in: path
           name: releaseId
           schema:
-            type: string
-            format: uuid
-            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$
+            $ref: "#/components/schemas/uuidv7"
           required: true
+          description: Universally unique identifier (version 7).
         - in: path
           name: builtId
           schema:
-            type: string
-            format: uuid
-            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$
+            $ref: "#/components/schemas/uuidv7"
           required: true
+          description: Universally unique identifier (version 7).
       responses:
         "200":
           description: Transition result
@@ -518,17 +509,15 @@ paths:
         - in: path
           name: releaseId
           schema:
-            type: string
-            format: uuid
-            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$
+            $ref: "#/components/schemas/uuidv7"
           required: true
+          description: Universally unique identifier (version 7).
         - in: path
           name: builtId
           schema:
-            type: string
-            format: uuid
-            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$
+            $ref: "#/components/schemas/uuidv7"
           required: true
+          description: Universally unique identifier (version 7).
       responses:
         "200":
           description: Transition result
@@ -564,17 +553,15 @@ paths:
         - in: path
           name: releaseId
           schema:
-            type: string
-            format: uuid
-            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$
+            $ref: "#/components/schemas/uuidv7"
           required: true
+          description: Universally unique identifier (version 7).
         - in: path
           name: builtId
           schema:
-            type: string
-            format: uuid
-            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$
+            $ref: "#/components/schemas/uuidv7"
           required: true
+          description: Universally unique identifier (version 7).
       responses:
         "200":
           description: Transition result
@@ -722,6 +709,13 @@ paths:
                 $ref: "#/components/schemas/RestError"
 components:
   schemas:
+    uuidv7:
+      title: UUIDv7
+      description: Universally unique identifier (version 7).
+      examples:
+        - 018f0b4e-5ff9-7000-8000-000000000000
+      type: string
+      pattern: ^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$
     ReleaseVersionListResponse:
       title: Release Version List Response
       description: Paginated release version list response.
@@ -757,15 +751,15 @@ components:
       description: Release version summary information.
       type: object
       properties:
-        id:
-          type: string
         name:
           type: string
+        id:
+          $ref: "#/components/schemas/uuidv7"
         createdAt:
           $ref: "#/components/schemas/iso8601Timestamp"
       required:
-        - id
         - name
+        - id
         - createdAt
       additionalProperties: false
     iso8601Timestamp:
@@ -781,7 +775,7 @@ components:
       type: object
       properties:
         id:
-          type: string
+          $ref: "#/components/schemas/uuidv7"
         name:
           anyOf:
             - type: string
@@ -800,16 +794,12 @@ components:
       description: Built version data with optional deployed components and transitions.
       type: object
       properties:
-        id:
-          type: string
-          format: uuid
-          pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
         name:
           type: string
+        id:
+          $ref: "#/components/schemas/uuidv7"
         versionId:
-          type: string
-          format: uuid
-          pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+          $ref: "#/components/schemas/uuidv7"
         createdAt:
           $ref: "#/components/schemas/iso8601Timestamp"
         deployedComponents:
@@ -821,8 +811,8 @@ components:
           items:
             $ref: "#/components/schemas/BuiltVersionTransition"
       required:
-        - id
         - name
+        - id
         - versionId
         - createdAt
       additionalProperties: false
@@ -831,32 +821,26 @@ components:
       description: Component version details deployed with a built version.
       type: object
       properties:
-        id:
-          type: string
-          format: uuid
-          pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
-        releaseComponentId:
-          type: string
-          format: uuid
-          pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
-        builtVersionId:
-          type: string
-          format: uuid
-          pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
         name:
           type: string
         increment:
           type: integer
           minimum: -9007199254740991
           maximum: 9007199254740991
+        id:
+          $ref: "#/components/schemas/uuidv7"
+        releaseComponentId:
+          $ref: "#/components/schemas/uuidv7"
+        builtVersionId:
+          $ref: "#/components/schemas/uuidv7"
         createdAt:
           $ref: "#/components/schemas/iso8601Timestamp"
       required:
+        - name
+        - increment
         - id
         - releaseComponentId
         - builtVersionId
-        - name
-        - increment
         - createdAt
       additionalProperties: false
     BuiltVersionTransition:
@@ -865,9 +849,9 @@ components:
       type: object
       properties:
         id:
-          type: string
+          $ref: "#/components/schemas/uuidv7"
         builtVersionId:
-          type: string
+          $ref: "#/components/schemas/uuidv7"
         fromStatus:
           type: string
         toStatus:
@@ -877,7 +861,7 @@ components:
         createdAt:
           $ref: "#/components/schemas/iso8601Timestamp"
         createdById:
-          type: string
+          $ref: "#/components/schemas/uuidv7"
       required:
         - id
         - builtVersionId
@@ -939,23 +923,21 @@ components:
       description: Release component metadata.
       type: object
       properties:
-        id:
-          type: string
-          format: uuid
-          pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
         name:
           type: string
         color:
           type: string
         namingPattern:
           type: string
+        id:
+          $ref: "#/components/schemas/uuidv7"
         createdAt:
           $ref: "#/components/schemas/iso8601Timestamp"
       required:
-        - id
         - name
         - color
         - namingPattern
+        - id
         - createdAt
       additionalProperties: false
     BuiltVersionTransitionResult:
@@ -981,21 +963,17 @@ components:
       description: Built version summary information.
       type: object
       properties:
-        id:
-          type: string
-          format: uuid
-          pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
         name:
           type: string
+        id:
+          $ref: "#/components/schemas/uuidv7"
         versionId:
-          type: string
-          format: uuid
-          pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+          $ref: "#/components/schemas/uuidv7"
         createdAt:
           $ref: "#/components/schemas/iso8601Timestamp"
       required:
-        - id
         - name
+        - id
         - versionId
         - createdAt
       additionalProperties: false
@@ -1020,7 +998,7 @@ components:
       type: object
       properties:
         id:
-          type: string
+          $ref: "#/components/schemas/uuidv7"
         actionType:
           type: string
         message:
@@ -1060,7 +1038,7 @@ components:
       type: object
       properties:
         id:
-          type: string
+          $ref: "#/components/schemas/uuidv7"
         subactionType:
           type: string
         message:

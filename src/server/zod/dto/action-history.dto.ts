@@ -5,6 +5,7 @@ import type {
   ActionHistoryEntryDto,
 } from "~/shared/types/action-history";
 import { IsoTimestampSchema } from "~/shared/types/iso8601";
+import { UuidV7Schema } from "~/shared/types/uuid";
 import { UserSummaryDtoSchema } from "~/server/zod/dto/user.dto";
 
 const statusValues = [
@@ -25,7 +26,7 @@ const toMetadata = (
 };
 
 const ActionSubactionModelSchema = z.object({
-  id: z.string().uuid(),
+  id: UuidV7Schema,
   subactionType: z.string(),
   message: z.string(),
   status: StatusSchema,
@@ -34,7 +35,7 @@ const ActionSubactionModelSchema = z.object({
 });
 
 const ActionModelSchema = z.object({
-  id: z.string().uuid(),
+  id: UuidV7Schema,
   actionType: z.string(),
   message: z.string(),
   status: StatusSchema,
@@ -42,7 +43,7 @@ const ActionModelSchema = z.object({
   metadata: z.unknown().optional(),
   createdBy: z
     .object({
-      id: z.string().uuid(),
+      id: UuidV7Schema,
       name: z.string().nullable().optional(),
       email: z.string().nullable().optional(),
     })
@@ -52,9 +53,15 @@ const ActionModelSchema = z.object({
 
 const ActionMetadataSchema = z.object({}).catchall(z.unknown());
 
+const SYSTEM_USER_DTO = {
+  id: "00000000-0000-7000-8000-000000000000",
+  name: "System",
+  email: null,
+} as const;
+
 const ActionSubactionDtoSchema = z
   .object({
-    id: z.string(),
+    id: UuidV7Schema,
     subactionType: z.string(),
     message: z.string(),
     status: StatusSchema,
@@ -69,7 +76,7 @@ const ActionSubactionDtoSchema = z
 
 export const ActionHistoryEntryDtoSchema = z
   .object({
-    id: z.string(),
+    id: UuidV7Schema,
     actionType: z.string(),
     message: z.string(),
     status: StatusSchema,
@@ -111,11 +118,7 @@ export function toActionHistoryEntryDto(model: unknown): ActionHistoryEntryDto {
           name: parsed.createdBy.name ?? null,
           email: parsed.createdBy.email ?? null,
         }
-      : {
-          id: "00000000-0000-0000-0000-000000000000", // sentinel UUID for system/unknown
-          name: "System",
-          email: null,
-        },
+      : SYSTEM_USER_DTO,
     subactions,
     ...(metadata !== undefined ? { metadata } : {}),
   };

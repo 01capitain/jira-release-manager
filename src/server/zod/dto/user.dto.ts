@@ -2,10 +2,11 @@ import { z } from "zod";
 
 import type { UserSummaryDto } from "~/shared/types/user";
 import { UserModelSchema } from "~/server/zod/schemas/variants/pure/User.pure";
+import { UuidV7Schema } from "~/shared/types/uuid";
 
 export const UserSummaryDtoSchema = z
   .object({
-    id: z.string(),
+    id: UuidV7Schema,
     name: z.string().nullable(),
     email: z.string().nullable(),
   })
@@ -14,6 +15,8 @@ export const UserSummaryDtoSchema = z
     title: "User",
     description: "Basic user summary details.",
   });
+
+export const UserIdSchema = UserSummaryDtoSchema.shape.id;
 
 export function toUserSummaryDto(model: unknown): UserSummaryDto {
   const parsed = UserModelSchema.pick({

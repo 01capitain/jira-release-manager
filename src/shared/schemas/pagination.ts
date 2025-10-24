@@ -9,7 +9,7 @@ import type { AppSchemaMeta } from "~/shared/zod/registry";
 
 const INTEGER_MESSAGE = "Expected integer value";
 
-type SortParamSchema = z.ZodEnum<[string, ...string[]]>;
+type SortParamSchema = z.ZodType<string>;
 
 const createIntegerSchema = (min: number, options?: { coerce?: boolean }) => {
   const base = options?.coerce ? z.coerce.number() : z.number();

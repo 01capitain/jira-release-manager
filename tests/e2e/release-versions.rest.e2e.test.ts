@@ -58,6 +58,12 @@ let builtCounter = 0;
 const COMPONENT_A_ID = "018f1a50-0000-7000-9000-00000000c0a1";
 const COMPONENT_VERSION_ID = "018f1a50-0000-7000-9000-00000000c0d1";
 const COMPONENT_VERSION_ID_2 = "018f1a50-0000-7000-9000-00000000c0d2";
+const USER_1_ID = "018f1a50-0000-7000-9000-00000000d0a1";
+const USER_2_ID = "018f1a50-0000-7000-9000-00000000d0a2";
+const SESSION_USER_ID = "018f1a50-0000-7000-9000-00000000d0ff";
+const TRANSITION_ID = "018f1a50-0000-7000-9000-00000000d1b1";
+const USER_3_ID = "018f1a50-0000-7000-9000-00000000d0a3";
+const TRANSITION_ID_2 = "018f1a50-0000-7000-9000-00000000d1b2";
 
 const cloneComponentVersion = (
   record: ComponentVersionRecord,
@@ -200,7 +206,7 @@ async function parseJsonObject(
 }
 
 const authenticatedSession: Session = {
-  user: { id: "user-123", name: "Test User" },
+  user: { id: SESSION_USER_ID, name: "Test User" },
   expires: "2099-01-01T00:00:00.000Z",
 };
 
@@ -538,7 +544,7 @@ describe("Release Versions REST endpoints", () => {
           name: "Release With Relations",
           createdAt: new Date("2024-06-01T09:00:00.000Z"),
           createdBy: {
-            id: "user-1",
+            id: USER_1_ID,
             name: "Owner",
             email: "owner@example.com",
           },
@@ -560,13 +566,13 @@ describe("Release Versions REST endpoints", () => {
               ],
               transitions: [
                 {
-                  id: "transition-1",
+                  id: TRANSITION_ID,
                   builtVersionId: builtId,
                   fromStatus: "in_development",
                   toStatus: "in_deployment",
                   action: "start_deployment",
                   createdAt: new Date("2024-06-02T11:00:00.000Z"),
-                  createdById: "user-2",
+                  createdById: USER_2_ID,
                 },
               ],
             },
@@ -584,7 +590,7 @@ describe("Release Versions REST endpoints", () => {
 
       expect(response.status).toBe(200);
       expect(parsed.data[0]?.creater).toEqual({
-        id: "user-1",
+        id: USER_1_ID,
         name: "Owner",
         email: "owner@example.com",
       });
@@ -690,7 +696,7 @@ describe("Release Versions REST endpoints", () => {
       ).toHaveBeenCalledWith({
         data: {
           name: "Release 100",
-          createdBy: { connect: { id: "user-123" } },
+          createdBy: { connect: { id: SESSION_USER_ID } },
         },
         select: { id: true, name: true, createdAt: true },
       });
@@ -745,7 +751,7 @@ describe("Release Versions REST endpoints", () => {
               createdAt: new Date("2024-05-11T10:00:00.000Z"),
             },
           ],
-          createdBy: { id: "user-1", name: "Detail Owner", email: null },
+          createdBy: { id: USER_1_ID, name: "Detail Owner", email: null },
         },
       ]);
 
@@ -779,7 +785,7 @@ describe("Release Versions REST endpoints", () => {
           name: "Release Detail Relations",
           createdAt: new Date("2024-05-12T08:00:00.000Z"),
           createdBy: {
-            id: "user-42",
+            id: USER_3_ID,
             name: "Owner",
             email: "owner@example.com",
           },
@@ -801,13 +807,13 @@ describe("Release Versions REST endpoints", () => {
               ],
               transitions: [
                 {
-                  id: "transition-2",
+                  id: TRANSITION_ID_2,
                   builtVersionId: builtId,
                   fromStatus: "in_deployment",
                   toStatus: "active",
                   action: "mark_active",
                   createdAt: new Date("2024-05-13T10:00:00.000Z"),
-                  createdById: "user-9",
+                  createdById: USER_2_ID,
                 },
               ],
             },
@@ -827,7 +833,7 @@ describe("Release Versions REST endpoints", () => {
 
       expect(response.status).toBe(200);
       expect(parsed.creater).toEqual({
-        id: "user-42",
+        id: USER_3_ID,
         name: "Owner",
         email: "owner@example.com",
       });

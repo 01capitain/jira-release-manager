@@ -1,6 +1,9 @@
 import { ComponentVersionModelSchema } from "~/server/zod/schemas/variants/pure/ComponentVersion.pure";
+import { BuiltVersionIdSchema } from "~/server/zod/dto/built-version.dto";
+import { ReleaseComponentIdSchema } from "~/server/zod/dto/release-component.dto";
 import type { ComponentVersionDto } from "~/shared/types/component-version";
 import { IsoTimestampSchema } from "~/shared/types/iso8601";
+import { UuidV7Schema } from "~/shared/types/uuid";
 
 const ComponentVersionModelFieldsSchema = ComponentVersionModelSchema.pick({
   id: true,
@@ -11,9 +14,17 @@ const ComponentVersionModelFieldsSchema = ComponentVersionModelSchema.pick({
   createdAt: true,
 }).strip();
 export const ComponentVersionDtoSchema = ComponentVersionModelFieldsSchema.omit(
-  { createdAt: true },
+  {
+    id: true,
+    releaseComponentId: true,
+    builtVersionId: true,
+    createdAt: true,
+  },
 )
   .extend({
+    id: UuidV7Schema,
+    releaseComponentId: ReleaseComponentIdSchema,
+    builtVersionId: BuiltVersionIdSchema,
     createdAt: IsoTimestampSchema,
   })
   .meta({

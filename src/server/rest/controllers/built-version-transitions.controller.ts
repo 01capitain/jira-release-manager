@@ -4,6 +4,7 @@ import { ActionHistoryService } from "~/server/services/action-history.service";
 import { BuiltVersionStatusService } from "~/server/services/built-version-status.service";
 import {
   BuiltVersionDtoSchema,
+  BuiltVersionIdSchema,
   toBuiltVersionDto,
 } from "~/server/zod/dto/built-version.dto";
 import { BuiltVersionTransitionDtoSchema } from "~/server/zod/dto/built-version-transition.dto";
@@ -12,10 +13,11 @@ import { ensureAuthenticated } from "~/server/rest/auth";
 import { RestError } from "~/server/rest/errors";
 import { jsonErrorResponse } from "~/server/rest/openapi";
 import type { BuiltVersionAction } from "~/shared/types/built-version-status";
+import { ReleaseVersionIdSchema } from "~/server/zod/dto/release-version.dto";
 
 export const BuiltVersionTransitionParamSchema = z.object({
-  releaseId: z.uuidv7(),
-  builtId: z.uuidv7(),
+  releaseId: ReleaseVersionIdSchema,
+  builtId: BuiltVersionIdSchema,
 });
 
 export const BuiltVersionTransitionResponseSchema = z

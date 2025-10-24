@@ -1,6 +1,7 @@
 import { ReleaseComponentModelSchema } from "~/server/zod/schemas/variants/pure/ReleaseComponent.pure";
 import { IsoTimestampSchema } from "~/shared/types/iso8601";
 import type { ReleaseComponentDto } from "~/shared/types/release-component";
+import { UuidV7Schema } from "~/shared/types/uuid";
 
 const ReleaseComponentModelFieldsSchema = ReleaseComponentModelSchema.pick({
   id: true,
@@ -10,9 +11,13 @@ const ReleaseComponentModelFieldsSchema = ReleaseComponentModelSchema.pick({
   createdAt: true,
 }).strip();
 export const ReleaseComponentDtoSchema = ReleaseComponentModelFieldsSchema.omit(
-  { createdAt: true },
+  {
+    id: true,
+    createdAt: true,
+  },
 )
   .extend({
+    id: UuidV7Schema,
     createdAt: IsoTimestampSchema,
   })
   .meta({
@@ -20,6 +25,8 @@ export const ReleaseComponentDtoSchema = ReleaseComponentModelFieldsSchema.omit(
     title: "Release Component",
     description: "Release component metadata.",
   });
+
+export const ReleaseComponentIdSchema = ReleaseComponentDtoSchema.shape.id;
 
 export function toReleaseComponentDto(model: unknown): ReleaseComponentDto {
   const parsed = ReleaseComponentModelSchema.pick({

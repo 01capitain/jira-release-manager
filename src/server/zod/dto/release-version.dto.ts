@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { IsoTimestampSchema } from "~/shared/types/iso8601";
 import type { ReleaseVersionDto } from "~/shared/types/release-version";
+import { UuidV7Schema } from "~/shared/types/uuid";
 import { ReleaseVersionModelSchema } from "~/server/zod/schemas/variants/pure/ReleaseVersion.pure";
 
 const ReleaseVersionModelFieldsSchema = ReleaseVersionModelSchema.pick({
@@ -12,9 +13,11 @@ const ReleaseVersionModelFieldsSchema = ReleaseVersionModelSchema.pick({
 
 // Public DTO schema (explicitly controls fields exposed to clients)
 export const ReleaseVersionDtoSchema = ReleaseVersionModelFieldsSchema.omit({
+  id: true,
   createdAt: true,
 })
   .extend({
+    id: UuidV7Schema,
     createdAt: IsoTimestampSchema,
   })
   .meta({
@@ -22,6 +25,8 @@ export const ReleaseVersionDtoSchema = ReleaseVersionModelFieldsSchema.omit({
     title: "Release Version",
     description: "Release version summary information.",
   });
+
+export const ReleaseVersionIdSchema = ReleaseVersionDtoSchema.shape.id;
 
 // Helper to convert from Prisma model (via generated schema) to DTO
 export function toReleaseVersionDto(model: unknown): ReleaseVersionDto {
