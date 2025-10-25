@@ -41,9 +41,7 @@ export function toComponentVersionDto(model: unknown): ComponentVersionDto {
     name: true,
     increment: true,
     createdAt: true,
-  })
-    .strip()
-    .parse(model);
+  const parsed = ComponentVersionModelFieldsSchema.parse(model);
   const dto: ComponentVersionDto = {
     id: parsed.id,
     releaseComponentId: parsed.releaseComponentId,
