@@ -44,8 +44,8 @@ const ThingWithRelationsSchema = ThingDtoSchema.extend({
 | Step | File | Notes |
 | --- | --- | --- |
 | Return DTOs | `src/server/services/<entity>.service.ts` | Map Prisma results to DTOs before returning. Never leak raw Prisma objects. |
-| Normalise relations | Keep relation allow-lists (`…/<entity>.relations.ts`) small and explicit. Cross-check with REST controllers. |
-| Emit audit logs | If a write touches domain state, use `ActionHistoryService` just as `BuiltVersionService` does. |
+| Normalise relations | `src/server/services/<entity>.relations.ts` | Keep relation allow-lists small and explicit. Cross-check with REST controllers. |
+| Emit audit logs | `src/server/services/<entity>.service.ts` | If a write touches domain state, use `ActionHistoryService` just as `BuiltVersionService` does. |
 
 Make sure any hard-coded IDs in tests use UUIDv7-formatted strings; the DTO schemas now enforce it.
 
