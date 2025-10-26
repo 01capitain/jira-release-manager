@@ -130,9 +130,13 @@ describe("ReleaseVersion REST contract", () => {
     const detailSchema =
       detailPath.responses?.[200]?.content?.["application/json"]?.schema;
     const pathParams = detailPath.requestParams?.path;
+    const listQuery = listPath.requestParams?.query;
+    const detailQuery = detailPath.requestParams?.query;
 
     expect(listSchema).toBe(ReleaseVersionListResponseSchema);
     expect(detailSchema).toBe(ReleaseVersionDetailSchema);
     expect(pathParams).toBe(ReleaseVersionIdParamSchema);
+    expect(listQuery).toBe(ReleaseVersionListQueryDocSchema);
+    expect(detailQuery).toBe(ReleaseVersionRelationsQueryDocSchema);
   });
 });
