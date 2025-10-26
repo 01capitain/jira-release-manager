@@ -23,7 +23,7 @@ export const BuiltVersionTransitionParamSchema = z.object({
 export const BuiltVersionTransitionResponseSchema = z
   .object({
     builtVersion: BuiltVersionDtoSchema,
-    status: z.string(),
+    status: BuiltVersionStatusSchema,
     history: z.array(BuiltVersionTransitionDtoSchema),
   })
   .meta({
