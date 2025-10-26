@@ -57,7 +57,7 @@ const SYSTEM_USER_DTO = {
   id: "00000000-0000-7000-8000-000000000000",
   name: "System",
   email: null,
-} as const;
+} as const satisfies z.infer<typeof UserSummaryDtoSchema>;
 
 const ActionSubactionDtoSchema = z
   .object({
