@@ -93,7 +93,7 @@ export function createPaginatedRequestSchema<TSortBy extends string>(
     .object({
       page: positiveIntegerInput
         .optional()
-        .describe(descriptions.page ?? "Requested Page number"),
+        .describe(descriptions.page ?? defaultDescriptions.page),
       pageSize: positiveIntegerInput
         .optional()
         .describe(descriptions.pageSize ?? "Number of items per page"),
