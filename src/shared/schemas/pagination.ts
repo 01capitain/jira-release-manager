@@ -31,7 +31,7 @@ const createIntegerDocSchema = (min: number) =>
     .meta({ type: "integer" });
 
 const defaultDescriptions = {
-  page: "Requested Page number",
+  page: "Requested page number",
   pageSize: "Number of items per page",
   sortBy: 'Sort field. Use "-" prefix for descending order.',
 } as const;
