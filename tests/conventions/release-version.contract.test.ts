@@ -115,6 +115,7 @@ describe("ReleaseVersion REST contract", () => {
     };
     expect(() => ReleaseVersionDetailSchema.parse(sample)).not.toThrow();
     expect(() => ReleaseVersionWithRelationsSchema.parse(sample)).not.toThrow();
+    expect(ReleaseVersionDetailSchema).toBe(ReleaseVersionWithRelationsSchema);
   });
 
   it("OpenAPI paths reference the exported schemas", () => {
