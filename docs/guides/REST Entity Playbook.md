@@ -90,7 +90,7 @@ If your schema metadata is present, the generator will collapse arrays of entiti
 | --- | --- | --- |
 | Service unit tests | `tests/services/<entity>.service.test.ts` | Continue to use mocked Prisma clients. When seeding fake data, ensure IDs match UUIDv7 format and timestamps are `Date` objects. |
 | REST e2e tests | `tests/e2e/<entity>.rest.e2e.test.ts` | Mirror the release and built version tests. Use request helpers (`NextRequest`) and parse the JSON with the exported response schemas to assert contracts. |
-| Regression tests | Extend pagination and relation tests to cover new allow-lists. |
+| Regression tests | `tests/e2e/<entity>.rest.e2e.test.ts` | Extend pagination and relation tests to cover new allow-lists. |
 
 For quick setup, copy the structure from the built version specs and replace the entity-specific fields.
 
