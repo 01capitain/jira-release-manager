@@ -86,7 +86,10 @@ const pluralise = (value) => {
     return `${value}es`;
   }
   if (value.endsWith("y")) {
-    return `${value.slice(0, -1)}ies`;
+    const beforeY = value.charAt(value.length - 2);
+    if (beforeY && !/[aeiou]/i.test(beforeY)) {
+      return `${value.slice(0, -1)}ies`;
+    }
   }
   return `${value}s`;
 };
