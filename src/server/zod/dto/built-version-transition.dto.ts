@@ -50,7 +50,7 @@ export function toBuiltVersionTransitionDto(
 }
 
 export function mapToBuiltVersionTransitionDtos(
-  models: unknown[],
+  models: readonly unknown[],
 ): BuiltVersionTransitionDto[] {
   return models.map((model) => toBuiltVersionTransitionDto(model));
 }
