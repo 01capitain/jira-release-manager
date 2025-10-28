@@ -1,11 +1,11 @@
 import { z } from "zod";
 
-import type { RestContext } from "~/server/rest/context";
-import { ensureAuthenticated } from "~/server/rest/auth";
-import { RestError } from "~/server/rest/errors";
-import { JiraVersionService } from "~/server/services/jira-version.service";
 import { env } from "~/env";
+import { ensureAuthenticated } from "~/server/rest/auth";
+import type { RestContext } from "~/server/rest/context";
+import { RestError } from "~/server/rest/errors";
 import { jsonErrorResponse } from "~/server/rest/openapi";
+import { JiraVersionService } from "~/server/services/jira-version.service";
 
 export const JiraStoredVersionsQuerySchema = z
   .object({
@@ -163,6 +163,7 @@ export const jiraReleasesPaths = {
         200: {
           description: "Stored Jira versions",
         },
+        401: jsonErrorResponse("Authentication required"),
       },
     },
   },

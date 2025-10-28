@@ -1,17 +1,17 @@
 import { z } from "zod";
 
-import { ActionHistoryService } from "~/server/services/action-history.service";
-import { ReleaseVersionService } from "~/server/services/release-version.service";
-import { BuiltVersionDtoSchema } from "~/server/zod/dto/built-version.dto";
-import { ReleaseVersionDtoSchema } from "~/server/zod/dto/release-version.dto";
-import type { RestContext } from "~/server/rest/context";
-import { ensureAuthenticated } from "~/server/rest/auth";
-import { RestError } from "~/server/rest/errors";
-import { jsonErrorResponse } from "~/server/rest/openapi";
 import {
   DEFAULT_RELEASE_VERSION_LIST_INPUT,
   RELEASE_VERSION_SORT_FIELDS,
 } from "~/server/api/schemas";
+import { ensureAuthenticated } from "~/server/rest/auth";
+import type { RestContext } from "~/server/rest/context";
+import { RestError } from "~/server/rest/errors";
+import { jsonErrorResponse } from "~/server/rest/openapi";
+import { ActionHistoryService } from "~/server/services/action-history.service";
+import { ReleaseVersionService } from "~/server/services/release-version.service";
+import { BuiltVersionDtoSchema } from "~/server/zod/dto/built-version.dto";
+import { ReleaseVersionDtoSchema } from "~/server/zod/dto/release-version.dto";
 import {
   createPaginatedRequestSchema,
   createPaginatedResponseSchema,
@@ -107,6 +107,7 @@ export const createReleaseVersion = async (
 export const listReleaseVersionsWithBuilds = async (
   context: RestContext,
 ): Promise<ReleaseVersionWithBuildsDto[]> => {
+  ensureAuthenticated(context);
   const svc = new ReleaseVersionService(context.db);
   const rows = await svc.listWithBuilds();
   return z.array(ReleaseVersionWithBuildsSchema).parse(rows);

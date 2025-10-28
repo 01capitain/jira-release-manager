@@ -1778,6 +1778,12 @@ paths:
       responses:
         "200":
           description: Stored Jira versions
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestError"
   /jira/releases/sync:
     post:
       operationId: syncJiraVersions
