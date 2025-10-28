@@ -100,19 +100,26 @@ export const syncJiraVersions = async (
     select: { email: true, apiToken: true },
   });
 
-  const response = await svc.fetchProjectVersions({
-    includeReleased: input?.includeReleased,
-    includeUnreleased: input?.includeUnreleased,
-    includeArchived: input?.includeArchived,
-    pageSize: input?.pageSize,
-    baseUrl: env.JIRA_BASE_URL ?? undefined,
-    projectKey: env.JIRA_PROJECT_KEY ?? undefined,
-    email: typeof cred?.email === "string" ? cred.email : undefined,
-    apiToken:
-      typeof cred?.apiToken === "string" && cred.apiToken.length > 0
-        ? cred.apiToken
-        : undefined,
-  });
+  let response;
+  try {
+    response = await svc.fetchProjectVersions({
+      includeReleased: input?.includeReleased,
+      includeUnreleased: input?.includeUnreleased,
+      includeArchived: input?.includeArchived,
+      pageSize: input?.pageSize,
+      baseUrl: env.JIRA_BASE_URL ?? undefined,
+      projectKey: env.JIRA_PROJECT_KEY ?? undefined,
+      email: typeof cred?.email === "string" ? cred.email : undefined,
+      apiToken:
+        typeof cred?.apiToken === "string" && cred.apiToken.length > 0
+          ? cred.apiToken
+          : undefined,
+    });
+  } catch (err) {
+    const msg =
+      err instanceof Error ? err.message : "Failed to fetch Jira versions";
+    throw new RestError(502, "UPSTREAM_ERROR", msg);
+  }
 
   if (!response.configured) {
     throw new RestError(412, "PRECONDITION_FAILED", "Jira not configured");
