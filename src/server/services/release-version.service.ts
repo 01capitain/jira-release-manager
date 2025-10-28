@@ -5,34 +5,34 @@ import type {
   User,
 } from "@prisma/client";
 import { RestError } from "~/server/rest/errors";
+import { buildPaginatedResponse } from "~/server/rest/pagination";
 import type {
   ActionLogger,
   SubactionInput,
 } from "~/server/services/action-history.service";
 import {
+  buildReleaseVersionRelationState,
+  type ReleaseVersionRelationState,
+} from "~/server/services/release-version.relations";
+import { mapToBuiltVersionTransitionDtos } from "~/server/zod/dto/built-version-transition.dto";
+import {
   mapToBuiltVersionDtos,
   toBuiltVersionDto,
 } from "~/server/zod/dto/built-version.dto";
 import { mapToComponentVersionDtos } from "~/server/zod/dto/component-version.dto";
-import { mapToBuiltVersionTransitionDtos } from "~/server/zod/dto/built-version-transition.dto";
-import { toUserSummaryDto } from "~/server/zod/dto/user.dto";
 import { toReleaseVersionDto } from "~/server/zod/dto/release-version.dto";
+import { toUserSummaryDto } from "~/server/zod/dto/user.dto";
+import type {
+  NormalizedPaginatedRequest,
+  PaginatedResponse,
+} from "~/shared/types/pagination";
 import type { ReleaseVersionDto } from "~/shared/types/release-version";
-import type { ReleaseVersionWithBuildsDto } from "~/shared/types/release-version-with-builds";
 import type {
   BuiltVersionWithRelationsDto,
   ReleaseVersionRelationKey,
   ReleaseVersionWithRelationsDto,
 } from "~/shared/types/release-version-relations";
-import type {
-  NormalizedPaginatedRequest,
-  PaginatedResponse,
-} from "~/shared/types/pagination";
-import { buildPaginatedResponse } from "~/server/rest/pagination";
-import {
-  buildReleaseVersionRelationState,
-  type ReleaseVersionRelationState,
-} from "~/server/services/release-version.relations";
+import type { ReleaseVersionWithBuildsDto } from "~/shared/types/release-version-with-builds";
 
 export class ReleaseVersionService {
   constructor(private readonly db: PrismaClient) {}
@@ -130,21 +130,10 @@ export class ReleaseVersionService {
     if (state.includeCreater && typed.createdBy) {
       result.creater = toUserSummaryDto(typed.createdBy);
     }
-    if (
-      state.includeBuiltVersions &&
-      Array.isArray(typed.builtVersions) &&
-      typed.builtVersions.length > 0
-    ) {
+    if (state.includeBuiltVersions && Array.isArray(typed.builtVersions)) {
       result.builtVersions = typed.builtVersions.map((built) =>
         this.mapBuiltVersion(built, state),
       );
-    }
-    if (
-      state.includeBuiltVersions &&
-      Array.isArray(typed.builtVersions) &&
-      typed.builtVersions.length === 0
-    ) {
-      result.builtVersions = [];
     }
     return result;
   }

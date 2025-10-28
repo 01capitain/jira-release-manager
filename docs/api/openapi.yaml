@@ -597,17 +597,17 @@ paths:
         - in: query
           name: page
           schema:
+            default: 1
             description: Requested Page number
             type: integer
             minimum: 1
-          description: Requested Page number
         - in: query
           name: pageSize
           schema:
+            default: 5
             description: Number of items per page
             type: integer
             minimum: 1
-          description: Number of items per page
         - in: query
           name: sortBy
           schema:

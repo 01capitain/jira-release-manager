@@ -1,6 +1,6 @@
-import { ReleaseVersionService } from "~/server/services/release-version.service";
-import { BuiltVersionService } from "~/server/services/built-version.service";
 import { BuiltVersionStatusService } from "~/server/services/built-version-status.service";
+import { BuiltVersionService } from "~/server/services/built-version.service";
+import { ReleaseVersionService } from "~/server/services/release-version.service";
 
 const COMPONENT_A_ID = "018f1a50-0000-7000-8000-00000000000a";
 const COMPONENT_B_ID = "018f1a50-0000-7000-8000-00000000000b";
