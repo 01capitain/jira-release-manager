@@ -49,9 +49,13 @@ export default function JiraReleasesPage() {
   // No auto-sync query; syncing happens only on explicit action
 
   const queryClient = useQueryClient();
+  const releaseListParams = React.useMemo(
+    () => ({ page: 1, pageSize: 100 }),
+    [],
+  );
   const releases = useQuery<PaginatedResponse<ReleaseVersionDto>>({
-    queryKey: releaseVersionListQueryKey({ page: 1, pageSize: 100 }),
-    queryFn: () => fetchReleaseVersions({ page: 1, pageSize: 100 }),
+    queryKey: releaseVersionListQueryKey(releaseListParams),
+    queryFn: () => fetchReleaseVersions(releaseListParams),
   });
   const canSyncQuick = useJiraSetupStatusQuery({ enabled: !!session });
   const [page, setPage] = React.useState(1);
