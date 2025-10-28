@@ -37,9 +37,9 @@ export function toBuiltVersionDto(model: unknown): BuiltVersionDto {
     .strip()
     .parse(model);
   const dto: BuiltVersionDto = {
-    id: parsed.id,
+    id: UuidV7Schema.parse(parsed.id),
     name: parsed.name,
-    versionId: parsed.versionId,
+    versionId: UuidV7Schema.parse(parsed.versionId),
     createdAt: parsed.createdAt.toISOString() as BuiltVersionDto["createdAt"],
   };
   return BuiltVersionDtoSchema.strip().parse(dto);

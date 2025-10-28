@@ -32,7 +32,7 @@ export const ReleaseVersionIdSchema = ReleaseVersionDtoSchema.shape.id;
 export function toReleaseVersionDto(model: unknown): ReleaseVersionDto {
   const parsed = ReleaseVersionModelFieldsSchema.parse(model);
   const dto: ReleaseVersionDto = {
-    id: parsed.id,
+    id: UuidV7Schema.parse(parsed.id),
     name: parsed.name,
     createdAt: parsed.createdAt.toISOString() as ReleaseVersionDto["createdAt"],
   };

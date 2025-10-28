@@ -39,7 +39,7 @@ export function toReleaseComponentDto(model: unknown): ReleaseComponentDto {
     .strip()
     .parse(model);
   const dto: ReleaseComponentDto = {
-    id: parsed.id,
+    id: UuidV7Schema.parse(parsed.id),
     name: parsed.name,
     color: parsed.color,
     namingPattern: parsed.namingPattern,

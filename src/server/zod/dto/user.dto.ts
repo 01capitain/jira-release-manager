@@ -27,7 +27,7 @@ export function toUserSummaryDto(model: unknown): UserSummaryDto {
     .strip()
     .parse(model);
   const dto: UserSummaryDto = {
-    id: parsed.id,
+    id: UuidV7Schema.parse(parsed.id),
     name: parsed.name ?? null,
     email: parsed.email ?? null,
   };

@@ -21,8 +21,8 @@
  * The main generator is exported for testing.
  */
 
-import { mkdir, writeFile, access } from "node:fs/promises";
 import { constants } from "node:fs";
+import { access, mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -51,7 +51,11 @@ const writeIfAllowed = async (filePath, content, options) => {
     return { filePath, skipped: true, reason: "exists" };
   }
   if (options.dryRun) {
-    return { filePath, skipped: true, reason: options.force ? "dry-run-force" : "dry-run" };
+    return {
+      filePath,
+      skipped: true,
+      reason: options.force ? "dry-run-force" : "dry-run",
+    };
   }
   await ensureDir(path.dirname(filePath));
   await writeFile(filePath, content, "utf8");
@@ -91,7 +95,11 @@ const pluralise = (value) => {
   return `${value}s`;
 };
 
-const sharedTypeTemplate = ({ pascal, kebab }) => `import type { ISO8601 } from "~/shared/types/iso8601";
+const sharedTypeTemplate = ({
+  pascal,
+  kebab,
+  camel,
+}) => `import type { ISO8601 } from "~/shared/types/iso8601";
 import type { UuidV7 } from "~/shared/types/uuid";
 
 /**
@@ -105,7 +113,10 @@ export type ${pascal}Dto = {
 };
 `;
 
-const zodDtoTemplate = ({ pascal, kebab }) => `import { ${pascal}ModelSchema } from "~/server/zod/schemas/variants/pure/${pascal}.pure";
+const zodDtoTemplate = ({
+  pascal,
+  kebab,
+}) => `import { ${pascal}ModelSchema } from "~/server/zod/schemas/variants/pure/${pascal}.pure";
 import type { ${pascal}Dto } from "~/shared/types/${kebab}";
 import { IsoTimestampSchema } from "~/shared/types/iso8601";
 import { UuidV7Schema } from "~/shared/types/uuid";
@@ -159,7 +170,11 @@ export function mapTo${pascal}Dtos(models: unknown[]): ${pascal}Dto[] {
 }
 `;
 
-const serviceTemplate = ({ pascal, camel, kebab }) => `import type { PrismaClient } from "@prisma/client";
+const serviceTemplate = ({
+  pascal,
+  camel,
+  kebab,
+}) => `import type { PrismaClient } from "@prisma/client";
 
 import type { ${pascal}Dto } from "~/shared/types/${kebab}";
 import { mapTo${pascal}Dtos, to${pascal}Dto } from "~/server/zod/dto/${kebab}.dto";
@@ -308,12 +323,16 @@ export const ${camel}Paths = {
  */
 `;
 
-const serviceTestTemplate = ({ pascal, kebab }) => `import { ${pascal}Service } from "~/server/services/${kebab}.service";
+const serviceTestTemplate = ({
+  pascal,
+  kebab,
+  camel,
+}) => `import { ${pascal}Service } from "~/server/services/${kebab}.service";
 
 describe("${pascal}Service", () => {
   it("list returns DTOs (placeholder)", async () => {
     const db: any = {
-      ${kebab}: {
+      ${camel}: {
         findMany: jest.fn(async () => [
           { id: "018f1a50-0000-7000-9000-0000000000aa", createdAt: new Date() },
         ]),
@@ -326,7 +345,11 @@ describe("${pascal}Service", () => {
 });
 `;
 
-const e2eTestTemplate = ({ pascal, camel, kebab }) => `import { NextRequest } from "next/server";
+const e2eTestTemplate = ({
+  pascal,
+  camel,
+  kebab,
+}) => `import { NextRequest } from "next/server";
 
 import { list${pascal}s } from "~/server/rest/controllers/${kebab}.controller";
 
@@ -368,7 +391,13 @@ const templates = [
   },
   {
     relativePath: (kebab) =>
-      path.join("src", "server", "rest", "controllers", `${kebab}.controller.ts`),
+      path.join(
+        "src",
+        "server",
+        "rest",
+        "controllers",
+        `${kebab}.controller.ts`,
+      ),
     build: controllerTemplate,
     category: "controller",
   },
@@ -403,7 +432,11 @@ export async function generateEntity(entityName, options = {}) {
     const target = path.join(ROOT, relative);
     const content = template.build(context);
     const result = await writeIfAllowed(target, content, options);
-    actions.push({ ...result, relativePath: relative, category: template.category });
+    actions.push({
+      ...result,
+      relativePath: relative,
+      category: template.category,
+    });
   }
 
   return { entity: entityName, kebab, pascal, camel, actions };
@@ -428,7 +461,9 @@ if (process.argv[1] === __filename) {
     const { flags, names } = parseFlags(rest);
     const [entityName] = names;
     if (!entityName) {
-      throw new Error("Usage: pnpm entity:expose <entity-name> [--dry-run] [--force] [--json]");
+      throw new Error(
+        "Usage: pnpm entity:expose <entity-name> [--dry-run] [--force] [--json]",
+      );
     }
     generateEntity(entityName, flags).then((result) => {
       if (flags.json) {
