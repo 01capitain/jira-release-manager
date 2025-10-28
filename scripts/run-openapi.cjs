@@ -27,20 +27,20 @@ Module._resolveFilename = function resolve(request, parent, isMain, options) {
   if (request === "zod") {
     return originalResolveFilename("zod/v4", parent, isMain, options);
   }
-  if (
-    request === "~/env" ||
-    request === "~env" ||
-    request === "./env" ||
-    request === "../env" ||
-    request?.endsWith("/src/env.js")
-  ) {
-    return originalResolveFilename(
-      "scripts/openapi-stubs/env",
-      parent,
-      isMain,
-      options,
-    );
-  }
+  Module._resolveFilename = function resolve(request, parent, isMain, options) {
+    if (request === "zod") {
+      return originalResolveFilename("zod/v4", parent, isMain, options);
+    }
+    if (request === "~/env") {
+      return originalResolveFilename(
+        "scripts/openapi-stubs/env",
+        parent,
+        isMain,
+        options,
+      );
+    }
+    return originalResolveFilename(request, parent, isMain, options);
+  };
   return originalResolveFilename(request, parent, isMain, options);
 };
 
