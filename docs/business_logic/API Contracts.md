@@ -1,6 +1,7 @@
 # API Contracts and Token Values
 
 - API endpoints (tRPC, REST) return DTOs from `src/shared/types`. This ensures the same contract is reused across clients.
+- REST GET endpoints expose optional relation data through the `relations` query parameter. Each entity maintains an allowlist (e.g., release versions permit `creater`, `builtVersions`, `builtVersions.deployedComponents`, `builtVersions.transitions`). Unknown keys or nested relations without their parent must raise `RestError(400, "INVALID_RELATION")`.
 - List endpoints return `PaginatedResponse<T>` (see `src/shared/types/pagination.ts`) so every response includes `data` alongside `pagination { page, pageSize, totalItems, hasNextPage }`. Use `createPaginatedRequestSchema` to normalize inputs and `buildPaginatedResponse` to hydrate responses.
 - For build and component versioning, we store a `tokenValues` JSON object alongside records. Shape is defined by `TokenValues`:
 

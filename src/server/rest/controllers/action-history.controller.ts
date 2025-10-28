@@ -14,7 +14,11 @@ export type ActionHistoryQuery = z.infer<typeof ActionHistoryListInputSchema>;
 
 export const ActionHistoryListResponseSchema = createPaginatedResponseSchema(
   ActionHistoryEntryDtoSchema,
-);
+).meta({
+  id: "ActionHistoryListResponse",
+  title: "Action History List Response",
+  description: "Paginated action history entries for the current session.",
+});
 
 export const listActionHistory = async (
   context: RestContext,

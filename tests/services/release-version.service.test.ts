@@ -1,15 +1,18 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-argument */
-import { ReleaseVersionService } from "~/server/services/release-version.service";
-import { BuiltVersionService } from "~/server/services/built-version.service";
 import { BuiltVersionStatusService } from "~/server/services/built-version-status.service";
+import { BuiltVersionService } from "~/server/services/built-version.service";
+import { ReleaseVersionService } from "~/server/services/release-version.service";
 
-const COMPONENT_A_ID = "00000000-0000-7000-8000-00000000000a";
-const COMPONENT_B_ID = "00000000-0000-7000-8000-00000000000b";
-const REL_MAIN_ID = "00000000-0000-7000-8000-00000000000c";
-const REL_SECONDARY_ID = "00000000-0000-7000-8000-00000000000d";
-const BUILT_VERSION_LIST_ID = "00000000-0000-7000-8000-00000000000e";
-const ACTIVE_BUILT_ID = "00000000-0000-7000-8000-00000000000f";
-const NEWER_BUILT_ID = "00000000-0000-7000-8000-000000000010";
+const COMPONENT_A_ID = "018f1a50-0000-7000-8000-00000000000a";
+const COMPONENT_B_ID = "018f1a50-0000-7000-8000-00000000000b";
+const REL_MAIN_ID = "018f1a50-0000-7000-8000-00000000000c";
+const REL_SECONDARY_ID = "018f1a50-0000-7000-8000-00000000000d";
+const BUILT_VERSION_LIST_ID = "018f1a50-0000-7000-8000-00000000000e";
+const ACTIVE_BUILT_ID = "018f1a50-0000-7000-8000-00000000000f";
+const NEWER_BUILT_ID = "018f1a50-0000-7000-8000-000000000010";
+const COMPONENT_VERSION_ID = "018f1a50-0000-7000-9000-0000000000c1";
+const USER_1_ID = "018f1a50-0000-7000-9000-0000000001a1";
+const USER_2_ID = "018f1a50-0000-7000-9000-0000000001a2";
+const TRANSITION_ID = "018f1a50-0000-7000-9000-0000000002b1";
 
 // Minimal Prisma-like client mock with only fields used in tests
 function makeMockDb() {
@@ -125,7 +128,7 @@ describe("ReleaseVersion and BuiltVersion behavior", () => {
     }));
 
     const svc = new ReleaseVersionService(db);
-    await svc.create("user-1" as any, "version 100");
+    await svc.create(USER_1_ID, "version 100");
 
     // builtVersion created alongside
     expect(db.builtVersion.create).toHaveBeenCalled();
@@ -138,6 +141,211 @@ describe("ReleaseVersion and BuiltVersion behavior", () => {
     expect(db.componentVersion.create).toHaveBeenCalledTimes(2);
   });
 
+  test("list returns bare DTOs when no relations are requested", async () => {
+    const { db } = makeMockDb();
+    const createdAt = new Date("2024-01-01T12:00:00Z");
+    db.releaseVersion.count = jest.fn(async () => 1);
+    db.releaseVersion.findMany = jest.fn(async () => [
+      { id: REL_MAIN_ID, name: "Release 100", createdAt },
+    ]);
+
+    const svc = new ReleaseVersionService(db);
+    const page = await svc.list({ page: 1, pageSize: 10, sortBy: "createdAt" });
+
+    expect(page.data).toHaveLength(1);
+    expect(page.data[0]).toEqual({
+      id: REL_MAIN_ID,
+      name: "Release 100",
+      createdAt: createdAt.toISOString(),
+    });
+    const args = db.releaseVersion.findMany.mock.calls[0]?.[0] ?? {};
+    expect(args.include).toBeUndefined();
+  });
+
+  test("list merges requested relations, including nested built data", async () => {
+    const { db } = makeMockDb();
+    const releaseCreatedAt = new Date("2024-02-01T09:00:00Z");
+    const builtCreatedAt = new Date("2024-02-02T10:00:00Z");
+    db.releaseVersion.count = jest.fn(async () => 1);
+    db.releaseVersion.findMany = jest.fn(async () => [
+      {
+        id: REL_MAIN_ID,
+        name: "Release 200",
+        createdAt: releaseCreatedAt,
+        createdBy: {
+          id: USER_1_ID,
+          name: "Test User",
+          email: "user@example.com",
+        },
+        builtVersions: [
+          {
+            id: BUILT_VERSION_LIST_ID,
+            name: "Release 200.0",
+            versionId: REL_MAIN_ID,
+            createdAt: builtCreatedAt,
+            componentVersions: [
+              {
+                id: COMPONENT_VERSION_ID,
+                releaseComponentId: COMPONENT_A_ID,
+                builtVersionId: BUILT_VERSION_LIST_ID,
+                name: "component-a",
+                increment: 0,
+                createdAt: builtCreatedAt,
+              },
+            ],
+            BuiltVersionTransition: [
+              {
+                id: TRANSITION_ID,
+                builtVersionId: BUILT_VERSION_LIST_ID,
+                fromStatus: "in_development",
+                toStatus: "in_deployment",
+                action: "start_deployment",
+                createdAt: builtCreatedAt,
+                createdById: USER_2_ID,
+              },
+            ],
+          },
+        ],
+      },
+    ]);
+
+    const svc = new ReleaseVersionService(db);
+    const page = await svc.list(
+      { page: 1, pageSize: 5, sortBy: "-createdAt" },
+      {
+        relations: [
+          "creater",
+          "builtVersions",
+          "builtVersions.deployedComponents",
+          "builtVersions.transitions",
+        ],
+      },
+    );
+
+    const [item] = page.data;
+    expect(item?.creater).toEqual({
+      id: USER_1_ID,
+      name: "Test User",
+      email: "user@example.com",
+    });
+    expect(item?.builtVersions).toEqual([
+      {
+        id: BUILT_VERSION_LIST_ID,
+        name: "Release 200.0",
+        versionId: REL_MAIN_ID,
+        createdAt: builtCreatedAt.toISOString(),
+        deployedComponents: [
+          {
+            id: COMPONENT_VERSION_ID,
+            releaseComponentId: COMPONENT_A_ID,
+            builtVersionId: BUILT_VERSION_LIST_ID,
+            name: "component-a",
+            increment: 0,
+            createdAt: builtCreatedAt.toISOString(),
+          },
+        ],
+        transitions: [
+          {
+            id: TRANSITION_ID,
+            builtVersionId: BUILT_VERSION_LIST_ID,
+            fromStatus: "in_development",
+            toStatus: "in_deployment",
+            action: "start_deployment",
+            createdAt: builtCreatedAt.toISOString(),
+            createdById: USER_2_ID,
+          },
+        ],
+      },
+    ]);
+    const findManyCalls = (db.releaseVersion.findMany as jest.Mock).mock
+      .calls as Array<[Record<string, unknown>]>;
+    const args = findManyCalls[0]?.[0] ?? {};
+    const include = (
+      args as {
+        include?: {
+          createdBy?: { select?: Record<string, boolean> };
+          builtVersions?: { select?: Record<string, unknown> };
+        };
+      }
+    ).include;
+    expect(include?.createdBy?.select).toEqual({
+      id: true,
+      name: true,
+      email: true,
+    });
+    expect(include?.builtVersions?.select?.componentVersions).toBeDefined();
+    expect(
+      include?.builtVersions?.select?.BuiltVersionTransition,
+    ).toBeDefined();
+  });
+
+  test("getById returns relations only when requested", async () => {
+    const { db } = makeMockDb();
+    const createdAt = new Date("2024-03-01T11:00:00Z");
+    const builtCreatedAt = new Date("2024-03-02T12:00:00Z");
+    db.releaseVersion.findUnique = jest.fn(async () => ({
+      id: REL_MAIN_ID,
+      name: "Release 300",
+      createdAt,
+      createdBy: {
+        id: USER_1_ID,
+        name: "Release Owner",
+        email: null,
+      },
+      builtVersions: [
+        {
+          id: BUILT_VERSION_LIST_ID,
+          name: "Release 300.0",
+          versionId: REL_MAIN_ID,
+          createdAt: builtCreatedAt,
+          componentVersions: [],
+          BuiltVersionTransition: [],
+        },
+      ],
+    }));
+
+    const svc = new ReleaseVersionService(db);
+    const base = await svc.getById(REL_MAIN_ID, { relations: [] });
+    expect(base).toEqual({
+      id: REL_MAIN_ID,
+      name: "Release 300",
+      createdAt: createdAt.toISOString(),
+    });
+
+    const enriched = await svc.getById(REL_MAIN_ID, {
+      relations: [
+        "creater",
+        "builtVersions",
+        "builtVersions.deployedComponents",
+        "builtVersions.transitions",
+      ],
+    });
+    expect(enriched.creater).toEqual({
+      id: USER_1_ID,
+      name: "Release Owner",
+      email: null,
+    });
+    expect(enriched.builtVersions).toEqual([
+      {
+        id: BUILT_VERSION_LIST_ID,
+        name: "Release 300.0",
+        versionId: REL_MAIN_ID,
+        createdAt: builtCreatedAt.toISOString(),
+        deployedComponents: [],
+        transitions: [],
+      },
+    ]);
+    const findUniqueCalls = (db.releaseVersion.findUnique as jest.Mock).mock
+      .calls as Array<[Record<string, unknown>]>;
+    const args = findUniqueCalls.at(-1)?.[0] ?? {};
+    const include = (
+      args as {
+        include?: { builtVersions?: { orderBy?: Record<string, unknown> } };
+      }
+    ).include;
+    expect(include?.builtVersions?.orderBy).toEqual({ createdAt: "desc" });
+  });
+
   test("creating a builtVersion creates component versions for each release component", async () => {
     const { db } = makeMockDb();
     const REL2 = REL_SECONDARY_ID;
@@ -146,7 +354,7 @@ describe("ReleaseVersion and BuiltVersion behavior", () => {
       name: "version 200",
     }));
     const bsvc = new BuiltVersionService(db);
-    await bsvc.create("user-1" as any, REL2 as any, "version 200.0");
+    await bsvc.create(USER_1_ID, REL2 as any, "version 200.0");
     // Two components → two component versions
     expect(db.componentVersion.create).toHaveBeenCalledTimes(2);
   });
@@ -171,7 +379,7 @@ describe("ReleaseVersion and BuiltVersion behavior", () => {
     const res = await ssvc.transition(
       BUILT_VERSION_LIST_ID as any,
       "startDeployment",
-      "user-1" as any,
+      USER_1_ID,
     );
     expect(res.status).toBe("in_deployment");
     expect(res.builtVersion).toMatchObject({
@@ -206,11 +414,7 @@ describe("ReleaseVersion and BuiltVersion behavior", () => {
     db.builtVersion.findFirst = jest.fn(async () => ({ id: NEWER_BUILT_ID }));
 
     const ssvc = new BuiltVersionStatusService(db);
-    await ssvc.transition(
-      ACTIVE_BUILT_ID as any,
-      "startDeployment",
-      "user-1" as any,
-    );
+    await ssvc.transition(ACTIVE_BUILT_ID as any, "startDeployment", USER_1_ID);
     // ensure builtVersion.create was NOT called
     expect(db.builtVersion.create).not.toHaveBeenCalled();
     // ensure no component versions were created either

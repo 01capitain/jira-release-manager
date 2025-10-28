@@ -1,15 +1,32 @@
-import { z } from "zod";
+import { ReleaseComponentModelSchema } from "~/server/zod/schemas/variants/pure/ReleaseComponent.pure";
 import { IsoTimestampSchema } from "~/shared/types/iso8601";
 import type { ReleaseComponentDto } from "~/shared/types/release-component";
-import { ReleaseComponentModelSchema } from "~/server/zod/schemas/variants/pure/ReleaseComponent.pure";
+import { UuidV7Schema } from "~/shared/types/uuid";
 
-export const ReleaseComponentDtoSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  color: z.string(),
-  namingPattern: z.string(),
-  createdAt: IsoTimestampSchema,
-});
+const ReleaseComponentModelFieldsSchema = ReleaseComponentModelSchema.pick({
+  id: true,
+  name: true,
+  color: true,
+  namingPattern: true,
+  createdAt: true,
+}).strip();
+export const ReleaseComponentDtoSchema = ReleaseComponentModelFieldsSchema.omit(
+  {
+    id: true,
+    createdAt: true,
+  },
+)
+  .extend({
+    id: UuidV7Schema,
+    createdAt: IsoTimestampSchema,
+  })
+  .meta({
+    id: "ReleaseComponent",
+    title: "Release Component",
+    description: "Release component metadata.",
+  });
+
+export const ReleaseComponentIdSchema = ReleaseComponentDtoSchema.shape.id;
 
 export function toReleaseComponentDto(model: unknown): ReleaseComponentDto {
   const parsed = ReleaseComponentModelSchema.pick({
@@ -18,16 +35,18 @@ export function toReleaseComponentDto(model: unknown): ReleaseComponentDto {
     color: true,
     namingPattern: true,
     createdAt: true,
-  }).parse(model);
+  })
+    .strip()
+    .parse(model);
   const dto: ReleaseComponentDto = {
-    id: parsed.id,
+    id: UuidV7Schema.parse(parsed.id),
     name: parsed.name,
     color: parsed.color,
     namingPattern: parsed.namingPattern,
     createdAt:
       parsed.createdAt.toISOString() as ReleaseComponentDto["createdAt"],
   };
-  return ReleaseComponentDtoSchema.parse(dto);
+  return ReleaseComponentDtoSchema.strip().parse(dto);
 }
 
 export function mapToReleaseComponentDtos(

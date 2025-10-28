@@ -1,10 +1,11 @@
 "use client";
 
-import * as React from "react";
-import { api } from "~/trpc/react";
-import type { ReleaseVersionWithBuildsDto } from "~/shared/types/release-version-with-builds";
-import BuiltVersionCard from "../../builds/components/built-version-card";
 import { ChevronDown } from "lucide-react";
+import * as React from "react";
+import type { BuiltVersionStatus } from "~/shared/types/built-version-status";
+import type { ReleaseVersionWithBuildsDto } from "~/shared/types/release-version-with-builds";
+import { api } from "~/trpc/react";
+import BuiltVersionCard from "../../builds/components/built-version-card";
 
 function LatestActiveTag({
   builtVersionIds,
@@ -29,7 +30,7 @@ function LatestActiveTag({
 
   const activeIdx = React.useMemo(() => {
     for (let i = 0; i < queries.length; i++) {
-      const status = queries[i]?.data?.status;
+      const status: BuiltVersionStatus | undefined = queries[i]?.data?.status;
       if (status === "active") return i;
     }
     return -1;
@@ -82,9 +83,11 @@ export default function ReleasesAccordion() {
     if (data) writeCache(data);
   }, [data, writeCache]);
 
+  const releases: ReleaseVersionWithBuildsDto[] = data ?? [];
+
   return (
     <div className="space-y-5">
-      {(data ?? []).map((rel) => {
+      {releases.map((rel) => {
         const ids = rel.builtVersions.map((b) => b.id);
         const names = rel.builtVersions.map((b) => b.name);
         return (
