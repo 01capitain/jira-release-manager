@@ -74,10 +74,10 @@ export default function JiraReleasesPage() {
   const sync = useSyncStoredVersionsMutation();
 
   const storedData = listStored.data;
-  const storedItems = storedData?.items ?? ([] as StoredVersion[]);
+  const storedItems = storedData?.items ?? [];
   const releaseData: PaginatedResponse<ReleaseVersionDto> | undefined =
     releases.data;
-  const releaseItems = releaseData?.data ?? ([] as ReleaseVersionItem[]);
+  const releaseItems = releaseData?.data ?? [];
   const hasStoredItems = storedItems.length > 0;
 
   // No connection check here beyond presence; handled by canSyncQuick query
