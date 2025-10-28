@@ -53,11 +53,11 @@ const ActionModelSchema = z.object({
 
 const ActionMetadataSchema = z.object({}).catchall(z.unknown());
 
-const SYSTEM_USER_DTO = {
+const SYSTEM_USER_DTO = UserSummaryDtoSchema.parse({
   id: "00000000-0000-7000-8000-000000000000",
   name: "System",
   email: null,
-} as const;
+});
 
 const ActionSubactionDtoSchema = z
   .object({
@@ -113,11 +113,11 @@ export function toActionHistoryEntryDto(model: unknown): ActionHistoryEntryDto {
     createdAt:
       parsed.createdAt.toISOString() as ActionHistoryEntryDto["createdAt"],
     createdBy: parsed.createdBy
-      ? {
+      ? UserSummaryDtoSchema.strip().parse({
           id: parsed.createdBy.id,
           name: parsed.createdBy.name ?? null,
           email: parsed.createdBy.email ?? null,
-        }
+        })
       : SYSTEM_USER_DTO,
     subactions,
     ...(metadata !== undefined ? { metadata } : {}),

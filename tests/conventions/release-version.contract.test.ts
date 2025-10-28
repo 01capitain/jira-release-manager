@@ -1,5 +1,3 @@
-"use strict";
-
 import {
   ReleaseVersionDetailSchema,
   ReleaseVersionIdParamSchema,
@@ -117,6 +115,7 @@ describe("ReleaseVersion REST contract", () => {
     };
     expect(() => ReleaseVersionDetailSchema.parse(sample)).not.toThrow();
     expect(() => ReleaseVersionWithRelationsSchema.parse(sample)).not.toThrow();
+    expect(ReleaseVersionDetailSchema).toBe(ReleaseVersionWithRelationsSchema);
   });
 
   it("OpenAPI paths reference the exported schemas", () => {
@@ -131,9 +130,13 @@ describe("ReleaseVersion REST contract", () => {
     const detailSchema =
       detailPath.responses?.[200]?.content?.["application/json"]?.schema;
     const pathParams = detailPath.requestParams?.path;
+    const listQuery = listPath.requestParams?.query;
+    const detailQuery = detailPath.requestParams?.query;
 
     expect(listSchema).toBe(ReleaseVersionListResponseSchema);
     expect(detailSchema).toBe(ReleaseVersionDetailSchema);
     expect(pathParams).toBe(ReleaseVersionIdParamSchema);
+    expect(listQuery).toBe(ReleaseVersionListQueryDocSchema);
+    expect(detailQuery).toBe(ReleaseVersionRelationsQueryDocSchema);
   });
 });

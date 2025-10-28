@@ -31,7 +31,7 @@ const createIntegerDocSchema = (min: number) =>
     .meta({ type: "integer" });
 
 const defaultDescriptions = {
-  page: "Requested Page number",
+  page: "Requested page number",
   pageSize: "Number of items per page",
   sortBy: 'Sort field. Use "-" prefix for descending order.',
 } as const;
@@ -93,11 +93,11 @@ export function createPaginatedRequestSchema<TSortBy extends string>(
     .object({
       page: positiveIntegerInput
         .optional()
-        .describe(descriptions.page ?? "Requested Page number")
+        .describe(descriptions.page ?? defaultDescriptions.page)
         .default(defaultPage),
       pageSize: positiveIntegerInput
         .optional()
-        .describe(descriptions.pageSize ?? "Number of items per page")
+        .describe(descriptions.pageSize ?? defaultDescriptions.pageSize)
         .default(defaultPageSize),
       sortBy: z
         .enum(Array.from(allowedSorts))
@@ -105,10 +105,7 @@ export function createPaginatedRequestSchema<TSortBy extends string>(
         .refine((v) => allowedSorts.has(v), {
           message: `sortBy must be one of: ${Array.from(allowedSorts).join(", ")}`,
         })
-        .describe(
-          descriptions.sortBy ??
-            `Sort field. Use "-" prefix for descending order.`,
-        ),
+        .describe(descriptions.sortBy ?? defaultDescriptions.sortBy),
     })
     .transform((value): NormalizedPaginatedRequest<TSortBy> => {
       const rawPageSize = value.pageSize ?? defaultPageSize;

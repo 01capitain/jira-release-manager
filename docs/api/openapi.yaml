@@ -19,7 +19,7 @@ paths:
           name: page
           schema:
             type: integer
-            description: Requested Page number
+            description: Requested page number
             minimum: 1
         - in: query
           name: pageSize
@@ -598,7 +598,7 @@ paths:
           name: page
           schema:
             default: 1
-            description: Requested Page number
+            description: Requested page number
             type: integer
             minimum: 1
         - in: query
@@ -949,6 +949,11 @@ components:
           $ref: "#/components/schemas/BuiltVersion"
         status:
           type: string
+          enum:
+            - in_development
+            - in_deployment
+            - active
+            - deprecated
         history:
           type: array
           items:

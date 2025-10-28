@@ -12,6 +12,7 @@ import type { RestContext } from "~/server/rest/context";
 import { ensureAuthenticated } from "~/server/rest/auth";
 import { RestError } from "~/server/rest/errors";
 import { jsonErrorResponse } from "~/server/rest/openapi";
+import { BuiltVersionStatusSchema } from "~/shared/types/built-version-status";
 import type { BuiltVersionAction } from "~/shared/types/built-version-status";
 import { ReleaseVersionIdSchema } from "~/server/zod/dto/release-version.dto";
 
@@ -23,7 +24,7 @@ export const BuiltVersionTransitionParamSchema = z.object({
 export const BuiltVersionTransitionResponseSchema = z
   .object({
     builtVersion: BuiltVersionDtoSchema,
-    status: z.string(),
+    status: BuiltVersionStatusSchema,
     history: z.array(BuiltVersionTransitionDtoSchema),
   })
   .meta({

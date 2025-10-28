@@ -1,3 +1,12 @@
+import { z } from "zod";
+
+export const BuiltVersionStatusSchema = z.enum([
+  "in_development",
+  "in_deployment",
+  "active",
+  "deprecated",
+] as const);
+
 export type BuiltVersionStatus =
   | "in_development"
   | "in_deployment"
