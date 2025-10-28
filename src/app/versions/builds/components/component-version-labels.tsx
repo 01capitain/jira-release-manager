@@ -11,7 +11,7 @@ export function ComponentVersionLabels({
   builtVersionId: string;
 }) {
   const { data: releaseComponentsPage } = useReleaseComponentsQuery();
-  const comps = React.useMemo(
+  const comps = React.useMemo<ReleaseComponentDto[]>(
     () => releaseComponentsPage?.items ?? [],
     [releaseComponentsPage],
   );

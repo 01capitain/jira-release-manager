@@ -1,10 +1,10 @@
 "use client";
 
+import { ChevronDown } from "lucide-react";
 import * as React from "react";
 import type { ReleaseVersionWithBuildsDto } from "~/shared/types/release-version-with-builds";
-import BuiltVersionCard from "../../builds/components/built-version-card";
-import { ChevronDown } from "lucide-react";
 import { useBuiltVersionStatusQuery } from "../../builds/api";
+import BuiltVersionCard from "../../builds/components/built-version-card";
 import { useReleasesWithBuildsQuery } from "../api";
 
 function LatestActiveTag({
@@ -90,9 +90,11 @@ export default function ReleasesAccordion() {
     if (data) writeCache(data);
   }, [data, writeCache]);
 
+  const releases: ReleaseVersionWithBuildsDto[] = data ?? [];
+
   return (
     <div className="space-y-5">
-      {(data ?? []).map((rel) => {
+      {releases.map((rel) => {
         const ids = rel.builtVersions.map((b) => b.id);
         const names = rel.builtVersions.map((b) => b.name);
         return (

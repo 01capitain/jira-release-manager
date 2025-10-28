@@ -5,6 +5,8 @@ import type {
   ActionHistoryEntryDto,
 } from "~/shared/types/action-history";
 import { IsoTimestampSchema } from "~/shared/types/iso8601";
+import { UuidV7Schema } from "~/shared/types/uuid";
+import { UserSummaryDtoSchema } from "~/server/zod/dto/user.dto";
 
 const statusValues = [
   "success",
@@ -24,7 +26,7 @@ const toMetadata = (
 };
 
 const ActionSubactionModelSchema = z.object({
-  id: z.string().uuid(),
+  id: UuidV7Schema,
   subactionType: z.string(),
   message: z.string(),
   status: StatusSchema,
@@ -33,7 +35,7 @@ const ActionSubactionModelSchema = z.object({
 });
 
 const ActionModelSchema = z.object({
-  id: z.string().uuid(),
+  id: UuidV7Schema,
   actionType: z.string(),
   message: z.string(),
   status: StatusSchema,
@@ -41,7 +43,7 @@ const ActionModelSchema = z.object({
   metadata: z.unknown().optional(),
   createdBy: z
     .object({
-      id: z.string().uuid(),
+      id: UuidV7Schema,
       name: z.string().nullable().optional(),
       email: z.string().nullable().optional(),
     })
@@ -51,35 +53,49 @@ const ActionModelSchema = z.object({
 
 const ActionMetadataSchema = z.object({}).catchall(z.unknown());
 
-const ActionSubactionDtoSchema = z.object({
-  id: z.string(),
-  subactionType: z.string(),
-  message: z.string(),
-  status: StatusSchema,
-  createdAt: IsoTimestampSchema,
-  metadata: ActionMetadataSchema.nullable().optional(),
+const SYSTEM_USER_DTO = UserSummaryDtoSchema.parse({
+  id: "00000000-0000-7000-8000-000000000000",
+  name: "System",
+  email: null,
 });
 
-export const ActionHistoryEntryDtoSchema = z.object({
-  id: z.string(),
-  actionType: z.string(),
-  message: z.string(),
-  status: StatusSchema,
-  createdAt: IsoTimestampSchema,
-  createdBy: z.object({
-    id: z.string(),
-    name: z.string().nullable().optional(),
-    email: z.string().nullable().optional(),
-  }),
-  metadata: ActionMetadataSchema.nullable().optional(),
-  subactions: z.array(ActionSubactionDtoSchema),
-});
+const ActionSubactionDtoSchema = z
+  .object({
+    id: UuidV7Schema,
+    subactionType: z.string(),
+    message: z.string(),
+    status: StatusSchema,
+    createdAt: IsoTimestampSchema,
+    metadata: ActionMetadataSchema.nullable().optional(),
+  })
+  .meta({
+    id: "ActionSubaction",
+    title: "Action Subaction",
+    description: "Subaction entry recorded within a user action history item.",
+  });
+
+export const ActionHistoryEntryDtoSchema = z
+  .object({
+    id: UuidV7Schema,
+    actionType: z.string(),
+    message: z.string(),
+    status: StatusSchema,
+    createdAt: IsoTimestampSchema,
+    createdBy: UserSummaryDtoSchema,
+    metadata: ActionMetadataSchema.nullable().optional(),
+    subactions: z.array(ActionSubactionDtoSchema),
+  })
+  .meta({
+    id: "ActionHistoryEntry",
+    title: "Action History Entry",
+    description: "Audit log entry for user or system actions.",
+  });
 
 export function toActionHistoryEntryDto(model: unknown): ActionHistoryEntryDto {
-  const parsed = ActionModelSchema.parse(model);
+  const parsed = ActionModelSchema.strip().parse(model);
   const subactions = parsed.subactions.map((sub) => {
     const metadata = toMetadata(sub.metadata);
-    return ActionSubactionDtoSchema.parse({
+    return ActionSubactionDtoSchema.strip().parse({
       id: sub.id,
       subactionType: sub.subactionType,
       message: sub.message,
@@ -97,20 +113,16 @@ export function toActionHistoryEntryDto(model: unknown): ActionHistoryEntryDto {
     createdAt:
       parsed.createdAt.toISOString() as ActionHistoryEntryDto["createdAt"],
     createdBy: parsed.createdBy
-      ? {
+      ? UserSummaryDtoSchema.strip().parse({
           id: parsed.createdBy.id,
           name: parsed.createdBy.name ?? null,
           email: parsed.createdBy.email ?? null,
-        }
-      : {
-          id: "00000000-0000-0000-0000-000000000000", // sentinel UUID for system/unknown
-          name: "System",
-          email: null,
-        },
+        })
+      : SYSTEM_USER_DTO,
     subactions,
     ...(metadata !== undefined ? { metadata } : {}),
   };
-  return ActionHistoryEntryDtoSchema.parse(dto);
+  return ActionHistoryEntryDtoSchema.strip().parse(dto);
 }
 
 export function mapToActionHistoryEntryDtos(

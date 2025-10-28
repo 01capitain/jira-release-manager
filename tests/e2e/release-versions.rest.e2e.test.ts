@@ -9,11 +9,38 @@ jest.mock("superjson", () => ({
   },
 }));
 
+type UserRecord = {
+  id: string;
+  name?: string | null;
+  email?: string | null;
+};
+
+type ComponentVersionRecord = {
+  id: string;
+  releaseComponentId: string;
+  builtVersionId: string;
+  name: string;
+  increment: number;
+  createdAt: Date;
+};
+
+type BuiltVersionTransitionRecord = {
+  id: string;
+  builtVersionId: string;
+  fromStatus: string;
+  toStatus: string;
+  action: string;
+  createdAt: Date;
+  createdById: string;
+};
+
 type BuiltVersionRecord = {
   id: string;
   name: string;
   versionId: string;
   createdAt: Date;
+  componentVersions?: ComponentVersionRecord[];
+  transitions?: BuiltVersionTransitionRecord[];
 };
 
 type ReleaseRecord = {
@@ -21,20 +48,129 @@ type ReleaseRecord = {
   name: string;
   createdAt: Date;
   builtVersions?: BuiltVersionRecord[];
+  createdBy?: UserRecord;
   lastUsedIncrement?: number;
 };
 
 const releaseData: ReleaseRecord[] = [];
 let releaseCounter = 0;
 let builtCounter = 0;
+const COMPONENT_A_ID = "018f1a50-0000-7000-9000-00000000c0a1";
+const COMPONENT_VERSION_ID = "018f1a50-0000-7000-9000-00000000c0d1";
+const COMPONENT_VERSION_ID_2 = "018f1a50-0000-7000-9000-00000000c0d2";
+const USER_1_ID = "018f1a50-0000-7000-9000-00000000d0a1";
+const USER_2_ID = "018f1a50-0000-7000-9000-00000000d0a2";
+const SESSION_USER_ID = "018f1a50-0000-7000-9000-00000000d0ff";
+const TRANSITION_ID = "018f1a50-0000-7000-9000-00000000d1b1";
+const USER_3_ID = "018f1a50-0000-7000-9000-00000000d0a3";
+const TRANSITION_ID_2 = "018f1a50-0000-7000-9000-00000000d1b2";
+
+const cloneComponentVersion = (
+  record: ComponentVersionRecord,
+): ComponentVersionRecord => ({ ...record });
+
+const cloneTransition = (
+  record: BuiltVersionTransitionRecord,
+): BuiltVersionTransitionRecord => ({ ...record });
+
+const cloneBuiltVersionRecord = (
+  record: BuiltVersionRecord,
+): BuiltVersionRecord => ({
+  ...record,
+  componentVersions: record.componentVersions
+    ? record.componentVersions.map(cloneComponentVersion)
+    : undefined,
+  transitions: record.transitions
+    ? record.transitions.map(cloneTransition)
+    : undefined,
+});
 
 const cloneReleaseRecord = (record: ReleaseRecord): ReleaseRecord => ({
   ...record,
   builtVersions: record.builtVersions
-    ? record.builtVersions.map((built) => ({ ...built }))
+    ? record.builtVersions.map(cloneBuiltVersionRecord)
     : [],
+  createdBy: record.createdBy ? { ...record.createdBy } : undefined,
   lastUsedIncrement: record.lastUsedIncrement,
 });
+
+const sortByCreatedAt = <T extends { createdAt: Date }>(
+  records: T[],
+  direction: "asc" | "desc" = "asc",
+) => {
+  const multiplier = direction === "asc" ? 1 : -1;
+  return [...records].sort(
+    (a, b) => (a.createdAt.getTime() - b.createdAt.getTime()) * multiplier,
+  );
+};
+
+const materializeBuiltVersion = (
+  record: BuiltVersionRecord,
+  args?: {
+    select?: {
+      componentVersions?: { orderBy?: { createdAt?: "asc" | "desc" } };
+      BuiltVersionTransition?: { orderBy?: { createdAt?: "asc" | "desc" } };
+    };
+  },
+) => {
+  const base = {
+    id: record.id,
+    name: record.name,
+    versionId: record.versionId,
+    createdAt: record.createdAt,
+  } as Record<string, unknown>;
+
+  if (args?.select?.componentVersions) {
+    const ordered = sortByCreatedAt(
+      record.componentVersions ?? [],
+      args.select.componentVersions.orderBy?.createdAt ?? "asc",
+    );
+    base.componentVersions = ordered.map((entry) => ({ ...entry }));
+  }
+  if (args?.select?.BuiltVersionTransition) {
+    const ordered = sortByCreatedAt(
+      record.transitions ?? [],
+      args.select.BuiltVersionTransition.orderBy?.createdAt ?? "asc",
+    );
+    base.BuiltVersionTransition = ordered.map((entry) => ({ ...entry }));
+  }
+  return base;
+};
+
+const materializeRelease = (
+  record: ReleaseRecord,
+  args?: {
+    include?: {
+      createdBy?: unknown;
+      builtVersions?: {
+        orderBy?: { createdAt?: "asc" | "desc" };
+        select?: {
+          componentVersions?: { orderBy?: { createdAt?: "asc" | "desc" } };
+          BuiltVersionTransition?: { orderBy?: { createdAt?: "asc" | "desc" } };
+        };
+      };
+    };
+  },
+) => {
+  const base: Record<string, unknown> = {
+    id: record.id,
+    name: record.name,
+    createdAt: record.createdAt,
+  };
+
+  if (args?.include?.createdBy) {
+    base.createdBy = record.createdBy ? { ...record.createdBy } : null;
+  }
+  if (args?.include?.builtVersions) {
+    const direction = args.include.builtVersions.orderBy?.createdAt ?? "asc";
+    const ordered = sortByCreatedAt(record.builtVersions ?? [], direction);
+    base.builtVersions = ordered.map((entry) =>
+      materializeBuiltVersion(entry, args.include?.builtVersions),
+    );
+  }
+
+  return base;
+};
 
 const setReleaseRecords = (records: ReleaseRecord[]) => {
   releaseData.splice(0, releaseData.length, ...records.map(cloneReleaseRecord));
@@ -70,7 +206,7 @@ async function parseJsonObject(
 }
 
 const authenticatedSession: Session = {
-  user: { id: "user-123", name: "Test User" },
+  user: { id: SESSION_USER_ID, name: "Test User" },
   expires: "2099-01-01T00:00:00.000Z",
 };
 
@@ -83,10 +219,23 @@ mockDb.releaseVersion = {
       orderBy,
       skip = 0,
       take,
+      include,
     }: {
       orderBy?: { createdAt?: "asc" | "desc"; name?: "asc" | "desc" };
       skip?: number;
       take?: number;
+      include?: {
+        createdBy?: unknown;
+        builtVersions?: {
+          orderBy?: { createdAt?: "asc" | "desc" };
+          select?: {
+            componentVersions?: { orderBy?: { createdAt?: "asc" | "desc" } };
+            BuiltVersionTransition?: {
+              orderBy?: { createdAt?: "asc" | "desc" };
+            };
+          };
+        };
+      };
     } = {}) => {
       const field: "createdAt" | "name" = orderBy?.createdAt
         ? "createdAt"
@@ -104,26 +253,33 @@ mockDb.releaseVersion = {
       const limit = typeof take === "number" ? take : sorted.length;
       return sorted
         .slice(skip, skip + limit)
-        .map(({ id, name, createdAt }) => ({
-          id,
-          name,
-          createdAt,
-        }));
+        .map((record) => materializeRelease(record, { include }));
     },
   ),
-  findUnique: jest.fn(async ({ where }: { where?: { id?: string } } = {}) => {
-    const record = releaseData.find((entry) => entry.id === where?.id);
-    if (!record) return null;
-    const builtVersions = [...(record.builtVersions ?? [])].sort(
-      (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
-    );
-    return {
-      id: record.id,
-      name: record.name,
-      createdAt: record.createdAt,
-      builtVersions,
-    };
-  }),
+  findUnique: jest.fn(
+    async ({
+      where,
+      include,
+    }: {
+      where?: { id?: string };
+      include?: {
+        createdBy?: unknown;
+        builtVersions?: {
+          orderBy?: { createdAt?: "asc" | "desc" };
+          select?: {
+            componentVersions?: { orderBy?: { createdAt?: "asc" | "desc" } };
+            BuiltVersionTransition?: {
+              orderBy?: { createdAt?: "asc" | "desc" };
+            };
+          };
+        };
+      };
+    } = {}) => {
+      const record = releaseData.find((entry) => entry.id === where?.id);
+      if (!record) return null;
+      return materializeRelease(record, { include });
+    },
+  ),
   create: jest.fn(async ({ data }: { data?: Record<string, unknown> } = {}) => {
     releaseCounter += 1;
     const id =
@@ -224,6 +380,10 @@ import {
 } from "~/app/api/v1/release-versions/route";
 import { GET as getReleaseVersion } from "~/app/api/v1/release-versions/[releaseId]/route";
 import { auth } from "~/server/auth";
+import {
+  ReleaseVersionDetailSchema,
+  ReleaseVersionListResponseSchema,
+} from "~/server/rest/controllers/release-versions.controller";
 
 const authMock = auth as unknown as jest.MockedFunction<
   () => Promise<Session | null>
@@ -245,6 +405,25 @@ describe("Release Versions REST endpoints", () => {
     jest.clearAllMocks();
     clearReleaseRecords();
     authMock.mockReset();
+    globalThis.__createRestContextMock = async (req: NextRequest) => {
+      const cookieHeader = req.headers.get("cookie") ?? "";
+      const sessionToken =
+        cookieHeader
+          .split(";")
+          .map((entry: string) => entry.trim())
+          .find((entry: string) => entry.startsWith("next-auth.session-token="))
+          ?.split("=")[1] ?? null;
+      return {
+        db: mockDb,
+        session: await authMock(),
+        sessionToken,
+        headers: req.headers,
+      };
+    };
+  });
+
+  afterEach(() => {
+    globalThis.__createRestContextMock = undefined;
   });
 
   describe("GET /api/v1/release-versions", () => {
@@ -278,9 +457,10 @@ describe("Release Versions REST endpoints", () => {
 
       const response = await executeHandler(listReleaseVersions, request);
       const payload = await parseJsonObject(response);
+      const parsed = ReleaseVersionListResponseSchema.parse(payload);
 
       expect(response.status).toBe(200);
-      expect(payload).toMatchObject({
+      expect(parsed).toMatchObject({
         data: [
           {
             id: records[2]?.id,
@@ -300,16 +480,17 @@ describe("Release Versions REST endpoints", () => {
           hasNextPage: true,
         },
       });
-      expect(
-        (mockDb.releaseVersion as Record<string, unknown>).findMany,
-      ).toHaveBeenCalledWith(
-        recordContaining({
-          orderBy: { createdAt: "desc" },
-          skip: 0,
-          take: 2,
-          select: { id: true, name: true, createdAt: true },
-        }),
-      );
+      expect(parsed.data[0]).not.toHaveProperty("builtVersions");
+      const findManyCalls = (mockDb.releaseVersion as { findMany: jest.Mock })
+        .findMany.mock.calls as Array<[Record<string, unknown>]>;
+      const args = findManyCalls[0]?.[0] ?? {};
+      expect(args).toMatchObject({
+        orderBy: { createdAt: "desc" },
+        skip: 0,
+        take: 2,
+        select: { id: true, name: true, createdAt: true },
+      });
+      expect((args as { include?: unknown }).include).toBeUndefined();
     });
 
     it("returns 400 when pagination parameters are invalid", async () => {
@@ -352,6 +533,141 @@ describe("Release Versions REST endpoints", () => {
         (mockDb.releaseVersion as Record<string, unknown>).findMany,
       ).not.toHaveBeenCalled();
     });
+
+    it("includes requested relations when relations query params are provided", async () => {
+      authMock.mockResolvedValue(authenticatedSession);
+      const releaseId = "018f1a50-0000-7000-8000-000000001111";
+      const builtId = "018f1a50-0000-7000-9000-000000001112";
+      setReleaseRecords([
+        {
+          id: releaseId,
+          name: "Release With Relations",
+          createdAt: new Date("2024-06-01T09:00:00.000Z"),
+          createdBy: {
+            id: USER_1_ID,
+            name: "Owner",
+            email: "owner@example.com",
+          },
+          builtVersions: [
+            {
+              id: builtId,
+              name: "Release With Relations.0",
+              versionId: releaseId,
+              createdAt: new Date("2024-06-02T09:00:00.000Z"),
+              componentVersions: [
+                {
+                  id: COMPONENT_VERSION_ID,
+                  releaseComponentId: COMPONENT_A_ID,
+                  builtVersionId: builtId,
+                  name: "component-a",
+                  increment: 0,
+                  createdAt: new Date("2024-06-02T10:00:00.000Z"),
+                },
+              ],
+              transitions: [
+                {
+                  id: TRANSITION_ID,
+                  builtVersionId: builtId,
+                  fromStatus: "in_development",
+                  toStatus: "in_deployment",
+                  action: "start_deployment",
+                  createdAt: new Date("2024-06-02T11:00:00.000Z"),
+                  createdById: USER_2_ID,
+                },
+              ],
+            },
+          ],
+        },
+      ]);
+
+      const request = new NextRequest(
+        "http://test/api/v1/release-versions?relations=creater&relations=builtVersions&relations=builtVersions.deployedComponents&relations=builtVersions.transitions",
+      );
+
+      const response = await executeHandler(listReleaseVersions, request);
+      const payload = await parseJsonObject(response);
+      const parsed = ReleaseVersionListResponseSchema.parse(payload);
+
+      expect(response.status).toBe(200);
+      expect(parsed.data[0]?.creater).toEqual({
+        id: USER_1_ID,
+        name: "Owner",
+        email: "owner@example.com",
+      });
+      expect(parsed.data[0]?.builtVersions?.[0]).toMatchObject({
+        id: builtId,
+        deployedComponents: [
+          expect.objectContaining({
+            releaseComponentId: COMPONENT_A_ID,
+            increment: 0,
+          }),
+        ],
+        transitions: [expect.objectContaining({ action: "start_deployment" })],
+      });
+
+      const findManyCalls = (mockDb.releaseVersion as { findMany: jest.Mock })
+        .findMany.mock.calls as Array<[Record<string, unknown>]>;
+      const args = findManyCalls[0]?.[0] ?? {};
+      const include = (
+        args as {
+          include?: {
+            createdBy?: { select?: Record<string, boolean> };
+            builtVersions?: {
+              select?: Record<string, unknown>;
+            };
+          };
+        }
+      ).include;
+      expect(include?.createdBy?.select).toEqual({
+        id: true,
+        name: true,
+        email: true,
+      });
+      expect(include?.builtVersions?.select?.componentVersions).toBeDefined();
+      expect(
+        include?.builtVersions?.select?.BuiltVersionTransition,
+      ).toBeDefined();
+    });
+
+    it("returns 400 when an unknown relation is requested", async () => {
+      authMock.mockResolvedValue(authenticatedSession);
+      const request = new NextRequest(
+        "http://test/api/v1/release-versions?relations=unknownRelation",
+      );
+
+      const response = await executeHandler(listReleaseVersions, request);
+      const payload = await parseJsonObject(response);
+      const errorPayload = payload as {
+        code?: string;
+        message?: string;
+        details?: Record<string, unknown>;
+      };
+
+      expect(response.status).toBe(400);
+      expect(errorPayload).toMatchObject({
+        code: "INVALID_RELATION",
+        message: "Invalid relations requested",
+      });
+      expect(
+        errorPayload.details?.invalidRelations as string[] | undefined,
+      ).toContain("unknownRelation");
+
+      const nestedOnlyRequest = new NextRequest(
+        "http://test/api/v1/release-versions?relations=builtVersions.deployedComponents",
+      );
+      const nestedOnlyResponse = await executeHandler(
+        listReleaseVersions,
+        nestedOnlyRequest,
+      );
+      const nestedPayload = await parseJsonObject(nestedOnlyResponse);
+      const nestedError = nestedPayload as {
+        details?: Record<string, unknown>;
+      };
+      expect(nestedOnlyResponse.status).toBe(400);
+      expect(
+        nestedError.details?.missingParentRelations as string[] | undefined,
+      ).toContain("builtVersions.deployedComponents");
+    });
   });
 
   describe("POST /api/v1/release-versions", () => {
@@ -380,7 +696,7 @@ describe("Release Versions REST endpoints", () => {
       ).toHaveBeenCalledWith({
         data: {
           name: "Release 100",
-          createdBy: { connect: { id: "user-123" } },
+          createdBy: { connect: { id: SESSION_USER_ID } },
         },
         select: { id: true, name: true, createdAt: true },
       });
@@ -419,7 +735,7 @@ describe("Release Versions REST endpoints", () => {
   });
 
   describe("GET /api/v1/release-versions/{releaseId}", () => {
-    it("returns release details with built versions", async () => {
+    it("returns release details without relations by default", async () => {
       authMock.mockResolvedValue(authenticatedSession);
       const releaseId = "018f1a50-0000-7000-8000-0000000000aa";
       setReleaseRecords([
@@ -435,6 +751,7 @@ describe("Release Versions REST endpoints", () => {
               createdAt: new Date("2024-05-11T10:00:00.000Z"),
             },
           ],
+          createdBy: { id: USER_1_ID, name: "Detail Owner", email: null },
         },
       ]);
 
@@ -446,21 +763,115 @@ describe("Release Versions REST endpoints", () => {
         releaseId,
       });
       const payload = await parseJsonObject(response);
+      const parsed = ReleaseVersionDetailSchema.parse(payload);
 
       expect(response.status).toBe(200);
-      expect(payload).toMatchObject({
+      expect(parsed).toMatchObject({
         id: releaseId,
         name: "Release Detail",
         createdAt: "2024-05-10T10:00:00.000Z",
-        builtVersions: [
-          {
-            id: "018f1a50-0000-7000-9000-0000000000ab",
-            name: "Release Detail.1",
-            versionId: releaseId,
-            createdAt: "2024-05-11T10:00:00.000Z",
-          },
-        ],
       });
+      expect(parsed).not.toHaveProperty("builtVersions");
+      expect(parsed).not.toHaveProperty("creater");
+    });
+
+    it("returns release details with relations when requested", async () => {
+      authMock.mockResolvedValue(authenticatedSession);
+      const releaseId = "018f1a50-0000-7000-8000-0000000000bb";
+      const builtId = "018f1a50-0000-7000-9000-0000000000bc";
+      setReleaseRecords([
+        {
+          id: releaseId,
+          name: "Release Detail Relations",
+          createdAt: new Date("2024-05-12T08:00:00.000Z"),
+          createdBy: {
+            id: USER_3_ID,
+            name: "Owner",
+            email: "owner@example.com",
+          },
+          builtVersions: [
+            {
+              id: builtId,
+              name: "Release Detail Relations.0",
+              versionId: releaseId,
+              createdAt: new Date("2024-05-13T08:00:00.000Z"),
+              componentVersions: [
+                {
+                  id: COMPONENT_VERSION_ID_2,
+                  releaseComponentId: COMPONENT_A_ID,
+                  builtVersionId: builtId,
+                  name: "component-b",
+                  increment: 1,
+                  createdAt: new Date("2024-05-13T09:00:00.000Z"),
+                },
+              ],
+              transitions: [
+                {
+                  id: TRANSITION_ID_2,
+                  builtVersionId: builtId,
+                  fromStatus: "in_deployment",
+                  toStatus: "active",
+                  action: "mark_active",
+                  createdAt: new Date("2024-05-13T10:00:00.000Z"),
+                  createdById: USER_2_ID,
+                },
+              ],
+            },
+          ],
+        },
+      ]);
+
+      const request = new NextRequest(
+        `http://test/api/v1/release-versions/${releaseId}?relations=creater&relations=builtVersions&relations=builtVersions.deployedComponents&relations=builtVersions.transitions`,
+      );
+
+      const response = await executeHandler(getReleaseVersion, request, {
+        releaseId,
+      });
+      const payload = await parseJsonObject(response);
+      const parsed = ReleaseVersionDetailSchema.parse(payload);
+
+      expect(response.status).toBe(200);
+      expect(parsed.creater).toEqual({
+        id: USER_3_ID,
+        name: "Owner",
+        email: "owner@example.com",
+      });
+      expect(parsed.builtVersions?.[0]).toMatchObject({
+        id: builtId,
+        deployedComponents: [expect.objectContaining({ increment: 1 })],
+        transitions: [expect.objectContaining({ action: "mark_active" })],
+      });
+      const findUniqueCalls = (
+        mockDb.releaseVersion as { findUnique: jest.Mock }
+      ).findUnique.mock.calls as Array<[Record<string, unknown>]>;
+      const args = findUniqueCalls.at(-1)?.[0] ?? {};
+      const include = (
+        args as {
+          include?: {
+            builtVersions?: { select?: Record<string, unknown> };
+          };
+        }
+      ).include;
+      expect(include?.builtVersions?.select?.componentVersions).toBeDefined();
+    });
+
+    it("returns 400 for invalid relations on detail endpoint", async () => {
+      authMock.mockResolvedValue(authenticatedSession);
+      const releaseId = "018f1a50-0000-7000-8000-00000000cccc";
+
+      const request = new NextRequest(
+        `http://test/api/v1/release-versions/${releaseId}?relations=invalid`,
+      );
+
+      const response = await executeHandler(getReleaseVersion, request, {
+        releaseId,
+      });
+      const payload = await parseJsonObject(response);
+      const errorPayload = payload as { code?: string };
+
+      expect(response.status).toBe(400);
+      expect(errorPayload.code).toBe("INVALID_RELATION");
     });
 
     it("returns 404 when the release does not exist", async () => {
@@ -507,3 +918,22 @@ describe("Release Versions REST endpoints", () => {
     });
   });
 });
+declare global {
+  var __createRestContextMock:
+    | ((req: NextRequest) => Promise<{
+        db: Record<string, unknown>;
+        session: Session | null;
+        sessionToken: string | null;
+        headers: Headers;
+      }>)
+    | undefined;
+}
+
+jest.mock("~/server/rest/context", () => ({
+  createRestContext: jest.fn(async (req: NextRequest) => {
+    if (typeof globalThis.__createRestContextMock !== "function") {
+      throw new Error("createRestContext mock not initialized");
+    }
+    return globalThis.__createRestContextMock(req);
+  }),
+}));

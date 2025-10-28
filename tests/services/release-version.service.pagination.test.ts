@@ -2,7 +2,7 @@ import type { PrismaClient } from "@prisma/client";
 
 import { ReleaseVersionService } from "~/server/services/release-version.service";
 import { ReleaseVersionListQuerySchema } from "~/server/rest/controllers/release-versions.controller";
-import type { ReleaseVersionDto } from "~/shared/types/release-version";
+import type { ReleaseVersionWithRelationsDto } from "~/shared/types/release-version-relations";
 import { registerPaginationBehaviorTests } from "../shared/pagination.behavior";
 
 type MockRelease = {
@@ -71,7 +71,10 @@ describe("ReleaseVersionService.list pagination", () => {
   const db = createMockDb(records);
   const service = new ReleaseVersionService(db as unknown as PrismaClient);
 
-  registerPaginationBehaviorTests<ReleaseVersionDto, "createdAt" | "name">({
+  registerPaginationBehaviorTests<
+    ReleaseVersionWithRelationsDto,
+    "createdAt" | "name"
+  >({
     suiteName: "Release versions list",
     scenario: { totalItems: records.length, pageSize: 10 },
     maxPageSize: 100,

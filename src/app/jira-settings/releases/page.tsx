@@ -108,7 +108,7 @@ export default function JiraReleasesPage() {
             Please sign in to manage Jira releases.
           </div>
         ) : null}
-        {session && canSyncQuick.data && canSyncQuick.data.ok === false ? (
+        {session && canSyncQuick.data?.ok === false ? (
           <div className="mt-3 text-sm">
             <p className="text-red-600 dark:text-red-400">
               Jira connection incomplete:{" "}

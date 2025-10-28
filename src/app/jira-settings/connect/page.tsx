@@ -1,29 +1,34 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
+import { AlertCircle, CheckCircle } from "lucide-react";
 import * as React from "react";
-import { Button } from "~/components/ui/button";
-import { Input } from "~/components/ui/input";
-import { Label } from "~/components/ui/label";
-import { CheckCircle, AlertCircle } from "lucide-react";
-import { useAuthSession } from "~/hooks/use-auth-session";
-import { useDiscordLogin } from "~/hooks/use-discord-login";
 import {
   jiraStatusQueryKey,
   useJiraConfigQuery,
   useJiraCredentialsQuery,
   useSaveJiraCredentialsMutation,
   useVerifyJiraConnectionMutation,
+  type verifyJiraConnection,
 } from "~/app/jira-settings/api";
-import { useQueryClient } from "@tanstack/react-query";
+import { Button } from "~/components/ui/button";
+import { Input } from "~/components/ui/input";
+import { Label } from "~/components/ui/label";
+import { useAuthSession } from "~/hooks/use-auth-session";
+import { useDiscordLogin } from "~/hooks/use-discord-login";
+
+type JiraVerifyResponse = Awaited<ReturnType<typeof verifyJiraConnection>>;
 
 export default function JiraConnectPage() {
   const { data: session } = useAuthSession();
   const { login, isLoggingIn, error: loginError } = useDiscordLogin();
   const queryClient = useQueryClient();
-  const cfg = useJiraConfigQuery();
-  const cred = useJiraCredentialsQuery({ enabled: !!session });
-  const save = useSaveJiraCredentialsMutation();
-  const verify = useVerifyJiraConnectionMutation();
+  const configQuery = useJiraConfigQuery();
+  const credentialsQuery = useJiraCredentialsQuery({ enabled: !!session });
+  const saveMutation = useSaveJiraCredentialsMutation();
+  const verifyMutation = useVerifyJiraConnectionMutation();
+  const configData = configQuery.data;
+  const credentials = credentialsQuery.data;
 
   const [email, setEmail] = React.useState("");
   const [token, setToken] = React.useState("");
@@ -33,8 +38,10 @@ export default function JiraConnectPage() {
   const [verifyPrimary, setVerifyPrimary] = React.useState(false);
 
   React.useEffect(() => {
-    if (cred.data?.email && !email) setEmail(cred.data.email);
-  }, [cred.data?.email, email]);
+    if (credentials?.email && !email) {
+      setEmail(credentials.email);
+    }
+  }, [credentials?.email, email]);
 
   async function onSave(e: React.FormEvent) {
     e.preventDefault();
@@ -46,10 +53,10 @@ export default function JiraConnectPage() {
         email: trimmedEmail,
       };
       if (trimmedToken.length > 0) payload.apiToken = trimmedToken;
-      await save.mutateAsync(payload);
+      await saveMutation.mutateAsync(payload);
       if (session) {
         await Promise.all([
-          cred.refetch(),
+          credentialsQuery.refetch(),
           queryClient.invalidateQueries({ queryKey: jiraStatusQueryKey }),
         ]);
       }
@@ -70,7 +77,7 @@ export default function JiraConnectPage() {
     try {
       const trimmedEmail = email.trim();
       const trimmedToken = token.trim();
-      const res = await verify.mutateAsync({
+      const res: JiraVerifyResponse = await verifyMutation.mutateAsync({
         email: trimmedEmail,
         apiToken: trimmedToken.length > 0 ? trimmedToken : undefined,
       });
@@ -145,8 +152,8 @@ export default function JiraConnectPage() {
               JIRA_BASE_URL
             </div>
             <div className="mt-1 text-sm">
-              {cfg.data?.baseUrl ? (
-                <code className="break-all">{cfg.data.baseUrl}</code>
+              {configData?.baseUrl ? (
+                <code className="break-all">{configData.baseUrl}</code>
               ) : (
                 <span className="font-medium text-red-600 dark:text-red-400">
                   NOT SET
@@ -159,8 +166,8 @@ export default function JiraConnectPage() {
               JIRA_PROJECT_KEY
             </div>
             <div className="mt-1 text-sm">
-              {cfg.data?.projectKey ? (
-                <code className="break-all">{cfg.data.projectKey}</code>
+              {configData?.projectKey ? (
+                <code className="break-all">{configData.projectKey}</code>
               ) : (
                 <span className="font-medium text-red-600 dark:text-red-400">
                   NOT SET
@@ -194,7 +201,7 @@ export default function JiraConnectPage() {
               onChange={(e) => setToken(e.target.value)}
               autoComplete="new-password"
               placeholder={
-                cred.data?.hasToken
+                credentials?.hasToken
                   ? "Token is set; enter to replace"
                   : "Enter API token"
               }
@@ -203,10 +210,10 @@ export default function JiraConnectPage() {
           <div className="flex items-center gap-3">
             <Button
               type="submit"
-              disabled={save.isPending || !session}
+              disabled={saveMutation.isPending || !session}
               variant={verifyPrimary ? "secondary" : "default"}
             >
-              {save.isPending ? "Saving…" : "Save"}
+              {saveMutation.isPending ? "Saving…" : "Save"}
             </Button>
             <Button
               type="button"
@@ -214,14 +221,14 @@ export default function JiraConnectPage() {
               onClick={() => void onVerify()}
               disabled={
                 !session ||
-                verify.isPending ||
+                verifyMutation.isPending ||
                 email.trim().length === 0 ||
-                (token.trim().length === 0 && !cred.data?.hasToken)
+                (token.trim().length === 0 && !credentials?.hasToken)
               }
               aria-label="Verify Jira connection"
               title="Verify Jira connection"
             >
-              {verify.isPending ? "Verifying…" : "Verify connection"}
+              {verifyMutation.isPending ? "Verifying…" : "Verify connection"}
             </Button>
           </div>
           <div className="mt-2 space-y-1">

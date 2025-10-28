@@ -1,16 +1,37 @@
-import { z } from "zod";
-import { IsoTimestampSchema } from "~/shared/types/iso8601";
-import type { ComponentVersionDto } from "~/shared/types/component-version";
 import { ComponentVersionModelSchema } from "~/server/zod/schemas/variants/pure/ComponentVersion.pure";
+import { BuiltVersionIdSchema } from "~/server/zod/dto/built-version.dto";
+import { ReleaseComponentIdSchema } from "~/server/zod/dto/release-component.dto";
+import type { ComponentVersionDto } from "~/shared/types/component-version";
+import { IsoTimestampSchema } from "~/shared/types/iso8601";
+import { UuidV7Schema } from "~/shared/types/uuid";
 
-export const ComponentVersionDtoSchema = z.object({
-  id: z.string(),
-  releaseComponentId: z.string(),
-  builtVersionId: z.string(),
-  name: z.string(),
-  increment: z.number().int().min(0),
-  createdAt: IsoTimestampSchema,
-});
+const ComponentVersionModelFieldsSchema = ComponentVersionModelSchema.pick({
+  id: true,
+  releaseComponentId: true,
+  builtVersionId: true,
+  name: true,
+  increment: true,
+  createdAt: true,
+}).strip();
+export const ComponentVersionDtoSchema = ComponentVersionModelFieldsSchema.omit(
+  {
+    id: true,
+    releaseComponentId: true,
+    builtVersionId: true,
+    createdAt: true,
+  },
+)
+  .extend({
+    id: UuidV7Schema,
+    releaseComponentId: ReleaseComponentIdSchema,
+    builtVersionId: BuiltVersionIdSchema,
+    createdAt: IsoTimestampSchema,
+  })
+  .meta({
+    id: "ComponentVersion",
+    title: "Component Version",
+    description: "Component version details deployed with a built version.",
+  });
 
 export function toComponentVersionDto(model: unknown): ComponentVersionDto {
   const parsed = ComponentVersionModelSchema.pick({
@@ -20,17 +41,21 @@ export function toComponentVersionDto(model: unknown): ComponentVersionDto {
     name: true,
     increment: true,
     createdAt: true,
-  }).parse(model);
+  })
+    .strip()
+    .parse(model);
   const dto: ComponentVersionDto = {
-    id: parsed.id,
-    releaseComponentId: parsed.releaseComponentId,
-    builtVersionId: parsed.builtVersionId,
+    id: UuidV7Schema.parse(parsed.id),
+    releaseComponentId: ReleaseComponentIdSchema.parse(
+      parsed.releaseComponentId,
+    ),
+    builtVersionId: BuiltVersionIdSchema.parse(parsed.builtVersionId),
     name: parsed.name,
     increment: parsed.increment,
     createdAt:
       parsed.createdAt.toISOString() as ComponentVersionDto["createdAt"],
   };
-  return ComponentVersionDtoSchema.parse(dto);
+  return ComponentVersionDtoSchema.strip().parse(dto);
 }
 
 export function mapToComponentVersionDtos(

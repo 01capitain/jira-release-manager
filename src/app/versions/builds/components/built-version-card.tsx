@@ -1,25 +1,29 @@
 "use client";
 
-import * as React from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import * as React from "react";
+import { Button } from "~/components/ui/button";
 import { Card, CardContent } from "~/components/ui/card";
+import { Modal } from "~/components/ui/modal";
+import { ScrollArea } from "~/components/ui/scroll-area";
+import { Separator } from "~/components/ui/separator";
+import type {
+  BuiltVersionAction,
+  BuiltVersionStatus,
+} from "~/shared/types/built-version-status";
 import {
   labelForAction,
-  targetStatusForAction,
   labelForStatus,
   StatusTint,
+  targetStatusForAction,
 } from "~/shared/types/built-version-status";
-import { Button } from "~/components/ui/button";
-import { ComponentVersionLabels } from "./component-version-labels";
-import { Separator } from "~/components/ui/separator";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { ScrollArea } from "~/components/ui/scroll-area";
-import { Modal } from "~/components/ui/modal";
 import { colorClasses } from "~/shared/ui/color-classes";
 import {
   prefetchReleaseComponents,
   useReleaseComponentsQuery,
 } from "../../components/api";
+import { releasesWithBuildsQueryKey } from "../../releases/api";
 import {
   builtVersionDefaultSelectionQueryKey,
   builtVersionStatusQueryKey,
@@ -29,11 +33,7 @@ import {
   useBuiltVersionDefaultSelectionQuery,
   useBuiltVersionStatusQuery,
 } from "../api";
-import { releasesWithBuildsQueryKey } from "../../releases/api";
-import type {
-  BuiltVersionAction,
-  BuiltVersionStatus,
-} from "~/shared/types/built-version-status";
+import { ComponentVersionLabels } from "./component-version-labels";
 
 export default function BuiltVersionCard({
   id,

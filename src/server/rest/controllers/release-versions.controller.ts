@@ -107,7 +107,6 @@ export const createReleaseVersion = async (
 export const listReleaseVersionsWithBuilds = async (
   context: RestContext,
 ): Promise<ReleaseVersionWithBuildsDto[]> => {
-  ensureAuthenticated(context);
   const svc = new ReleaseVersionService(context.db);
   const rows = await svc.listWithBuilds();
   return z.array(ReleaseVersionWithBuildsSchema).parse(rows);
