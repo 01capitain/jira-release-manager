@@ -1,35 +1,23 @@
 import { z } from "zod";
 
-import { ActionHistoryService } from "~/server/services/action-history.service";
-import { ReleaseVersionService } from "~/server/services/release-version.service";
-import {
-  RELEASE_VERSION_TOP_LEVEL_RELATIONS,
-  validateReleaseVersionRelations,
-} from "~/server/services/release-version.relations";
-import { collectRelationParams } from "~/server/rest/relations";
-import { BuiltVersionDtoSchema } from "~/server/zod/dto/built-version.dto";
-import { BuiltVersionTransitionDtoSchema } from "~/server/zod/dto/built-version-transition.dto";
-import { ComponentVersionDtoSchema } from "~/server/zod/dto/component-version.dto";
-import {
-  ReleaseVersionDtoSchema,
-  ReleaseVersionIdSchema,
-} from "~/server/zod/dto/release-version.dto";
-import { UserSummaryDtoSchema } from "~/server/zod/dto/user.dto";
-import type { RestContext } from "~/server/rest/context";
-import { ensureAuthenticated } from "~/server/rest/auth";
-import { RestError } from "~/server/rest/errors";
-import { jsonErrorResponse } from "~/server/rest/openapi";
 import {
   DEFAULT_RELEASE_VERSION_LIST_INPUT,
   RELEASE_VERSION_SORT_FIELDS,
 } from "~/server/api/schemas";
-import type { ReleaseVersionRelationKey } from "~/shared/types/release-version-relations";
+import { ensureAuthenticated } from "~/server/rest/auth";
+import type { RestContext } from "~/server/rest/context";
+import { RestError } from "~/server/rest/errors";
+import { jsonErrorResponse } from "~/server/rest/openapi";
+import { ActionHistoryService } from "~/server/services/action-history.service";
+import { ReleaseVersionService } from "~/server/services/release-version.service";
+import { BuiltVersionDtoSchema } from "~/server/zod/dto/built-version.dto";
+import { ReleaseVersionDtoSchema } from "~/server/zod/dto/release-version.dto";
 import {
-  createPaginatedQueryDocSchema,
   createPaginatedRequestSchema,
   createPaginatedResponseSchema,
 } from "~/shared/schemas/pagination";
 import { ReleaseVersionCreateSchema } from "~/shared/schemas/release-version";
+import type { ReleaseVersionWithBuildsDto } from "~/shared/types/release-version-with-builds";
 
 export { ReleaseVersionCreateSchema } from "~/shared/schemas/release-version";
 
@@ -47,120 +35,38 @@ export type ReleaseVersionListQuery = z.infer<
   typeof ReleaseVersionListQuerySchema
 >;
 
-const ReleaseVersionTopLevelRelationEnum = z.enum(
-  RELEASE_VERSION_TOP_LEVEL_RELATIONS,
+export const ReleaseVersionListResponseSchema = createPaginatedResponseSchema(
+  ReleaseVersionDtoSchema,
 );
 
-const ReleaseVersionRelationsDocSchema = z.object({
-  relations: z
-    .array(ReleaseVersionTopLevelRelationEnum)
-    .optional()
-    .describe(
-      [
-        "Optional relation keys to include in the response.",
-        "Repeat the query param or pass a comma-separated string.",
-        "Nested options (builtVersions.deployedComponents, builtVersions.transitions)",
-        "must be accompanied by their parent relation.",
-      ].join(" "),
-    ),
+export const ReleaseVersionDetailSchema = ReleaseVersionDtoSchema.extend({
+  builtVersions: z.array(BuiltVersionDtoSchema),
 });
 
-const BuiltVersionWithRelationsSchema = BuiltVersionDtoSchema.extend({
-  deployedComponents: z.array(ComponentVersionDtoSchema).optional(),
-  transitions: z.array(BuiltVersionTransitionDtoSchema).optional(),
-}).meta({
-  id: "BuiltVersionWithRelations",
-  title: "Built Version (with relations)",
-  description:
-    "Built version data with optional deployed components and transitions.",
-});
-
-const ReleaseVersionRelationsSchema = z.object({
-  creater: UserSummaryDtoSchema.optional(),
-  builtVersions: z.array(BuiltVersionWithRelationsSchema).optional(),
-});
-
-export const ReleaseVersionWithRelationsSchema = ReleaseVersionDtoSchema.and(
-  ReleaseVersionRelationsSchema,
-).meta({
-  id: "ReleaseVersionWithRelations",
-  title: "Release Version (with relations)",
-  description:
-    "Release version data including optional creator and built version relations.",
-});
-
-export const ReleaseVersionListResponseSchema = createPaginatedResponseSchema(
-  ReleaseVersionWithRelationsSchema,
-).meta({
-  id: "ReleaseVersionListResponse",
-  title: "Release Version List Response",
-  description: "Paginated release version list response.",
-});
-
-export const ReleaseVersionDetailSchema = ReleaseVersionWithRelationsSchema;
+export const ReleaseVersionWithBuildsSchema = ReleaseVersionDetailSchema;
 
 export const ReleaseVersionIdParamSchema = z.object({
-  releaseId: ReleaseVersionIdSchema,
+  releaseId: z.uuidv7(),
 });
 
 export const ReleaseVersionCreateResponseSchema = ReleaseVersionDtoSchema;
 
-const ReleaseVersionSortOptions = [
-  ...RELEASE_VERSION_SORT_FIELDS,
-  ...RELEASE_VERSION_SORT_FIELDS.map((field) => `-${field}` as const),
-] as const;
-
-const ReleaseVersionSortEnum = z.enum([...ReleaseVersionSortOptions]);
-
-export const ReleaseVersionListQueryDocSchema = createPaginatedQueryDocSchema(
-  ReleaseVersionSortEnum,
-).merge(ReleaseVersionRelationsDocSchema);
-
-export const ReleaseVersionRelationsQueryDocSchema =
-  ReleaseVersionRelationsDocSchema;
-
-export const parseReleaseVersionRelations = (
-  searchParams: URLSearchParams,
-): ReleaseVersionRelationKey[] => {
-  const requested = collectRelationParams(searchParams);
-  const { valid, invalid, missingParents } =
-    validateReleaseVersionRelations(requested);
-  if (invalid.length === 0 && missingParents.length === 0) {
-    return valid;
-  }
-  const details: Record<string, unknown> = {};
-  if (invalid.length > 0) {
-    details.invalidRelations = invalid;
-  }
-  if (missingParents.length > 0) {
-    details.missingParentRelations = missingParents;
-  }
-  throw new RestError(
-    400,
-    "INVALID_RELATION",
-    "Invalid relations requested",
-    Object.keys(details).length > 0 ? details : undefined,
-  );
-};
-
 export const listReleaseVersions = async (
   context: RestContext,
   query: ReleaseVersionListQuery,
-  relations: ReleaseVersionRelationKey[] = [],
 ) => {
   ensureAuthenticated(context);
   const svc = new ReleaseVersionService(context.db);
-  return svc.list(query, { relations });
+  return svc.list(query);
 };
 
 export const getReleaseVersion = async (
   context: RestContext,
   releaseId: string,
-  relations: ReleaseVersionRelationKey[] = [],
 ) => {
   ensureAuthenticated(context);
   const svc = new ReleaseVersionService(context.db);
-  return svc.getById(releaseId, { relations });
+  return svc.getById(releaseId);
 };
 
 export const createReleaseVersion = async (
@@ -198,6 +104,14 @@ export const createReleaseVersion = async (
   }
 };
 
+export const listReleaseVersionsWithBuilds = async (
+  context: RestContext,
+): Promise<ReleaseVersionWithBuildsDto[]> => {
+  const svc = new ReleaseVersionService(context.db);
+  const rows = await svc.listWithBuilds();
+  return z.array(ReleaseVersionWithBuildsSchema).parse(rows);
+};
+
 export const releaseVersionPaths = {
   "/release-versions": {
     get: {
@@ -205,7 +119,7 @@ export const releaseVersionPaths = {
       summary: "List release versions",
       tags: ["Release Versions"],
       requestParams: {
-        query: ReleaseVersionListQueryDocSchema,
+        query: ReleaseVersionListQuerySchema,
       },
       responses: {
         200: {
@@ -216,7 +130,7 @@ export const releaseVersionPaths = {
             },
           },
         },
-        400: jsonErrorResponse("Invalid query parameters or relations"),
+        400: jsonErrorResponse("Invalid query parameters"),
       },
     },
     post: {
@@ -253,7 +167,6 @@ export const releaseVersionPaths = {
       tags: ["Release Versions"],
       requestParams: {
         path: ReleaseVersionIdParamSchema,
-        query: ReleaseVersionRelationsQueryDocSchema,
       },
       responses: {
         200: {
@@ -264,8 +177,24 @@ export const releaseVersionPaths = {
             },
           },
         },
-        400: jsonErrorResponse("Invalid relations"),
         404: jsonErrorResponse("Release not found"),
+      },
+    },
+  },
+  "/release-versions/with-builds": {
+    get: {
+      operationId: "listReleaseVersionsWithBuilds",
+      summary: "List release versions with attached builds",
+      tags: ["Release Versions"],
+      responses: {
+        200: {
+          description: "Release versions with builds",
+          content: {
+            "application/json": {
+              schema: z.array(ReleaseVersionWithBuildsSchema),
+            },
+          },
+        },
       },
     },
   },

@@ -19,15 +19,12 @@ import { Button } from "~/components/ui/button";
 import { Separator } from "~/components/ui/separator";
 import { cn } from "~/lib/utils";
 import { RefreshCw } from "lucide-react";
-import { api } from "~/trpc/react";
 import { ActionHistoryLog } from "~/components/action-history/action-history-log";
 import { useAuthSession } from "~/hooks/use-auth-session";
 import { useDiscordLogin } from "~/hooks/use-discord-login";
 import { Toaster } from "sonner";
-import {
-  SESSION_QUERY_KEY,
-  requestLogout,
-} from "~/lib/auth-client";
+import { SESSION_QUERY_KEY, requestLogout } from "~/lib/auth-client";
+import { releasesWithBuildsQueryKey } from "~/app/versions/releases/api";
 
 type NavGroup = {
   id: string;
@@ -324,7 +321,7 @@ function computeCrumbs(pathname: string): Crumb[] {
 }
 
 function HeaderActions({ pathname }: { pathname: string }) {
-  const utils = api.useUtils();
+  const queryClient = useQueryClient();
   const [isFetching, setIsFetching] = React.useState(false);
   const isReleases = pathname.startsWith("/versions/releases");
   if (!isReleases) return null;
@@ -332,7 +329,9 @@ function HeaderActions({ pathname }: { pathname: string }) {
     if (isFetching) return;
     setIsFetching(true);
     try {
-      await utils.builtVersion.listReleasesWithBuilds.invalidate();
+      await queryClient.invalidateQueries({
+        queryKey: releasesWithBuildsQueryKey,
+      });
     } finally {
       setIsFetching(false);
     }

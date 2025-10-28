@@ -10,6 +10,7 @@ register({
       esModuleInterop: true,
       baseUrl: ".",
       paths: {
+        "~/env": ["scripts/openapi-stubs/env"],
         "~/*": ["src/*"],
         "next/server": ["scripts/openapi-stubs/next-server"],
         "@prisma/client": ["scripts/openapi-stubs/prisma-client"],
@@ -26,6 +27,20 @@ Module._resolveFilename = function resolve(request, parent, isMain, options) {
   if (request === "zod") {
     return originalResolveFilename("zod/v4", parent, isMain, options);
   }
+  Module._resolveFilename = function resolve(request, parent, isMain, options) {
+    if (request === "zod") {
+      return originalResolveFilename("zod/v4", parent, isMain, options);
+    }
+    if (request === "~/env") {
+      return originalResolveFilename(
+        "scripts/openapi-stubs/env",
+        parent,
+        isMain,
+        options,
+      );
+    }
+    return originalResolveFilename(request, parent, isMain, options);
+  };
   return originalResolveFilename(request, parent, isMain, options);
 };
 

@@ -158,6 +158,53 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/RestError"
+  /release-versions/with-builds:
+    get:
+      operationId: listReleaseVersionsWithBuilds
+      summary: List release versions with attached builds
+      tags:
+        - Release Versions
+      responses:
+        "200":
+          description: Release versions with builds
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                    name:
+                      type: string
+                    createdAt:
+                      $ref: "#/components/schemas/iso8601Timestamp"
+                    builtVersions:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                          name:
+                            type: string
+                          versionId:
+                            type: string
+                          createdAt:
+                            $ref: "#/components/schemas/iso8601Timestamp"
+                        required:
+                          - id
+                          - name
+                          - versionId
+                          - createdAt
+                        additionalProperties: false
+                  required:
+                    - id
+                    - name
+                    - createdAt
+                    - builtVersions
+                  additionalProperties: false
   /release-components:
     get:
       operationId: listReleaseComponents
@@ -633,6 +680,587 @@ paths:
                 $ref: "#/components/schemas/RestError"
         "401":
           description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestError"
+  /release-versions/{releaseId}/built-versions:
+    get:
+      operationId: listBuiltVersions
+      summary: List built versions for a release
+      tags:
+        - Release Versions
+      parameters:
+        - in: path
+          name: releaseId
+          schema:
+            type: string
+            format: uuid
+            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$
+          required: true
+      responses:
+        "200":
+          description: Built versions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                    name:
+                      type: string
+                    versionId:
+                      type: string
+                    createdAt:
+                      $ref: "#/components/schemas/iso8601Timestamp"
+                  required:
+                    - id
+                    - name
+                    - versionId
+                    - createdAt
+                  additionalProperties: false
+        "404":
+          description: Release not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestError"
+    post:
+      operationId: createBuiltVersion
+      summary: Create built version
+      tags:
+        - Release Versions
+      parameters:
+        - in: path
+          name: releaseId
+          schema:
+            type: string
+            format: uuid
+            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                versionId:
+                  type: string
+                  format: uuid
+                  pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$
+                name:
+                  type: string
+                  minLength: 1
+              required:
+                - versionId
+                - name
+      responses:
+        "201":
+          description: Built version created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  name:
+                    type: string
+                  versionId:
+                    type: string
+                  createdAt:
+                    $ref: "#/components/schemas/iso8601Timestamp"
+                required:
+                  - id
+                  - name
+                  - versionId
+                  - createdAt
+                additionalProperties: false
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestError"
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestError"
+  /built-versions/{builtId}/status:
+    get:
+      operationId: getBuiltVersionStatus
+      summary: Get built version status
+      tags:
+        - Release Versions
+      parameters:
+        - in: path
+          name: builtId
+          schema:
+            type: string
+            format: uuid
+            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$
+          required: true
+      responses:
+        "200":
+          description: Built version status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  history:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          format: uuid
+                          pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$
+                        fromStatus:
+                          type: string
+                        toStatus:
+                          type: string
+                        action:
+                          type: string
+                        createdAt:
+                          type: string
+                        createdById:
+                          type: string
+                          format: uuid
+                          pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$
+                      required:
+                        - id
+                        - fromStatus
+                        - toStatus
+                        - action
+                        - createdAt
+                        - createdById
+                      additionalProperties: false
+                required:
+                  - status
+                  - history
+                additionalProperties: false
+        "404":
+          description: Built version not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestError"
+  /built-versions/{builtId}/default-selection:
+    get:
+      operationId: getBuiltVersionDefaultSelection
+      summary: Get default component selection for a built version
+      tags:
+        - Release Versions
+      parameters:
+        - in: path
+          name: builtId
+          schema:
+            type: string
+            format: uuid
+            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$
+          required: true
+      responses:
+        "200":
+          description: Default component selection
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  selectedReleaseComponentIds:
+                    type: array
+                    items:
+                      type: string
+                      format: uuid
+                      pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$
+                required:
+                  - selectedReleaseComponentIds
+                additionalProperties: false
+        "404":
+          description: Built version not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestError"
+  /built-versions/{builtId}/component-versions:
+    get:
+      operationId: listComponentVersionsByBuilt
+      summary: List component versions for a built version
+      tags:
+        - Release Versions
+      parameters:
+        - in: path
+          name: builtId
+          schema:
+            type: string
+            format: uuid
+            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$
+          required: true
+      responses:
+        "200":
+          description: Component versions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                    releaseComponentId:
+                      type: string
+                    builtVersionId:
+                      type: string
+                    name:
+                      type: string
+                    increment:
+                      type: integer
+                      minimum: 0
+                      maximum: 9007199254740991
+                    createdAt:
+                      $ref: "#/components/schemas/iso8601Timestamp"
+                  required:
+                    - id
+                    - releaseComponentId
+                    - builtVersionId
+                    - name
+                    - increment
+                    - createdAt
+                  additionalProperties: false
+        "404":
+          description: Built version not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestError"
+  /built-versions/{builtId}/successor:
+    post:
+      operationId: createSuccessorBuilt
+      summary: Arrange successor built components
+      tags:
+        - Release Versions
+      parameters:
+        - in: path
+          name: builtId
+          schema:
+            type: string
+            format: uuid
+            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                builtVersionId:
+                  type: string
+                  format: uuid
+                  pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$
+                selectedReleaseComponentIds:
+                  minItems: 1
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+                    pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$
+              required:
+                - builtVersionId
+                - selectedReleaseComponentIds
+      responses:
+        "200":
+          description: Successor arrangement result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  summary:
+                    type: object
+                    properties:
+                      moved:
+                        type: integer
+                        minimum: -9007199254740991
+                        maximum: 9007199254740991
+                      created:
+                        type: integer
+                        minimum: -9007199254740991
+                        maximum: 9007199254740991
+                      updated:
+                        type: integer
+                        minimum: -9007199254740991
+                        maximum: 9007199254740991
+                      successorBuiltId:
+                        type: string
+                    required:
+                      - moved
+                      - created
+                      - updated
+                      - successorBuiltId
+                    additionalProperties: false
+                  status:
+                    type: string
+                  history:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          format: uuid
+                          pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$
+                        fromStatus:
+                          type: string
+                        toStatus:
+                          type: string
+                        action:
+                          type: string
+                        createdAt:
+                          type: string
+                        createdById:
+                          type: string
+                          format: uuid
+                          pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$
+                      required:
+                        - id
+                        - fromStatus
+                        - toStatus
+                        - action
+                        - createdAt
+                        - createdById
+                      additionalProperties: false
+                required:
+                  - summary
+                  - status
+                  - history
+                additionalProperties: false
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestError"
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestError"
+        "404":
+          description: Built version not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestError"
+  /jira/setup/config:
+    get:
+      operationId: getJiraSetupConfig
+      summary: Get Jira setup configuration
+      tags:
+        - Jira
+      responses:
+        "200":
+          description: Jira setup configuration
+  /jira/setup/credentials:
+    get:
+      operationId: getJiraCredentials
+      summary: Get Jira credentials
+      tags:
+        - Jira
+      responses:
+        "200":
+          description: Jira credentials
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  email:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  hasToken:
+                    type: boolean
+                required:
+                  - email
+                  - hasToken
+                additionalProperties: false
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestError"
+    post:
+      operationId: saveJiraCredentials
+      summary: Save Jira credentials
+      tags:
+        - Jira
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                apiToken:
+                  type: string
+                  minLength: 1
+              required:
+                - email
+      responses:
+        "200":
+          description: Credentials saved
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestError"
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestError"
+        "412":
+          description: Prerequisite missing
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestError"
+  /jira/setup/verify:
+    post:
+      operationId: verifyJiraConnection
+      summary: Verify Jira connection
+      tags:
+        - Jira
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                apiToken:
+                  type: string
+                  minLength: 1
+              required:
+                - email
+      responses:
+        "200":
+          description: Verification result
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestError"
+  /jira/setup/status:
+    get:
+      operationId: getJiraSetupStatus
+      summary: Get Jira setup readiness
+      tags:
+        - Jira
+      responses:
+        "200":
+          description: Setup readiness
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestError"
+  /jira/releases/stored:
+    get:
+      operationId: listStoredJiraVersions
+      summary: List stored Jira versions
+      tags:
+        - Jira
+      parameters:
+        - in: query
+          name: includeReleased
+          schema:
+            type: boolean
+        - in: query
+          name: includeUnreleased
+          schema:
+            type: boolean
+        - in: query
+          name: includeArchived
+          schema:
+            type: boolean
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 9007199254740991
+        - in: query
+          name: pageSize
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+      responses:
+        "200":
+          description: Stored Jira versions
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestError"
+  /jira/releases/sync:
+    post:
+      operationId: syncJiraVersions
+      summary: Sync Jira versions
+      tags:
+        - Jira
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                includeReleased:
+                  type: boolean
+                includeUnreleased:
+                  type: boolean
+                includeArchived:
+                  type: boolean
+                pageSize:
+                  type: integer
+                  minimum: 1
+                  maximum: 100
+      responses:
+        "200":
+          description: Sync result
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestError"
+        "412":
+          description: Jira configuration missing
           content:
             application/json:
               schema:

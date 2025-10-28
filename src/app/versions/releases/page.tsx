@@ -2,16 +2,16 @@
 
 import * as React from "react";
 import ReleasesAccordion from "./components/releases-accordion";
-import { api } from "~/trpc/react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { ReleaseVersionCreateSchema } from "~/shared/schemas/release-version";
-import { useCreateReleaseMutation } from "./api";
+import { releasesWithBuildsQueryKey, useCreateReleaseMutation } from "./api";
 import { isRestApiError } from "~/lib/rest-client";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function VersionsReleasesPage() {
-  const utils = api.useUtils();
+  const queryClient = useQueryClient();
   const createMutation = useCreateReleaseMutation();
   const [open, setOpen] = React.useState(false);
   const [name, setName] = React.useState("");
@@ -33,7 +33,9 @@ export default function VersionsReleasesPage() {
       await createMutation.mutateAsync({ name: parsed.data.name });
       setName("");
       setOpen(false);
-      await utils.builtVersion.listReleasesWithBuilds.invalidate();
+      await queryClient.invalidateQueries({
+        queryKey: releasesWithBuildsQueryKey,
+      });
     } catch (err) {
       setError(
         isRestApiError(err)

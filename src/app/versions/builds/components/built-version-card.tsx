@@ -1,39 +1,50 @@
 "use client";
 
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import * as React from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { Button } from "~/components/ui/button";
 import { Card, CardContent } from "~/components/ui/card";
-import { api } from "~/trpc/react";
+import { Modal } from "~/components/ui/modal";
+import { ScrollArea } from "~/components/ui/scroll-area";
+import { Separator } from "~/components/ui/separator";
 import type {
   BuiltVersionAction,
   BuiltVersionStatus,
 } from "~/shared/types/built-version-status";
 import {
   labelForAction,
-  targetStatusForAction,
   labelForStatus,
   StatusTint,
+  targetStatusForAction,
 } from "~/shared/types/built-version-status";
-import { Button } from "~/components/ui/button";
-import { ComponentVersionLabels } from "./component-version-labels";
-import { Separator } from "~/components/ui/separator";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { ScrollArea } from "~/components/ui/scroll-area";
-import { Modal } from "~/components/ui/modal";
 import { colorClasses } from "~/shared/ui/color-classes";
 import {
   prefetchReleaseComponents,
   useReleaseComponentsQuery,
 } from "../../components/api";
+import { releasesWithBuildsQueryKey } from "../../releases/api";
+import {
+  builtVersionDefaultSelectionQueryKey,
+  builtVersionStatusQueryKey,
+  componentVersionsByBuiltQueryKey,
+  createSuccessorBuilt,
+  transitionBuiltVersion,
+  useBuiltVersionDefaultSelectionQuery,
+  useBuiltVersionStatusQuery,
+} from "../api";
+import { ComponentVersionLabels } from "./component-version-labels";
 
 export default function BuiltVersionCard({
   id,
   name,
   createdAt: _createdAt,
+  releaseId,
 }: {
   id: string;
   name: string;
   createdAt?: string;
+  releaseId: string;
 }) {
   const queryClient = useQueryClient();
   const [entered, setEntered] = React.useState(false);
@@ -46,69 +57,103 @@ export default function BuiltVersionCard({
     setHydrated(true);
   }, []);
 
-  const { data: statusData, isFetching: fetchingStatus } =
-    api.builtVersion.getStatus.useQuery({ builtVersionId: id });
+  const statusQuery = useBuiltVersionStatusQuery(id);
   const currentStatus: BuiltVersionStatus =
-    statusData?.status ?? "in_development";
-  const utils = api.useUtils();
+    statusQuery.data?.status ?? "in_development";
+  const fetchingStatus = statusQuery.isFetching;
   const handleTransitionSuccess = async () => {
-    await utils.builtVersion.getStatus.invalidate({ builtVersionId: id });
+    await queryClient.invalidateQueries({
+      queryKey: builtVersionStatusQueryKey(id),
+    });
   };
-
-  const formatError = (prefix: string, error: unknown) => {
-    const message = error instanceof Error ? error.message : String(error);
+  const handleMutationError = (prefix: string) => (error: unknown) => {
+    const message = error instanceof Error ? error.message : "Unknown error";
     setLastMessage(`${prefix}: ${message}`);
     if (clearTimerRef.current) clearTimeout(clearTimerRef.current);
     clearTimerRef.current = window.setTimeout(() => setLastMessage(""), 3000);
   };
 
-  const cancelDeployment = api.builtVersion.cancelDeployment.useMutation({
+  const cancelDeployment = useMutation({
+    mutationFn: () =>
+      transitionBuiltVersion({
+        releaseId,
+        builtVersionId: id,
+        action: "cancelDeployment",
+      }),
     onSuccess: async () => {
       await handleTransitionSuccess();
     },
-    onError: (error: unknown) => {
-      formatError("Failed to cancel deployment", error);
-    },
+    onError: handleMutationError("Failed to cancel deployment"),
   });
-  const markActive = api.builtVersion.markActive.useMutation({
+
+  const markActive = useMutation({
+    mutationFn: () =>
+      transitionBuiltVersion({
+        releaseId,
+        builtVersionId: id,
+        action: "markActive",
+      }),
     onSuccess: async () => {
       await handleTransitionSuccess();
     },
-    onError: (error: unknown) => {
-      formatError("Failed to mark active", error);
-    },
+    onError: handleMutationError("Failed to mark active"),
   });
-  const revertToDeployment = api.builtVersion.revertToDeployment.useMutation({
+
+  const revertToDeployment = useMutation({
+    mutationFn: () =>
+      transitionBuiltVersion({
+        releaseId,
+        builtVersionId: id,
+        action: "revertToDeployment",
+      }),
     onSuccess: async () => {
       await handleTransitionSuccess();
     },
-    onError: (error: unknown) => {
-      formatError("Failed to revert to deployment", error);
-    },
+    onError: handleMutationError("Failed to revert to deployment"),
   });
-  const deprecate = api.builtVersion.deprecate.useMutation({
+
+  const deprecate = useMutation({
+    mutationFn: () =>
+      transitionBuiltVersion({
+        releaseId,
+        builtVersionId: id,
+        action: "deprecate",
+      }),
     onSuccess: async () => {
       await handleTransitionSuccess();
     },
-    onError: (error: unknown) => {
-      formatError("Failed to deprecate", error);
-    },
+    onError: handleMutationError("Failed to deprecate"),
   });
-  const reactivate = api.builtVersion.reactivate.useMutation({
+
+  const reactivate = useMutation({
+    mutationFn: () =>
+      transitionBuiltVersion({
+        releaseId,
+        builtVersionId: id,
+        action: "reactivate",
+      }),
     onSuccess: async () => {
       await handleTransitionSuccess();
     },
-    onError: (error: unknown) => {
-      formatError("Failed to reactivate", error);
-    },
+    onError: handleMutationError("Failed to reactivate"),
   });
-  const startDeploymentRaw = api.builtVersion.startDeployment.useMutation({
-    onError: (error: unknown) => {
-      formatError("Failed to start deployment", error);
+
+  const startDeploymentRaw = useMutation({
+    mutationFn: () =>
+      transitionBuiltVersion({
+        releaseId,
+        builtVersionId: id,
+        action: "startDeployment",
+      }),
+    onSuccess: async () => {
+      await handleTransitionSuccess();
     },
+    onError: handleMutationError("Failed to start deployment"),
   });
-  const createSuccessorBuilt =
-    api.builtVersion.createSuccessorBuilt.useMutation();
+
+  const createSuccessorBuiltMutation = useMutation({
+    mutationFn: createSuccessorBuilt,
+  });
 
   const [selecting, setSelecting] = React.useState(false);
   const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
@@ -122,14 +167,13 @@ export default function BuiltVersionCard({
   const processing =
     submitting ||
     startDeploymentRaw.isPending ||
-    createSuccessorBuilt.isPending;
+    createSuccessorBuiltMutation.isPending;
   const { data: releaseComponentsPage } = useReleaseComponentsQuery({
     enabled: false,
   });
-  const defaultSel = api.builtVersion.defaultSelection.useQuery(
-    { builtVersionId: id },
-    { enabled: selecting },
-  );
+  const defaultSel = useBuiltVersionDefaultSelectionQuery(id, {
+    enabled: selecting,
+  });
   const releaseComponents = React.useMemo(
     () => releaseComponentsPage?.items ?? [],
     [releaseComponentsPage],
@@ -172,7 +216,7 @@ export default function BuiltVersionCard({
       return;
     }
     const mutate = mutationByAction[action];
-    await mutate({ builtVersionId: id });
+    await mutate();
     setLastMessage(`${labelForAction(action)} done`);
     // Clear message after a short delay
     if (clearTimerRef.current) {
@@ -381,14 +425,14 @@ export default function BuiltVersionCard({
                 })}
               </div>
             )}
-            {(createSuccessorBuilt.isPending || submitting) && (
+            {(createSuccessorBuiltMutation.isPending || submitting) && (
               <div className="absolute inset-0 flex items-center justify-center bg-white/50 text-sm dark:bg-neutral-900/50">
                 preparing Deployments...
               </div>
             )}
           </ScrollArea>
         </div>
-        {(createSuccessorBuilt.isPending || submitting) && (
+        {(createSuccessorBuiltMutation.isPending || submitting) && (
           <div
             role="status"
             aria-atomic="true"
@@ -402,7 +446,7 @@ export default function BuiltVersionCard({
             type="button"
             variant="secondary"
             onClick={() => setSelecting(false)}
-            disabled={createSuccessorBuilt.isPending || submitting}
+            disabled={createSuccessorBuiltMutation.isPending || submitting}
           >
             Cancel
           </Button>
@@ -419,56 +463,66 @@ export default function BuiltVersionCard({
                 return;
               }
               setSubmitting(true);
-              if (currentStatus === "in_development") {
-                await startDeploymentRaw.mutateAsync({
+              try {
+                if (currentStatus === "in_development") {
+                  await startDeploymentRaw.mutateAsync();
+                }
+                const res = await createSuccessorBuiltMutation.mutateAsync({
                   builtVersionId: id,
+                  selectedReleaseComponentIds: selectedIds,
                 });
-              }
-              const res = await createSuccessorBuilt.mutateAsync({
-                builtVersionId: id,
-                selectedReleaseComponentIds: selectedIds,
-              });
-              // Prefetch fresh data and set caches to avoid intermediate empty states
-              const [status, currentList, releases] = await Promise.all([
-                utils.builtVersion.getStatus.fetch({ builtVersionId: id }),
-                utils.componentVersion.listByBuilt.fetch({
-                  builtVersionId: id,
-                }),
-                utils.builtVersion.listReleasesWithBuilds.fetch(),
-              ]);
-              utils.builtVersion.getStatus.setData(
-                { builtVersionId: id },
-                status,
-              );
-              utils.componentVersion.listByBuilt.setData(
-                { builtVersionId: id },
-                currentList,
-              );
-              utils.builtVersion.listReleasesWithBuilds.setData(
-                undefined,
-                releases,
-              );
-              if (res?.summary?.successorBuiltId) {
-                const succList = await utils.componentVersion.listByBuilt.fetch(
-                  { builtVersionId: res.summary.successorBuiltId },
+
+                await Promise.all([
+                  queryClient.invalidateQueries({
+                    queryKey: builtVersionStatusQueryKey(id),
+                  }),
+                  queryClient.invalidateQueries({
+                    queryKey: componentVersionsByBuiltQueryKey(id),
+                  }),
+                  queryClient.invalidateQueries({
+                    queryKey: builtVersionDefaultSelectionQueryKey(id),
+                  }),
+                  queryClient.invalidateQueries({
+                    queryKey: releasesWithBuildsQueryKey,
+                  }),
+                ]);
+
+                if (res?.summary?.successorBuiltId) {
+                  await queryClient.invalidateQueries({
+                    queryKey: componentVersionsByBuiltQueryKey(
+                      res.summary.successorBuiltId,
+                    ),
+                  });
+                  await queryClient.invalidateQueries({
+                    queryKey: builtVersionStatusQueryKey(
+                      res.summary.successorBuiltId,
+                    ),
+                  });
+                }
+
+                setSelecting(false);
+                setLastMessage("Deployment finalized");
+                if (clearTimerRef.current) clearTimeout(clearTimerRef.current);
+                clearTimerRef.current = window.setTimeout(
+                  () => setLastMessage(""),
+                  1500,
                 );
-                utils.componentVersion.listByBuilt.setData(
-                  { builtVersionId: res.summary.successorBuiltId },
-                  succList,
+              } catch (error) {
+                const message =
+                  error instanceof Error ? error.message : String(error);
+                setLastMessage(`Failed to finalize deployment: ${message}`);
+                if (clearTimerRef.current) clearTimeout(clearTimerRef.current);
+                clearTimerRef.current = window.setTimeout(
+                  () => setLastMessage(""),
+                  3000,
                 );
+              } finally {
+                setSubmitting(false);
               }
-              setSelecting(false);
-              setLastMessage("Deployment finalized");
-              if (clearTimerRef.current) clearTimeout(clearTimerRef.current);
-              clearTimerRef.current = window.setTimeout(
-                () => setLastMessage(""),
-                1500,
-              );
-              setSubmitting(false);
             }}
-            disabled={createSuccessorBuilt.isPending || submitting}
+            disabled={createSuccessorBuiltMutation.isPending || submitting}
           >
-            {createSuccessorBuilt.isPending || submitting
+            {createSuccessorBuiltMutation.isPending || submitting
               ? "preparing Deployments..."
               : `Close Version ${name}`}
           </Button>

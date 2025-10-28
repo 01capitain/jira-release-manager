@@ -11,7 +11,7 @@ This guide defines patterns for implementing domain services, with a focus on se
   - Stability: if the underlying ID type changes, references update via the Prisma model type.
   - Simplicity: keeps service boundaries minimal and transport‑agnostic.
 - Do not accept whole entities unless you require additional fields beyond the ID. Prefer `id` parameters for minimal coupling.
-- At the transport boundary (tRPC/REST), validate inputs with Zod (e.g., `z.uuidv7()`), then pass semantic IDs to services.
+- At the REST boundary, validate inputs with Zod (e.g., `z.uuidv7()`), then pass semantic IDs to services.
 - List endpoints receive a `NormalizedPaginatedRequest<TSort>` (see `src/shared/types/pagination.ts`). Services translate `sortBy` into Prisma `orderBy` objects and return `PaginatedResponse<T>` via `buildPaginatedResponse` so pagination metadata is computed once.
 
 ## Single Responsibility & Composition

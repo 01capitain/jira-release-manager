@@ -1,26 +1,34 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
+import { AlertCircle, CheckCircle } from "lucide-react";
 import * as React from "react";
+import {
+  jiraStatusQueryKey,
+  useJiraConfigQuery,
+  useJiraCredentialsQuery,
+  useSaveJiraCredentialsMutation,
+  useVerifyJiraConnectionMutation,
+  type verifyJiraConnection,
+} from "~/app/jira-settings/api";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
-import { api, type RouterOutputs } from "~/trpc/react";
-import { CheckCircle, AlertCircle } from "lucide-react";
 import { useAuthSession } from "~/hooks/use-auth-session";
 import { useDiscordLogin } from "~/hooks/use-discord-login";
 
-type JiraVerifyResponse = RouterOutputs["jira"]["verifyConnection"];
+type JiraVerifyResponse = Awaited<ReturnType<typeof verifyJiraConnection>>;
 
 export default function JiraConnectPage() {
   const { data: session } = useAuthSession();
   const { login, isLoggingIn, error: loginError } = useDiscordLogin();
-
-  const { data: configData } = api.jira.getConfig.useQuery();
-  const { data: credentials } = api.jira.getCredentials.useQuery(undefined, {
-    enabled: !!session,
-  });
-  const saveMutation = api.jira.saveCredentials.useMutation();
-  const verifyMutation = api.jira.verifyConnection.useMutation();
+  const queryClient = useQueryClient();
+  const configQuery = useJiraConfigQuery();
+  const credentialsQuery = useJiraCredentialsQuery({ enabled: !!session });
+  const saveMutation = useSaveJiraCredentialsMutation();
+  const verifyMutation = useVerifyJiraConnectionMutation();
+  const configData = configQuery.data;
+  const credentials = credentialsQuery.data;
 
   const [email, setEmail] = React.useState("");
   const [token, setToken] = React.useState("");
@@ -46,6 +54,12 @@ export default function JiraConnectPage() {
       };
       if (trimmedToken.length > 0) payload.apiToken = trimmedToken;
       await saveMutation.mutateAsync(payload);
+      if (session) {
+        await Promise.all([
+          credentialsQuery.refetch(),
+          queryClient.invalidateQueries({ queryKey: jiraStatusQueryKey }),
+        ]);
+      }
       setStatus({
         kind: "success",
         text: "Saved. Token stored securely and not shown.",
@@ -74,7 +88,7 @@ export default function JiraConnectPage() {
           text: `Connection verified (${who}).`,
         });
       } else {
-        const reason = res.bodyText || res.statusText || `HTTP ${res.status}`;
+        const reason = res.bodyText ?? res.statusText ?? `HTTP ${res.status}`;
         setVerifyStatus({ kind: "error", text: String(reason).slice(0, 800) });
       }
     } catch (err) {
@@ -83,6 +97,7 @@ export default function JiraConnectPage() {
     }
     // After a connection try, de-emphasize Verify back to secondary
     setVerifyPrimary(false);
+    await queryClient.invalidateQueries({ queryKey: jiraStatusQueryKey });
   }
 
   // Auto-dismiss success messages after a short timeout

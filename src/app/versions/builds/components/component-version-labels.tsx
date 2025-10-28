@@ -2,10 +2,8 @@
 
 import * as React from "react";
 import { colorClasses } from "~/shared/ui/color-classes";
-import { api } from "~/trpc/react";
-import type { ComponentVersionDto } from "~/shared/types/component-version";
-import type { ReleaseComponentDto } from "~/shared/types/release-component";
 import { useReleaseComponentsQuery } from "../../components/api";
+import { useComponentVersionsByBuiltQuery } from "../api";
 
 export function ComponentVersionLabels({
   builtVersionId,
@@ -25,10 +23,8 @@ export function ComponentVersionLabels({
     return m;
   }, [comps]);
 
-  const { data, isLoading } = api.componentVersion.listByBuilt.useQuery({
-    builtVersionId,
-  });
-  const versions: ComponentVersionDto[] = data ?? [];
+  const { data, isLoading } = useComponentVersionsByBuiltQuery(builtVersionId);
+  const versions = data ?? [];
 
   if (!isLoading && versions.length === 0) {
     return (

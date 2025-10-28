@@ -4,8 +4,8 @@ Use this playbook when exposing entity detail endpoints so the behavior matches 
 
 ## Shared Contracts
 
-- Keep the base DTO (`ReleaseVersionDto`) as the default response and gate additional fields behind the allow-listed `relations` query keys defined in `src/shared/types/release-version-relations.ts`.
-- Centralize relation mappers/registries (e.g., `buildReleaseVersionRelationState` + helpers) so REST and tRPC reuse the same include/select definitions.
+- Return DTOs that extend your base type with any related aggregates. Example: `src/shared/types/release-version-with-builds.ts` merges `ReleaseVersionDto` with a `builtVersions: BuiltVersionDto[]` array.
+- Centralise shared lookup helpers (e.g., `mapToBuiltVersionDtos`) so all transports reuse the same shape.
 - Validate path parameters with Zod schemas placed alongside the controller (`ReleaseVersionIdParamSchema` in `src/server/rest/controllers/release-versions.controller.ts` uses `z.uuidv7`).
 - Document the `relations` allowlist in OpenAPI and note that nested keys (e.g., `builtVersions.deployedComponents`) must be accompanied by their parent. Provide explicit `404` error mappings (`RestError`) for missing entities.
 
@@ -44,7 +44,6 @@ Use this playbook when exposing entity detail endpoints so the behavior matches 
 - Extend REST e2e tests (`tests/e2e/<entity>.rest.e2e.test.ts`) with:
   - 200 response assertions verifying DTO fields and nested arrays.
   - 404 response when the entity does not exist.
-- If tRPC exposes the detail, add integration tests to confirm it mirrors REST status codes and payloads.
 
 ## Implementation Checklist
 
