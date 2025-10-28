@@ -25,6 +25,9 @@ export const listStoredJiraVersions = async (
   context: RestContext,
   query: JiraStoredVersionsQuery,
 ) => {
+  // Require authentication to access stored Jira versions
+  ensureAuthenticated(context);
+
   const includeReleased = query?.includeReleased ?? true;
   const includeUnreleased = query?.includeUnreleased ?? true;
   const includeArchived = query?.includeArchived ?? false;
