@@ -1,6 +1,6 @@
 import {
   ReleaseComponentModelSchema,
-  type ReleaseComponentScopeModelSchema,
+  ReleaseComponentScopeModelSchema,
 } from "~/server/zod/schemas/variants/pure/ReleaseComponent.pure";
 import { IsoTimestampSchema } from "~/shared/types/iso8601";
 import type {
