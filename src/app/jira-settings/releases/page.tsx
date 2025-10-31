@@ -14,7 +14,6 @@ import {
   useStoredVersionsQuery,
   useSyncStoredVersionsMutation,
 } from "~/app/jira-settings/releases/api";
-import type { JiraStoredVersion } from "~/app/jira-settings/releases/api";
 import {
   fetchReleaseVersions,
   releaseVersionListQueryKey,
@@ -22,9 +21,6 @@ import {
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ReleaseVersionDto } from "~/shared/types/release-version";
 import type { PaginatedResponse } from "~/shared/types/pagination";
-
-type StoredVersion = JiraStoredVersion;
-type ReleaseVersionItem = ReleaseVersionDto;
 
 const formatReleaseDate = (value: unknown): string | null => {
   if (value instanceof Date) {

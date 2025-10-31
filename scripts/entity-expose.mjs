@@ -98,11 +98,7 @@ const pluralise = (value) => {
   return `${value}s`;
 };
 
-const sharedTypeTemplate = ({
-  pascal,
-  kebab,
-  camel,
-}) => `import type { ISO8601 } from "~/shared/types/iso8601";
+const sharedTypeTemplate = ({ pascal }) => `import type { ISO8601 } from "~/shared/types/iso8601";
 import type { UuidV7 } from "~/shared/types/uuid";
 
 /**
