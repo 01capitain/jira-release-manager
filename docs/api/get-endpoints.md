@@ -25,9 +25,6 @@ Use this playbook when exposing entity detail endpoints so the behavior matches 
 - **Route handler** (`src/app/api/v1/<entity>/[id]/route.ts`):
   - Compose `createRestHandler` with `ReleaseVersionIdParamSchema.parse(params)` to fail fast on invalid IDs.
   - Call the controller with the normalized query + validated relations, letting `RestError` propagate for consistent HTTP codes.
-- **tRPC router** (if exposed):
-  - Wrap the service call in `protectedProcedure` or `publicProcedure` depending on auth requirements.
-  - Reuse the same DTO and `RestError` handling; return service results directly so REST and tRPC stay aligned.
 
 ## Client Usage
 
@@ -49,7 +46,7 @@ Use this playbook when exposing entity detail endpoints so the behavior matches 
 
 1. Extend the shared relation types/registry with any new relation keys.
 2. Implement the service `getById`/`list` relation handling and throw `RestError` on invalid lookups.
-3. Wire REST (and optionally tRPC) handlers to validate `relations`, enforce auth, and delegate to the service.
+3. Wire REST handlers to validate `relations`, enforce auth, and delegate to the service.
 4. Update `docs/api/openapi.yaml` to document the query parameter allowlist, response schema, and error shapes.
 5. Add client fetch helpers and not-found handling rooted in the shared DTO and `RestApiError`.
 6. Cover the endpoint with service and REST tests, including invalid relation scenarios.

@@ -44,12 +44,6 @@ Eslint + [Prettier](https://prettier.io/)
 
 Run tests with `pnpm test`.
 
-### tRPC
-
-[tRPC](https://trpc.io)
-
-No idea yet what category this falls into, I want to experiment with it and find good resources for learning..
-
 ### Authorization
 
 [NextAuth.js](https://next-auth.js.org)
