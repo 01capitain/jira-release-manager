@@ -279,12 +279,13 @@ export default function VersionsComponentsPage() {
                     };
                     const cls = swatch[c.color] ?? swatch.neutral;
                     return (
-                      <div
+                      <span
+                        role="img"
+                        aria-label={`Base color ${c.color}`}
                         className={["h-6 w-6 rounded-full border", cls].join(
                           " ",
                         )}
                         title={c.color}
-                        aria-label={`Base color ${c.color}`}
                       />
                     );
                   })()}
