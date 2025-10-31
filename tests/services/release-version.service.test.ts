@@ -80,18 +80,24 @@ function makeMockDb() {
     },
     // ReleaseComponent
     releaseComponent: {
-      findMany: jest.fn(async () => {
+      findMany: jest.fn(async (args: any = {}) => {
         record("releaseComponent.findMany", {});
-        return [
+        const all = [
           {
             id: COMPONENT_A_ID,
             namingPattern: "{release_version}-{built_version}-{increment}",
+            releaseScope: "global",
           },
           {
             id: COMPONENT_B_ID,
             namingPattern: "{release_version}-{built_version}-{increment}",
+            releaseScope: "version_bound",
           },
         ];
+        if (args?.where?.releaseScope === "global") {
+          return all.filter((entry) => entry.releaseScope === "global");
+        }
+        return all;
       }),
     },
     // ComponentVersion
@@ -119,7 +125,7 @@ function makeMockDb() {
 }
 
 describe("ReleaseVersion and BuiltVersion behavior", () => {
-  test("creating a release creates an initial builtVersion named *.0 and component versions", async () => {
+  test("creating a release creates an initial builtVersion named *.0 and seeds global components", async () => {
     const { db, calls } = makeMockDb();
     // Mock Release name when looked up by BuiltVersionService
     db.releaseVersion.findUniqueOrThrow = jest.fn(async () => ({
@@ -137,8 +143,44 @@ describe("ReleaseVersion and BuiltVersion behavior", () => {
     expect(builtArgs).toBeDefined();
     expect(builtArgs?.data?.name).toBe("version 100.0"); // ends with .0
 
-    // component versions created for each existing release component (2)
-    expect(db.componentVersion.create).toHaveBeenCalledTimes(2);
+    // component versions created only for global release components (1)
+    expect(db.componentVersion.create).toHaveBeenCalledTimes(1);
+  });
+
+  test("creating a release only seeds global components", async () => {
+    const { db } = makeMockDb();
+    db.releaseComponent.findMany = jest.fn(async (args: any) => {
+      expect(args).toMatchObject({
+        select: {
+          id: true,
+          namingPattern: true,
+          releaseScope: true,
+        },
+      });
+      return [
+        {
+          id: COMPONENT_A_ID,
+          namingPattern: "{release_version}-{built_version}-{increment}",
+          releaseScope: "global",
+        },
+        {
+          id: COMPONENT_B_ID,
+          namingPattern: "{release_version}-{built_version}-{increment}",
+          releaseScope: "version_bound",
+        },
+      ];
+    });
+    db.releaseVersion.findUniqueOrThrow = jest.fn(async () => ({
+      id: REL_MAIN_ID,
+      name: "version 101",
+    }));
+
+    const svc = new ReleaseVersionService(db);
+    await svc.create(USER_1_ID, "version 101");
+
+    expect(db.componentVersion.create).toHaveBeenCalledTimes(1);
+    const [[args]] = db.componentVersion.create.mock.calls as any[];
+    expect(args.data.releaseComponent.connect.id).toBe(COMPONENT_A_ID);
   });
 
   test("list returns bare DTOs when no relations are requested", async () => {
@@ -355,8 +397,8 @@ describe("ReleaseVersion and BuiltVersion behavior", () => {
     }));
     const bsvc = new BuiltVersionService(db);
     await bsvc.create(USER_1_ID, REL2 as any, "version 200.0");
-    // Two components → two component versions
-    expect(db.componentVersion.create).toHaveBeenCalledTimes(2);
+    // Only global component triggers creation
+    expect(db.componentVersion.create).toHaveBeenCalledTimes(1);
   });
 
   test("transition to in_deployment creates a successor with higher increment", async () => {
@@ -466,25 +508,29 @@ describe("ReleaseVersion and BuiltVersion behavior", () => {
       },
       { builtVersionId, toStatus: "in_development", createdAt: new Date() },
     ]);
+    db.releaseComponent.findMany = jest.fn(async (args: any) => {
+      expect(args).toMatchObject({
+        where: { releaseScope: "global" },
+        select: { id: true },
+      });
+      return [{ id: COMPONENT_A_ID }];
+    });
     db.componentVersion.findMany = jest.fn(async () => [
-      { releaseComponentId: COMPONENT_A_ID },
       { releaseComponentId: COMPONENT_B_ID },
-      { releaseComponentId: COMPONENT_A_ID },
     ]);
 
     const svc = new BuiltVersionService(db);
     const res = await svc.getDefaultSelection(builtVersionId as any);
 
-    expect(res.selectedReleaseComponentIds).toEqual([
-      COMPONENT_A_ID,
-      COMPONENT_B_ID,
-    ]);
+    expect(new Set(res.selectedReleaseComponentIds)).toEqual(
+      new Set([COMPONENT_A_ID, COMPONENT_B_ID]),
+    );
     expect(db.componentVersion.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: { builtVersionId: activeBuiltId } }),
     );
   });
 
-  test("default selection falls back to all components when none active", async () => {
+  test("default selection falls back to global components when none active", async () => {
     const { db } = makeMockDb();
     const builtVersionId = "88888888-8888-8888-8888-888888888888";
     const versionId = "99999999-9999-9999-9999-999999999999";
@@ -495,18 +541,18 @@ describe("ReleaseVersion and BuiltVersion behavior", () => {
     }));
     db.builtVersion.findMany = jest.fn(async () => [{ id: builtVersionId }]);
     db.builtVersionTransition.findMany = jest.fn(async () => []);
-    db.releaseComponent.findMany = jest.fn(async () => [
-      { id: COMPONENT_A_ID },
-      { id: COMPONENT_B_ID },
-    ]);
+    db.releaseComponent.findMany = jest.fn(async (args: any) => {
+      expect(args).toMatchObject({
+        where: { releaseScope: "global" },
+        select: { id: true },
+      });
+      return [{ id: COMPONENT_A_ID }];
+    });
 
     const svc = new BuiltVersionService(db);
     const res = await svc.getDefaultSelection(builtVersionId as any);
 
-    expect(res.selectedReleaseComponentIds).toEqual([
-      COMPONENT_A_ID,
-      COMPONENT_B_ID,
-    ]);
+    expect(res.selectedReleaseComponentIds).toEqual([COMPONENT_A_ID]);
     expect(db.releaseComponent.findMany).toHaveBeenCalled();
   });
 });

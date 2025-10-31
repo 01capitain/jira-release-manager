@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { ReleaseComponentScopes } from "~/shared/types/release-component";
+
 export const AllowedBaseColors = [
   "slate",
   "gray",
@@ -25,6 +27,8 @@ export const AllowedBaseColors = [
   "rose",
 ] as const;
 
+export const ReleaseComponentScopeSchema = z.enum(ReleaseComponentScopes);
+
 export const ReleaseComponentCreateSchema = z.object({
   name: z.string().trim().min(1, { error: "Please enter a name." }),
   color: z.enum(AllowedBaseColors, {
@@ -48,6 +52,7 @@ export const ReleaseComponentCreateSchema = z.object({
           "Pattern may only contain {release_version}, {built_version}, {increment} tokens.",
       },
     ),
+  releaseScope: ReleaseComponentScopeSchema,
 });
 
 export type ReleaseComponentCreateInput = z.infer<

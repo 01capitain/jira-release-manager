@@ -222,14 +222,26 @@ export class ReleaseVersionService {
       });
 
       // Create initial component versions for this built
-      const components = await tx.releaseComponent.findMany({
-        select: { id: true, namingPattern: true },
+      const releaseComponentDelegate = tx.releaseComponent as unknown as {
+        findMany(args?: unknown): Promise<
+          Array<{
+            id: string;
+            namingPattern: string | null;
+            releaseScope: "global" | "version_bound";
+          }>
+        >;
+      };
+      const components = await releaseComponentDelegate.findMany({
+        select: { id: true, namingPattern: true, releaseScope: true },
       });
       if (components.length > 0) {
         const { validatePattern, expandPattern } = await import(
           "~/server/services/component-version-naming.service"
         );
         for (const comp of components) {
+          if (comp.releaseScope !== "global") {
+            continue;
+          }
           if (!comp.namingPattern?.trim()) continue;
           const { valid } = validatePattern(comp.namingPattern);
           if (!valid) continue;

@@ -91,11 +91,25 @@ export class SuccessorBuiltService {
         });
 
         // Load all release components for this release
-        const componentDefs = await tx.releaseComponent.findMany({
-          select: { id: true, namingPattern: true },
+        const releaseComponentDelegate = tx.releaseComponent as unknown as {
+          findMany(args?: unknown): Promise<
+            Array<{
+              id: string;
+              namingPattern: string | null;
+              releaseScope: "global" | "version_bound";
+            }>
+          >;
+        };
+        const componentDefs = await releaseComponentDelegate.findMany({
+          select: { id: true, namingPattern: true, releaseScope: true },
         });
         const patternByComponent = new Map(
           componentDefs.map((c) => [c.id, c.namingPattern] as const),
+        );
+        const globalComponentIds = new Set(
+          componentDefs
+            .filter((c) => c.releaseScope === "global")
+            .map((c) => c.id),
         );
 
         // Load current rows on X and potential rows on X+1
@@ -149,6 +163,9 @@ export class SuccessorBuiltService {
         };
 
         const selected = new Set(selectedReleaseComponentIds);
+        for (const globalId of globalComponentIds) {
+          selected.add(globalId);
+        }
 
         for (const comp of componentDefs) {
           const rcId = comp.id;

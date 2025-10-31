@@ -4,7 +4,7 @@ This document explains how Releases (Built Versions) are created, named, and how
 
 ## Automatic Creation & Naming
 
-- On Release creation: An initial Built Version is automatically created with name pattern `{release_version}.{increment}` using increment `0` (e.g., `version 178.0`).
+- On Release creation: An initial Built Version is automatically created with name pattern `{release_version}.{increment}` using increment `0` (e.g., `version 178.0`). Only **global** release components are seeded into this initial build.
 - On transition to deployment: When a Built Version transitions from `in_development` to `in_deployment`, a successor Built Version is automatically created for the same Release with the next increment (e.g., `version 178.1`).
 - Successor guard: A successor is only created if no newer Built Version already exists for that Release. If a newer build exists, no additional build (e.g., `.3`) is created.
 - Release-scoped increment: The increment for Built Version names is tracked on `ReleaseVersion.lastUsedIncrement` and increases per Release (starts at `-1`, first auto build is `0`).
@@ -14,6 +14,13 @@ This document explains how Releases (Built Versions) are created, named, and how
 To make name generation reproducible and auditable:
 - `BuiltVersion.tokenValues` stores `{ "release_version": string, "increment": number }`.
 - `ComponentVersion.tokenValues` stores `{ "release_version": string, "built_version": string, "increment": number }`.
+
+## Release Component Scope
+
+- Each Release Component must define a `releaseScope`: `version-bound` or `global`.
+- **Global** components represent platform-wide dependencies. They are auto-seeded into every new built (including the initial build for a new release) and remain selected by default during successor arrangement, even when omitted in the UI.
+- **Version-bound** components are release-specific. They are never auto-seeded; operators choose them explicitly per deployment cycle.
+- Newly created components do not backfill historical Built Versions. Their scope rules start applying with the next deployment planning session.
 
 ## Successor Creation (createSuccessorBuilt)
 
@@ -60,7 +67,7 @@ From `deprecated`:
 
 - Releases page (`src/app/versions/releases/page.tsx`) invalidates and refetches the releases-with-builds list only after a successful `startDeployment` transition, ensuring the auto-created successor appears immediately. Other transitions do not trigger a list reload.
 - The page caches the releases-with-builds response in `localStorage` under `jrm:releases:accordion:releases-with-builds:v1` as placeholder data and refreshes on demand.
-- Default selection (no prior active build): selects all global `ReleaseComponent` entries (components are not release-scoped).
+- Default selection (no prior active build): selects every global `ReleaseComponent`. When an active built exists, defaults mirror its component selection and automatically re-include the global set.
 
 ## Key Files
 

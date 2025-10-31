@@ -12,6 +12,7 @@ type ReleaseComponentRow = {
   name: string;
   color: string;
   namingPattern: string;
+  releaseScope: "version_bound" | "global";
   createdAt: Date;
 };
 
@@ -22,6 +23,7 @@ type ReleaseComponentFindManyArgs = {
     name: true;
     color: true;
     namingPattern: true;
+    releaseScope: true;
     createdAt: true;
   };
 };
@@ -31,6 +33,7 @@ type ReleaseComponentCreateArgs = {
     name: string;
     color: string;
     namingPattern: string;
+    releaseScope: "version_bound" | "global";
     createdBy: { connect: { id: string } };
   };
   select: ReleaseComponentFindManyArgs["select"];
@@ -86,6 +89,7 @@ describe("ReleaseComponentService", () => {
           name: "Component A",
           color: "blue",
           namingPattern: "{release_version}-{built_version}-{increment}",
+          releaseScope: "global",
           createdAt,
         },
       ]),
@@ -108,6 +112,7 @@ describe("ReleaseComponentService", () => {
         name: true,
         color: true,
         namingPattern: true,
+        releaseScope: true,
         createdAt: true,
       },
     });
@@ -117,6 +122,7 @@ describe("ReleaseComponentService", () => {
         name: "Component A",
         color: "blue",
         namingPattern: "{release_version}-{built_version}-{increment}",
+        releaseScope: "global",
         createdAt: createdAt.toISOString(),
       },
     ]);
@@ -137,6 +143,7 @@ describe("ReleaseComponentService", () => {
         name: args.data.name,
         color: args.data.color,
         namingPattern: args.data.namingPattern,
+        releaseScope: args.data.releaseScope,
         createdAt,
       })),
     };
@@ -149,6 +156,7 @@ describe("ReleaseComponentService", () => {
       name: "  Component B  ",
       color: "red",
       namingPattern: "  {release_version}-{increment}  ",
+      releaseScope: "global",
     });
 
     expect(releaseComponentDelegate.create).toHaveBeenCalledWith({
@@ -156,6 +164,7 @@ describe("ReleaseComponentService", () => {
         name: "Component B",
         color: "red",
         namingPattern: "{release_version}-{increment}",
+        releaseScope: "global",
         createdBy: { connect: { id: "user-1" } },
       },
       select: {
@@ -163,6 +172,7 @@ describe("ReleaseComponentService", () => {
         name: true,
         color: true,
         namingPattern: true,
+        releaseScope: true,
         createdAt: true,
       },
     });
@@ -172,6 +182,7 @@ describe("ReleaseComponentService", () => {
       name: "Component B",
       color: "red",
       namingPattern: "{release_version}-{increment}",
+      releaseScope: "global",
       createdAt: createdAt.toISOString(),
     });
   });

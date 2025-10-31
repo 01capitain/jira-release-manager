@@ -15,6 +15,7 @@ type ReleaseComponentRecord = {
   name: string;
   color: string;
   namingPattern: string;
+  releaseScope: "global" | "version_bound";
   createdAt: Date;
 };
 
@@ -85,6 +86,11 @@ const filterComponents = (
 ): ReleaseComponentRecord[] => {
   if (!where) return [...records];
   let filtered = [...records];
+  if (typeof where.releaseScope === "string") {
+    filtered = filtered.filter(
+      (record) => record.releaseScope === where.releaseScope,
+    );
+  }
   const nameFilter = where.name as { contains?: string | null } | undefined;
   if (nameFilter?.contains) {
     const needle = nameFilter.contains.toLowerCase();
@@ -152,6 +158,13 @@ mockDb.releaseComponent = {
       data?: Record<string, unknown>;
       select?: Record<string, unknown>;
     } = {}) => {
+      const scopeInput = (data?.releaseScope as string | undefined) ?? "global";
+      const normalizedScope: ReleaseComponentRecord["releaseScope"] =
+        scopeInput === "version-bound"
+          ? "version_bound"
+          : scopeInput === "version_bound"
+            ? "version_bound"
+            : "global";
       const trimmedName =
         (data?.name as string | undefined)?.trim() ?? "Component";
       const duplicate = componentData.find(
@@ -173,6 +186,7 @@ mockDb.releaseComponent = {
         namingPattern:
           (data?.namingPattern as string | undefined)?.trim() ??
           "{release_version}-{built_version}-{increment}",
+        releaseScope: normalizedScope,
         createdAt:
           data?.createdAt instanceof Date
             ? data.createdAt
@@ -263,6 +277,7 @@ describe("Release Components REST endpoints", () => {
           name: "API",
           color: "red",
           namingPattern: "{release_version}-{increment}",
+          releaseScope: "global",
           createdAt: new Date("2024-06-01T12:00:00.000Z"),
         },
         {
@@ -270,6 +285,7 @@ describe("Release Components REST endpoints", () => {
           name: "Frontend",
           color: "blue",
           namingPattern: "{release_version}-{increment}",
+          releaseScope: "version_bound",
           createdAt: new Date("2024-06-02T12:00:00.000Z"),
         },
         {
@@ -277,6 +293,7 @@ describe("Release Components REST endpoints", () => {
           name: "Worker",
           color: "green",
           namingPattern: "{release_version}-{increment}",
+          releaseScope: "global",
           createdAt: new Date("2024-06-03T12:00:00.000Z"),
         },
       ];
@@ -301,12 +318,14 @@ describe("Release Components REST endpoints", () => {
             name: records[2]?.name,
             color: records[2]?.color,
             namingPattern: records[2]?.namingPattern,
+            releaseScope: "global",
           },
           {
             id: records[1]?.id,
             name: records[1]?.name,
             color: records[1]?.color,
             namingPattern: records[1]?.namingPattern,
+            releaseScope: "version-bound",
           },
         ],
       });
@@ -322,6 +341,7 @@ describe("Release Components REST endpoints", () => {
             name: true,
             color: true,
             namingPattern: true,
+            releaseScope: true,
             createdAt: true,
           },
         }),
@@ -337,6 +357,7 @@ describe("Release Components REST endpoints", () => {
         name: "Checkout",
         color: "orange",
         namingPattern: "{release_version}-{increment}",
+        releaseScope: "version_bound",
         createdAt: new Date("2024-06-05T12:00:00.000Z"),
       };
       setComponentRecords([record]);
@@ -357,6 +378,7 @@ describe("Release Components REST endpoints", () => {
         name: record.name,
         color: record.color,
         namingPattern: record.namingPattern,
+        releaseScope: "version-bound",
         createdAt: record.createdAt.toISOString(),
       });
     });
@@ -372,6 +394,7 @@ describe("Release Components REST endpoints", () => {
           name: "  Scheduler ",
           color: "teal",
           namingPattern: "{release_version}-{built_version}-{increment}",
+          releaseScope: "version-bound",
         }),
         headers: {
           "Content-Type": "application/json",
@@ -387,6 +410,7 @@ describe("Release Components REST endpoints", () => {
         name: "Scheduler",
         color: "teal",
         namingPattern: "{release_version}-{built_version}-{increment}",
+        releaseScope: "version-bound",
       });
       expect(
         (mockDb.releaseComponent as { create: jest.Mock }).create,
@@ -395,6 +419,7 @@ describe("Release Components REST endpoints", () => {
           name: "Scheduler",
           color: "teal",
           namingPattern: "{release_version}-{built_version}-{increment}",
+          releaseScope: "version_bound",
           createdBy: { connect: { id: "user-123" } },
         },
         select: {
@@ -402,6 +427,7 @@ describe("Release Components REST endpoints", () => {
           name: true,
           color: true,
           namingPattern: true,
+          releaseScope: true,
           createdAt: true,
         },
       });
@@ -416,6 +442,7 @@ describe("Release Components REST endpoints", () => {
           name: "Integration",
           color: "green",
           namingPattern: "{release_version}-{increment}",
+          releaseScope: "global",
         }),
         headers: {
           "Content-Type": "application/json",
@@ -444,6 +471,7 @@ describe("Release Components REST endpoints", () => {
           name: "",
           color: "invalid",
           namingPattern: "",
+          releaseScope: "version-bound",
         }),
         headers: {
           "Content-Type": "application/json",
@@ -471,6 +499,7 @@ describe("Release Components REST endpoints", () => {
           name: "Scheduler",
           color: "teal",
           namingPattern: "{release_version}-{increment}",
+          releaseScope: "version_bound",
           createdAt: new Date("2024-06-08T12:00:00.000Z"),
         },
       ]);
@@ -481,6 +510,7 @@ describe("Release Components REST endpoints", () => {
           name: "scheduler",
           color: "teal",
           namingPattern: "{release_version}-{built_version}-{increment}",
+          releaseScope: "version-bound",
         }),
         headers: {
           "Content-Type": "application/json",
