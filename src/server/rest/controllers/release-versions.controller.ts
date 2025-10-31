@@ -11,13 +11,22 @@ import { jsonErrorResponse } from "~/server/rest/openapi";
 import { ActionHistoryService } from "~/server/services/action-history.service";
 import { ReleaseVersionService } from "~/server/services/release-version.service";
 import { BuiltVersionDtoSchema } from "~/server/zod/dto/built-version.dto";
+import { BuiltVersionTransitionDtoSchema } from "~/server/zod/dto/built-version-transition.dto";
+import { ComponentVersionDtoSchema } from "~/server/zod/dto/component-version.dto";
 import { ReleaseVersionDtoSchema } from "~/server/zod/dto/release-version.dto";
+import { UserSummaryDtoSchema } from "~/server/zod/dto/user.dto";
 import {
+  createPaginatedQueryDocSchema,
   createPaginatedRequestSchema,
   createPaginatedResponseSchema,
 } from "~/shared/schemas/pagination";
 import { ReleaseVersionCreateSchema } from "~/shared/schemas/release-version";
 import type { ReleaseVersionWithBuildsDto } from "~/shared/types/release-version-with-builds";
+import type { ReleaseVersionRelationKey } from "~/shared/types/release-version-relations";
+import {
+  RELEASE_VERSION_RELATION_ALLOW_LIST,
+  validateReleaseVersionRelations,
+} from "~/server/services/release-version.relations";
 
 export { ReleaseVersionCreateSchema } from "~/shared/schemas/release-version";
 
@@ -35,15 +44,56 @@ export type ReleaseVersionListQuery = z.infer<
   typeof ReleaseVersionListQuerySchema
 >;
 
-export const ReleaseVersionListResponseSchema = createPaginatedResponseSchema(
-  ReleaseVersionDtoSchema,
-);
+const RELEASE_VERSION_SORT_DOC_VALUES = [
+  ...RELEASE_VERSION_SORT_FIELDS,
+  ...RELEASE_VERSION_SORT_FIELDS.map((field) => `-${field}` as const),
+] as const;
 
-export const ReleaseVersionDetailSchema = ReleaseVersionDtoSchema.extend({
-  builtVersions: z.array(BuiltVersionDtoSchema),
+const ReleaseVersionRelationsDocSchema = z.object({
+  relations: z
+    .array(
+      z.enum(
+        RELEASE_VERSION_RELATION_ALLOW_LIST as [
+          ReleaseVersionRelationKey,
+          ...ReleaseVersionRelationKey[],
+        ],
+      ),
+    )
+    .describe("Relations to include in the response")
+    .optional(),
 });
 
-export const ReleaseVersionWithBuildsSchema = ReleaseVersionDetailSchema;
+export const ReleaseVersionRelationsQueryDocSchema =
+  ReleaseVersionRelationsDocSchema;
+
+export const ReleaseVersionListQueryDocSchema = createPaginatedQueryDocSchema(
+  z.enum(RELEASE_VERSION_SORT_DOC_VALUES),
+).merge(ReleaseVersionRelationsDocSchema);
+
+const ReleaseVersionBuiltVersionWithRelationsSchema =
+  BuiltVersionDtoSchema.extend({
+    deployedComponents: z.array(ComponentVersionDtoSchema).optional(),
+    transitions: z.array(BuiltVersionTransitionDtoSchema).optional(),
+  });
+
+export const ReleaseVersionWithRelationsSchema = ReleaseVersionDtoSchema.extend(
+  {
+    creater: UserSummaryDtoSchema.optional(),
+    builtVersions: z
+      .array(ReleaseVersionBuiltVersionWithRelationsSchema)
+      .optional(),
+  },
+);
+
+export const ReleaseVersionListResponseSchema = createPaginatedResponseSchema(
+  ReleaseVersionWithRelationsSchema,
+);
+
+export const ReleaseVersionDetailSchema = ReleaseVersionWithRelationsSchema;
+
+export const ReleaseVersionWithBuildsSchema = ReleaseVersionDtoSchema.extend({
+  builtVersions: z.array(BuiltVersionDtoSchema),
+});
 
 export const ReleaseVersionIdParamSchema = z.object({
   releaseId: z.uuidv7(),
@@ -51,22 +101,55 @@ export const ReleaseVersionIdParamSchema = z.object({
 
 export const ReleaseVersionCreateResponseSchema = ReleaseVersionDtoSchema;
 
+export const parseReleaseVersionRelations = (
+  searchParams: URLSearchParams,
+): ReleaseVersionRelationKey[] => {
+  const requested = searchParams.getAll("relations");
+  if (requested.length === 0) {
+    return [];
+  }
+  const { valid, invalid, missingParents } =
+    validateReleaseVersionRelations(requested);
+  if (invalid.length > 0 || missingParents.length > 0) {
+    const details: Record<string, unknown> = {};
+    if (invalid.length > 0) {
+      details.invalidRelations = invalid;
+    }
+    if (missingParents.length > 0) {
+      details.missingParentRelations = missingParents;
+    }
+    throw new RestError(
+      400,
+      "INVALID_RELATION",
+      "Invalid relations requested",
+      details,
+    );
+  }
+  return valid;
+};
+
 export const listReleaseVersions = async (
   context: RestContext,
   query: ReleaseVersionListQuery,
+  relations: ReleaseVersionRelationKey[] = [],
 ) => {
   ensureAuthenticated(context);
   const svc = new ReleaseVersionService(context.db);
-  return svc.list(query);
+  const options =
+    relations.length > 0 ? { relations: [...relations] } : undefined;
+  return svc.list(query, options);
 };
 
 export const getReleaseVersion = async (
   context: RestContext,
   releaseId: string,
+  relations: ReleaseVersionRelationKey[] = [],
 ) => {
   ensureAuthenticated(context);
   const svc = new ReleaseVersionService(context.db);
-  return svc.getById(releaseId);
+  const options =
+    relations.length > 0 ? { relations: [...relations] } : undefined;
+  return svc.getById(releaseId, options);
 };
 
 export const createReleaseVersion = async (
@@ -119,7 +202,7 @@ export const releaseVersionPaths = {
       summary: "List release versions",
       tags: ["Release Versions"],
       requestParams: {
-        query: ReleaseVersionListQuerySchema,
+        query: ReleaseVersionListQueryDocSchema,
       },
       responses: {
         200: {
@@ -167,6 +250,7 @@ export const releaseVersionPaths = {
       tags: ["Release Versions"],
       requestParams: {
         path: ReleaseVersionIdParamSchema,
+        query: ReleaseVersionRelationsQueryDocSchema,
       },
       responses: {
         200: {

@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { colorClasses } from "~/shared/ui/color-classes";
+import type { ReleaseComponentDto } from "~/shared/types/release-component";
 import { useReleaseComponentsQuery } from "../../components/api";
 import { useComponentVersionsByBuiltQuery } from "../api";
 

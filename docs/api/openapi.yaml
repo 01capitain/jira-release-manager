@@ -40,29 +40,76 @@ paths:
         - in: query
           name: relations
           schema:
-            description: Optional relation keys to include in the response. Repeat the query
-              param or pass a comma-separated string. Nested options
-              (builtVersions.deployedComponents, builtVersions.transitions) must
-              be accompanied by their parent relation.
+            description: Relations to include in the response
             type: array
             items:
               type: string
               enum:
                 - creater
                 - builtVersions
-          description: Optional relation keys to include in the response. Repeat the query
-            param or pass a comma-separated string. Nested options
-            (builtVersions.deployedComponents, builtVersions.transitions) must
-            be accompanied by their parent relation.
+                - builtVersions.deployedComponents
+                - builtVersions.transitions
       responses:
         "200":
           description: Release versions page
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ReleaseVersionListResponse"
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                        id:
+                          $ref: "#/components/schemas/uuidv7"
+                        createdAt:
+                          $ref: "#/components/schemas/iso8601Timestamp"
+                        creater:
+                          $ref: "#/components/schemas/User"
+                        builtVersions:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              name:
+                                type: string
+                              id:
+                                $ref: "#/components/schemas/uuidv7"
+                              versionId:
+                                $ref: "#/components/schemas/uuidv7"
+                              createdAt:
+                                $ref: "#/components/schemas/iso8601Timestamp"
+                              deployedComponents:
+                                type: array
+                                items:
+                                  $ref: "#/components/schemas/ComponentVersion"
+                              transitions:
+                                type: array
+                                items:
+                                  $ref: "#/components/schemas/BuiltVersionTransition"
+                            required:
+                              - name
+                              - id
+                              - versionId
+                              - createdAt
+                            additionalProperties: false
+                      required:
+                        - name
+                        - id
+                        - createdAt
+                      additionalProperties: false
+                  pagination:
+                    $ref: "#/components/schemas/PaginationInfo"
+                required:
+                  - data
+                  - pagination
+                additionalProperties: false
         "400":
-          description: Invalid query parameters or relations
+          description: Invalid query parameters
           content:
             application/json:
               schema:
@@ -119,39 +166,70 @@ paths:
         - in: path
           name: releaseId
           schema:
-            $ref: "#/components/schemas/uuidv7"
+            type: string
+            format: uuid
+            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$
           required: true
-          description: Universally unique identifier (version 7).
         - in: query
           name: relations
           schema:
-            description: Optional relation keys to include in the response. Repeat the query
-              param or pass a comma-separated string. Nested options
-              (builtVersions.deployedComponents, builtVersions.transitions) must
-              be accompanied by their parent relation.
+            description: Relations to include in the response
             type: array
             items:
               type: string
               enum:
                 - creater
                 - builtVersions
-          description: Optional relation keys to include in the response. Repeat the query
-            param or pass a comma-separated string. Nested options
-            (builtVersions.deployedComponents, builtVersions.transitions) must
-            be accompanied by their parent relation.
+                - builtVersions.deployedComponents
+                - builtVersions.transitions
       responses:
         "200":
           description: Release version
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ReleaseVersionWithRelations"
-        "400":
-          description: Invalid relations
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/RestError"
+                type: object
+                properties:
+                  name:
+                    type: string
+                  id:
+                    $ref: "#/components/schemas/uuidv7"
+                  createdAt:
+                    $ref: "#/components/schemas/iso8601Timestamp"
+                  creater:
+                    $ref: "#/components/schemas/User"
+                  builtVersions:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                        id:
+                          $ref: "#/components/schemas/uuidv7"
+                        versionId:
+                          $ref: "#/components/schemas/uuidv7"
+                        createdAt:
+                          $ref: "#/components/schemas/iso8601Timestamp"
+                        deployedComponents:
+                          type: array
+                          items:
+                            $ref: "#/components/schemas/ComponentVersion"
+                        transitions:
+                          type: array
+                          items:
+                            $ref: "#/components/schemas/BuiltVersionTransition"
+                      required:
+                        - name
+                        - id
+                        - versionId
+                        - createdAt
+                      additionalProperties: false
+                required:
+                  - name
+                  - id
+                  - createdAt
+                additionalProperties: false
         "404":
           description: Release not found
           content:
@@ -174,34 +252,19 @@ paths:
                 items:
                   type: object
                   properties:
-                    id:
-                      type: string
                     name:
                       type: string
+                    id:
+                      $ref: "#/components/schemas/uuidv7"
                     createdAt:
                       $ref: "#/components/schemas/iso8601Timestamp"
                     builtVersions:
                       type: array
                       items:
-                        type: object
-                        properties:
-                          id:
-                            type: string
-                          name:
-                            type: string
-                          versionId:
-                            type: string
-                          createdAt:
-                            $ref: "#/components/schemas/iso8601Timestamp"
-                        required:
-                          - id
-                          - name
-                          - versionId
-                          - createdAt
-                        additionalProperties: false
+                        $ref: "#/components/schemas/BuiltVersion"
                   required:
-                    - id
                     - name
+                    - id
                     - createdAt
                     - builtVersions
                   additionalProperties: false
@@ -706,22 +769,7 @@ paths:
               schema:
                 type: array
                 items:
-                  type: object
-                  properties:
-                    id:
-                      type: string
-                    name:
-                      type: string
-                    versionId:
-                      type: string
-                    createdAt:
-                      $ref: "#/components/schemas/iso8601Timestamp"
-                  required:
-                    - id
-                    - name
-                    - versionId
-                    - createdAt
-                  additionalProperties: false
+                  $ref: "#/components/schemas/BuiltVersion"
         "404":
           description: Release not found
           content:
@@ -764,22 +812,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  id:
-                    type: string
-                  name:
-                    type: string
-                  versionId:
-                    type: string
-                  createdAt:
-                    $ref: "#/components/schemas/iso8601Timestamp"
-                required:
-                  - id
-                  - name
-                  - versionId
-                  - createdAt
-                additionalProperties: false
+                $ref: "#/components/schemas/BuiltVersion"
         "400":
           description: Validation error
           content:
@@ -914,30 +947,7 @@ paths:
               schema:
                 type: array
                 items:
-                  type: object
-                  properties:
-                    id:
-                      type: string
-                    releaseComponentId:
-                      type: string
-                    builtVersionId:
-                      type: string
-                    name:
-                      type: string
-                    increment:
-                      type: integer
-                      minimum: 0
-                      maximum: 9007199254740991
-                    createdAt:
-                      $ref: "#/components/schemas/iso8601Timestamp"
-                  required:
-                    - id
-                    - releaseComponentId
-                    - builtVersionId
-                    - name
-                    - increment
-                    - createdAt
-                  additionalProperties: false
+                  $ref: "#/components/schemas/ComponentVersion"
         "404":
           description: Built version not found
           content:
@@ -1344,52 +1354,6 @@ components:
         - 018f0b4e-5ff9-7000-8000-000000000000
       type: string
       pattern: ^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$
-    ReleaseVersionListResponse:
-      title: Release Version List Response
-      description: Paginated release version list response.
-      type: object
-      properties:
-        data:
-          type: array
-          items:
-            $ref: "#/components/schemas/ReleaseVersionWithRelations"
-        pagination:
-          $ref: "#/components/schemas/PaginationInfo"
-      required:
-        - data
-        - pagination
-      additionalProperties: false
-    ReleaseVersionWithRelations:
-      title: Release Version (with relations)
-      description: Release version data including optional creator and built version
-        relations.
-      allOf:
-        - $ref: "#/components/schemas/ReleaseVersion"
-        - type: object
-          properties:
-            creater:
-              $ref: "#/components/schemas/User"
-            builtVersions:
-              type: array
-              items:
-                $ref: "#/components/schemas/BuiltVersionWithRelations"
-          additionalProperties: false
-    ReleaseVersion:
-      title: Release Version
-      description: Release version summary information.
-      type: object
-      properties:
-        name:
-          type: string
-        id:
-          $ref: "#/components/schemas/uuidv7"
-        createdAt:
-          $ref: "#/components/schemas/iso8601Timestamp"
-      required:
-        - name
-        - id
-        - createdAt
-      additionalProperties: false
     iso8601Timestamp:
       title: ISO 8601 Timestamp
       description: UTC timestamp string ending with 'Z'.
@@ -1416,33 +1380,6 @@ components:
         - id
         - name
         - email
-      additionalProperties: false
-    BuiltVersionWithRelations:
-      title: Built Version (with relations)
-      description: Built version data with optional deployed components and transitions.
-      type: object
-      properties:
-        name:
-          type: string
-        id:
-          $ref: "#/components/schemas/uuidv7"
-        versionId:
-          $ref: "#/components/schemas/uuidv7"
-        createdAt:
-          $ref: "#/components/schemas/iso8601Timestamp"
-        deployedComponents:
-          type: array
-          items:
-            $ref: "#/components/schemas/ComponentVersion"
-        transitions:
-          type: array
-          items:
-            $ref: "#/components/schemas/BuiltVersionTransition"
-      required:
-        - name
-        - id
-        - versionId
-        - createdAt
       additionalProperties: false
     ComponentVersion:
       title: Component Version
@@ -1546,6 +1483,41 @@ components:
     RestErrorDetails:
       title: REST Error Details
       description: Arbitrary structured data providing additional error context.
+    ReleaseVersion:
+      title: Release Version
+      description: Release version summary information.
+      type: object
+      properties:
+        name:
+          type: string
+        id:
+          $ref: "#/components/schemas/uuidv7"
+        createdAt:
+          $ref: "#/components/schemas/iso8601Timestamp"
+      required:
+        - name
+        - id
+        - createdAt
+      additionalProperties: false
+    BuiltVersion:
+      title: Built Version
+      description: Built version summary information.
+      type: object
+      properties:
+        name:
+          type: string
+        id:
+          $ref: "#/components/schemas/uuidv7"
+        versionId:
+          $ref: "#/components/schemas/uuidv7"
+        createdAt:
+          $ref: "#/components/schemas/iso8601Timestamp"
+      required:
+        - name
+        - id
+        - versionId
+        - createdAt
+      additionalProperties: false
     ReleaseComponent:
       title: Release Component
       description: Release component metadata.
@@ -1590,25 +1562,6 @@ components:
         - builtVersion
         - status
         - history
-      additionalProperties: false
-    BuiltVersion:
-      title: Built Version
-      description: Built version summary information.
-      type: object
-      properties:
-        name:
-          type: string
-        id:
-          $ref: "#/components/schemas/uuidv7"
-        versionId:
-          $ref: "#/components/schemas/uuidv7"
-        createdAt:
-          $ref: "#/components/schemas/iso8601Timestamp"
-      required:
-        - name
-        - id
-        - versionId
-        - createdAt
       additionalProperties: false
     ActionHistoryListResponse:
       title: Action History List Response
