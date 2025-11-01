@@ -24,7 +24,7 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className={geist.variable} suppressHydrationWarning>
-      <body className="min-h-screen bg-neutral-900 text-neutral-900 antialiased dark:bg-neutral-950 dark:text-neutral-100">
+      <body className="min-h-screen bg-black text-neutral-900 antialiased dark:bg-black dark:text-neutral-100">
         <ReactQueryProvider>
           <ThemeProvider>
             <AppShell>{children}</AppShell>

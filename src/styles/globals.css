@@ -3,6 +3,27 @@
 @theme {
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif,
     "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --color-black: #2E3345;
+  --color-neutral-900: var(--color-black);
+  --color-panel: #F5F5F6;
+  --color-red-50: #FEF6F5;
+  --color-red-100: #FDEEEC;
+  --color-red-200: #FBDDD8;
+  --color-red-300: #FACBC5;
+  --color-red-400: #F8BAB2;
+  --color-red-500: #F6A99E;
+  --color-red-600: #F4988B;
+  --color-red-700: #F28778;
+  --color-red-800: #F17565;
+  --color-red-900: #EF6451;
+  --color-red-950: #ED533E;
+  --color-red: var(--color-red-500);
+}
+
+@layer base {
+  .dark {
+    --color-panel: #1A1C26;
+  }
 }
 
 /* Make Tailwind v4 `dark:` use class/data attribute instead of media. */

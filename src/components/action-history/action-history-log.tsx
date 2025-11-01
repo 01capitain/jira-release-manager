@@ -296,14 +296,14 @@ export function ActionHistoryLog() {
         </output>
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-neutral-200 bg-neutral-900 text-neutral-100 shadow-inner dark:border-neutral-800 dark:bg-neutral-950">
+      <div className="bg-panel overflow-hidden rounded-lg border border-neutral-200 text-neutral-900 shadow-inner dark:border-neutral-800 dark:text-neutral-100">
         <div
           ref={viewportRef}
           onScroll={handleScroll}
           className="max-h-80 overflow-y-auto"
         >
           <div ref={topSentinelRef} aria-hidden="true" className="h-0" />
-          <ol className="divide-y divide-neutral-800/60 font-mono text-xs">
+          <ol className="divide-y divide-neutral-300 font-mono text-xs dark:divide-neutral-800/60">
             {entries.length === 0 ? (
               <li>
                 <EmptyState
@@ -314,35 +314,35 @@ export function ActionHistoryLog() {
             ) : (
               <>
                 {isFetchingNextPage ? (
-                  <li className="px-4 py-2 text-center text-xs text-neutral-400">
+                  <li className="px-4 py-2 text-center text-xs text-neutral-600 dark:text-neutral-400">
                     Loading older actions…
                   </li>
                 ) : null}
                 {entries.map((entry) => (
                   <li key={entry.id} className="px-4 py-3">
-                    <div className="flex flex-wrap items-center gap-2 text-neutral-100 sm:flex-nowrap">
-                      <span className="flex shrink-0 items-center gap-2 text-neutral-300">
+                    <div className="flex flex-wrap items-center gap-2 text-neutral-900 sm:flex-nowrap dark:text-neutral-100">
+                      <span className="flex shrink-0 items-center gap-2 text-neutral-600 dark:text-neutral-300">
                         <UserRound aria-hidden="true" className="h-4 w-4" />
-                        <span className="font-semibold text-neutral-100">
+                        <span className="font-semibold text-neutral-900 dark:text-neutral-100">
                           {displayUser(entry)}
                         </span>
                         <span aria-hidden="true">:</span>
                       </span>
-                      <span className="min-w-0 flex-1 truncate text-neutral-200">
+                      <span className="min-w-0 flex-1 truncate text-neutral-700 dark:text-neutral-200">
                         {entry.message}
                       </span>
                       <span
                         aria-hidden="true"
                         className="hidden flex-1 items-center sm:flex"
                       >
-                        <span className="w-full border-t border-dashed border-neutral-700" />
+                        <span className="w-full border-t border-dashed border-neutral-300 dark:border-neutral-700" />
                       </span>
-                      <span className="ml-auto flex shrink-0 items-center gap-2 text-xs text-neutral-300">
+                      <span className="ml-auto flex shrink-0 items-center gap-2 text-xs text-neutral-600 dark:text-neutral-300">
                         <span className="flex items-center gap-1">
                           {renderStatusIcon(entry.status)}
                           <span className="sr-only">{entry.status}</span>
                         </span>
-                        <span className="text-neutral-400">
+                        <span className="text-neutral-600 dark:text-neutral-400">
                           at {formatTimestampWithDate(entry.createdAt)}
                         </span>
                         <Clock3
@@ -356,11 +356,11 @@ export function ActionHistoryLog() {
                         {entry.subactions.map((sub) => (
                           <div
                             key={sub.id}
-                            className="flex flex-wrap items-center gap-2 text-neutral-300 sm:flex-nowrap"
+                            className="flex flex-wrap items-center gap-2 text-neutral-600 sm:flex-nowrap dark:text-neutral-300"
                           >
-                            <span className="flex shrink-0 items-center gap-2 text-neutral-500">
+                            <span className="flex shrink-0 items-center gap-2 text-neutral-700 dark:text-neutral-500">
                               <span aria-hidden="true">↳</span>
-                              <span className="text-neutral-300">
+                              <span className="text-neutral-600 dark:text-neutral-300">
                                 {sub.message}
                               </span>
                             </span>
@@ -368,9 +368,9 @@ export function ActionHistoryLog() {
                               aria-hidden="true"
                               className="hidden flex-1 items-center sm:flex"
                             >
-                              <span className="w-full border-t border-dashed border-neutral-800" />
+                              <span className="w-full border-t border-dashed border-neutral-300 dark:border-neutral-800" />
                             </span>
-                            <span className="ml-auto flex shrink-0 items-center gap-2 text-xs text-neutral-400">
+                            <span className="ml-auto flex shrink-0 items-center gap-2 text-xs text-neutral-600 dark:text-neutral-400">
                               <span className="flex items-center gap-1">
                                 {renderStatusIcon(sub.status)}
                                 <span className="sr-only">{sub.status}</span>

@@ -83,15 +83,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <div className="min-h-screen bg-neutral-900 dark:bg-neutral-950">
+    <div className="min-h-screen bg-black dark:bg-black">
       <div className="mx-auto w-full max-w-7xl space-y-6 p-4 md:p-6 lg:p-8">
         {/* Floating container that includes sidebar + content */}
-        <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-lg dark:border-neutral-800 dark:bg-neutral-900">
+        <div className="bg-panel overflow-hidden rounded-2xl border border-neutral-200 shadow-lg dark:border-neutral-800">
           <div className="flex min-h-[70vh]">
             {/* Sidebar inside the floating container */}
             <aside
               className={cn(
-                "flex h-auto w-64 shrink-0 flex-col border-r border-neutral-200 bg-white/80 backdrop-blur md:translate-x-0 dark:border-neutral-800 dark:bg-neutral-900/80",
+                "bg-panel flex h-auto w-64 shrink-0 flex-col border-r border-neutral-200 backdrop-blur md:translate-x-0 dark:border-neutral-800",
                 open ? "translate-x-0" : "-translate-x-full md:translate-x-0",
               )}
             >
@@ -245,8 +245,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </aside>
 
             {/* Content area inside floating container */}
-            <div className="flex min-h-full flex-1 flex-col">
-              <header className="sticky top-0 z-10 flex h-14 items-center gap-2 border-b border-neutral-200 bg-white/80 px-4 backdrop-blur dark:border-neutral-800 dark:bg-neutral-900/80">
+            <div className="bg-panel flex min-h-full flex-1 flex-col">
+              <header className="bg-panel sticky top-0 z-10 flex h-14 items-center gap-2 border-b border-neutral-200 px-4 backdrop-blur dark:border-neutral-800">
                 <Button
                   variant="ghost"
                   size="icon"
@@ -269,7 +269,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
 
-        <aside className="rounded-2xl border border-neutral-200 bg-white/95 p-4 shadow-md backdrop-blur dark:border-neutral-800 dark:bg-neutral-900/95">
+        <aside className="bg-panel rounded-2xl border border-neutral-200 p-4 shadow-md backdrop-blur dark:border-neutral-800">
           <ActionHistoryLog />
         </aside>
       </div>
