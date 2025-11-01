@@ -50,28 +50,34 @@ export function ComponentVersionLabels({
     );
   }
   return (
-    <div className="mt-4 flex flex-wrap gap-2" aria-label="Component versions">
-      {versions.map((v) => {
-        const c = colorClasses(
-          colorByComponent.get(v.releaseComponentId) ?? "neutral",
-        );
-        const cls = [
-          "inline-flex items-center rounded-full px-2 py-1 text-xs font-medium",
-          c.light,
-          c.dark,
-          c.text,
-        ].join(" ");
-        return (
-          <span
-            key={v.id}
-            className={cls}
-            title={v.name}
-            aria-label={`Component version ${v.name}`}
-          >
-            {v.name}
-          </span>
-        );
-      })}
+    <div className="mt-3" aria-label="Component versions">
+      <ul
+        className="flex list-none flex-wrap items-center gap-x-2 gap-y-1 p-0"
+        role="list"
+      >
+        {versions.map((v) => {
+          const c = colorClasses(
+            colorByComponent.get(v.releaseComponentId) ?? "neutral",
+          );
+          const cls = [
+            "inline-flex items-center whitespace-nowrap rounded-full px-2 py-1 text-xs font-medium",
+            c.light,
+            c.dark,
+            c.text,
+          ].join(" ");
+          return (
+            <li key={v.id} className="leading-none">
+              <span
+                className={cls}
+                title={v.name}
+                aria-label={`Component version ${v.name}`}
+              >
+                {v.name}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }

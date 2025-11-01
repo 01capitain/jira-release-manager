@@ -84,7 +84,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-black dark:bg-black">
-      <div className="mx-auto w-full max-w-7xl space-y-6 p-4 md:p-6 lg:p-8">
+      <div className="mx-auto w-full max-w-screen-2xl space-y-6 p-4 md:p-6 lg:p-8">
         {/* Floating container that includes sidebar + content */}
         <div className="bg-panel overflow-hidden rounded-2xl border border-neutral-200 shadow-lg dark:border-neutral-800">
           <div className="flex min-h-[70vh]">
@@ -264,7 +264,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   <ModeToggle />
                 </div>
               </header>
-              <main className="flex-1 p-4 md:p-6 lg:p-8">{children}</main>
+              <main className="flex-1 p-4 md:p-6">{children}</main>
             </div>
           </div>
         </div>

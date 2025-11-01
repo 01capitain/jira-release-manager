@@ -227,21 +227,17 @@ export class ReleaseVersionService {
           Array<{
             id: string;
             namingPattern: string | null;
-            releaseScope: "global" | "version_bound";
           }>
         >;
       };
       const components = await releaseComponentDelegate.findMany({
-        select: { id: true, namingPattern: true, releaseScope: true },
+        select: { id: true, namingPattern: true },
       });
       if (components.length > 0) {
         const { validatePattern, expandPattern } = await import(
           "~/server/services/component-version-naming.service"
         );
         for (const comp of components) {
-          if (comp.releaseScope !== "global") {
-            continue;
-          }
           if (!comp.namingPattern?.trim()) continue;
           const { valid } = validatePattern(comp.namingPattern);
           if (!valid) continue;
@@ -251,8 +247,15 @@ export class ReleaseVersionService {
             builtVersion: built.name,
             nextIncrement: componentIncrement,
           });
-          await tx.componentVersion.create({
-            data: {
+          await tx.componentVersion.upsert({
+            where: {
+              builtVersionId_releaseComponentId: {
+                builtVersionId: built.id,
+                releaseComponentId: comp.id,
+              },
+            },
+            update: {},
+            create: {
               name: computedName,
               increment: componentIncrement,
               releaseComponent: { connect: { id: comp.id } },

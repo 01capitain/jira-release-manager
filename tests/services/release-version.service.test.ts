@@ -109,6 +109,17 @@ function makeMockDb() {
         );
         return { id, name: args.data.name, increment: args.data.increment };
       }),
+      upsert: jest.fn(async (args: any) => {
+        record("componentVersion.upsert", args);
+        const id = makeUuid(
+          3000 + (calls["componentVersion.upsert"]?.length ?? 0),
+        );
+        return {
+          id,
+          name: args.create.name,
+          increment: args.create.increment,
+        };
+      }),
       findFirst: jest.fn(async () => null),
       findMany: jest.fn(),
     },
@@ -125,7 +136,7 @@ function makeMockDb() {
 }
 
 describe("ReleaseVersion and BuiltVersion behavior", () => {
-  test("creating a release creates an initial builtVersion named *.0 and seeds global components", async () => {
+  test("creating a release creates an initial builtVersion named *.0 and seeds all components", async () => {
     const { db, calls } = makeMockDb();
     // Mock Release name when looked up by BuiltVersionService
     db.releaseVersion.findUniqueOrThrow = jest.fn(async () => ({
@@ -143,18 +154,37 @@ describe("ReleaseVersion and BuiltVersion behavior", () => {
     expect(builtArgs).toBeDefined();
     expect(builtArgs?.data?.name).toBe("version 100.0"); // ends with .0
 
-    // component versions created only for global release components (1)
-    expect(db.componentVersion.create).toHaveBeenCalledTimes(1);
+    // component versions created for each release component (2 total)
+    expect(db.componentVersion.upsert).toHaveBeenCalledTimes(2);
+    const seededComponentIds = new Set(
+      (db.componentVersion.upsert as jest.Mock).mock.calls.map(
+        ([args]: any[]) =>
+          args.create.releaseComponent.connect.id as typeof COMPONENT_A_ID,
+      ),
+    );
+    expect(seededComponentIds).toEqual(
+      new Set([COMPONENT_A_ID, COMPONENT_B_ID]),
+    );
+    (db.componentVersion.upsert as jest.Mock).mock.calls.forEach(
+      ([args]: any[]) => {
+        expect(args.create.increment).toBe(0);
+        expect(args.where).toMatchObject({
+          builtVersionId_releaseComponentId: {
+            builtVersionId: expect.any(String),
+            releaseComponentId: expect.any(String),
+          },
+        });
+      },
+    );
   });
 
-  test("creating a release only seeds global components", async () => {
+  test("creating a release requests naming data for all components", async () => {
     const { db } = makeMockDb();
     db.releaseComponent.findMany = jest.fn(async (args: any) => {
       expect(args).toMatchObject({
         select: {
           id: true,
           namingPattern: true,
-          releaseScope: true,
         },
       });
       return [
@@ -178,9 +208,11 @@ describe("ReleaseVersion and BuiltVersion behavior", () => {
     const svc = new ReleaseVersionService(db);
     await svc.create(USER_1_ID, "version 101");
 
-    expect(db.componentVersion.create).toHaveBeenCalledTimes(1);
-    const [[args]] = db.componentVersion.create.mock.calls as any[];
-    expect(args.data.releaseComponent.connect.id).toBe(COMPONENT_A_ID);
+    expect(db.componentVersion.upsert).toHaveBeenCalledTimes(2);
+    const componentIds = (db.componentVersion.upsert as jest.Mock).mock.calls
+      .map(([args]: any[]) => args.create.releaseComponent.connect.id)
+      .sort();
+    expect(componentIds).toEqual([COMPONENT_A_ID, COMPONENT_B_ID].sort());
   });
 
   test("list returns bare DTOs when no relations are requested", async () => {

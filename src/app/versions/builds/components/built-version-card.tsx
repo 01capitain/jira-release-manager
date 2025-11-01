@@ -246,7 +246,7 @@ export default function BuiltVersionCard({
           tints.bodyDark,
         ].join(" ")}
       >
-        <CardContent className="flex h-full flex-col p-0">
+        <CardContent className="flex h-full min-h-0 flex-col p-0">
           {/* Colored header by status */}
           {(() => {
             // const c = StatusBadgeColor[currentStatus];
@@ -343,36 +343,40 @@ export default function BuiltVersionCard({
             );
           })()}
 
-          <div className="flex-1 p-6" aria-label="Built version details">
-            {hydrated && (
-              <span role="status" aria-atomic="true" className="sr-only">
-                {fetchingStatus ? "Loading status" : `Status ${currentStatus}`}
-              </span>
-            )}
-            {/* Ephemeral action messages for AT users */}
-            {lastMessage && (
-              <span role="status" aria-atomic="true" className="sr-only">
-                {lastMessage}
-              </span>
-            )}
-            {/* Pending state UI suppressed per UX request */}
+          <ScrollArea className="flex-1" aria-label="Built version details">
+            <div className="p-6">
+              {hydrated && (
+                <span role="status" aria-atomic="true" className="sr-only">
+                  {fetchingStatus
+                    ? "Loading status"
+                    : `Status ${currentStatus}`}
+                </span>
+              )}
+              {/* Ephemeral action messages for AT users */}
+              {lastMessage && (
+                <span role="status" aria-atomic="true" className="sr-only">
+                  {lastMessage}
+                </span>
+              )}
+              {/* Pending state UI suppressed per UX request */}
 
-            <Separator className="my-4" />
-            {!selecting && (
-              <div aria-busy={processing} className="relative">
-                <div className="mb-2 text-xs font-medium tracking-wide text-neutral-500 uppercase dark:text-neutral-400">
-                  Components
+              <Separator className="my-4" />
+              {!selecting && (
+                <div aria-busy={processing} className="relative">
+                  <div className="mb-2 text-xs font-medium tracking-wide text-neutral-500 uppercase dark:text-neutral-400">
+                    Components
+                  </div>
+                  <ComponentVersionLabels builtVersionId={id} />
+                  {processing && (
+                    <div
+                      className="absolute inset-0 bg-white/60 dark:bg-neutral-900/60"
+                      aria-hidden
+                    />
+                  )}
                 </div>
-                <ComponentVersionLabels builtVersionId={id} />
-                {processing && (
-                  <div
-                    className="absolute inset-0 bg-white/60 dark:bg-neutral-900/60"
-                    aria-hidden
-                  />
-                )}
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          </ScrollArea>
         </CardContent>
       </Card>
       <Modal

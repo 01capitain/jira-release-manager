@@ -56,6 +56,7 @@ const releaseData: ReleaseRecord[] = [];
 let releaseCounter = 0;
 let builtCounter = 0;
 const COMPONENT_A_ID = "018f1a50-0000-7000-9000-00000000c0a1";
+const COMPONENT_B_ID = "018f1a50-0000-7000-9000-00000000c0b2";
 const COMPONENT_VERSION_ID = "018f1a50-0000-7000-9000-00000000c0d1";
 const COMPONENT_VERSION_ID_2 = "018f1a50-0000-7000-9000-00000000c0d2";
 const USER_1_ID = "018f1a50-0000-7000-9000-00000000d0a1";
@@ -354,6 +355,7 @@ mockDb.releaseComponent = {
 
 mockDb.componentVersion = {
   create: jest.fn(async () => ({})),
+  upsert: jest.fn(async () => ({})),
 };
 
 mockDb.$transaction = jest.fn(async (fn: (tx: unknown) => Promise<unknown>) => {
@@ -674,6 +676,9 @@ describe("Release Versions REST endpoints", () => {
     it("creates a release version for an authenticated user", async () => {
       authMock.mockResolvedValue(authenticatedSession);
 
+      (
+        mockDb.releaseComponent as { findMany: jest.Mock }
+      ).findMany.mockResolvedValue([]);
       const request = new NextRequest("http://test/api/v1/release-versions", {
         method: "POST",
         body: JSON.stringify({ name: "  Release 100  " }),
@@ -705,6 +710,66 @@ describe("Release Versions REST endpoints", () => {
       ).toHaveBeenCalledWith({
         data: recordContaining({ name: "Release 100.0" }),
         select: { id: true, name: true },
+      });
+    });
+
+    it("seeds component versions for all release components", async () => {
+      authMock.mockResolvedValue(authenticatedSession);
+      const components = [
+        {
+          id: COMPONENT_A_ID,
+          namingPattern: "{release_version}-{built_version}-{increment}",
+          releaseScope: "global" as const,
+        },
+        {
+          id: COMPONENT_B_ID,
+          namingPattern: "{release_version}-{built_version}-{increment}",
+          releaseScope: "version_bound" as const,
+        },
+      ];
+      (
+        mockDb.releaseComponent as { findMany: jest.Mock }
+      ).findMany.mockResolvedValue(components);
+
+      const request = new NextRequest("http://test/api/v1/release-versions", {
+        method: "POST",
+        body: JSON.stringify({ name: "Release 200" }),
+        headers: {
+          "Content-Type": "application/json",
+          cookie: "next-auth.session-token=test-token",
+        },
+      });
+
+      const response = await executeHandler(createReleaseVersion, request);
+      expect(response.status).toBe(201);
+
+      const upsertCalls = (mockDb.componentVersion as { upsert: jest.Mock })
+        .upsert.mock.calls as Array<
+        [
+          {
+            where: {
+              builtVersionId_releaseComponentId: {
+                builtVersionId: string;
+                releaseComponentId: string;
+              };
+            };
+            create: {
+              releaseComponent: { connect: { id: string } };
+              increment: number;
+            };
+          },
+        ]
+      >;
+      expect(upsertCalls).toHaveLength(2);
+      const seededIds = new Set(
+        upsertCalls.map(([args]) => args.create.releaseComponent.connect.id),
+      );
+      expect(seededIds).toEqual(new Set([COMPONENT_A_ID, COMPONENT_B_ID]));
+      upsertCalls.forEach(([args]) => {
+        expect(args.create.increment).toBe(0);
+        expect(
+          args.where.builtVersionId_releaseComponentId.releaseComponentId,
+        ).toBe(args.create.releaseComponent.connect.id);
       });
     });
 
