@@ -159,6 +159,7 @@ model ReleaseComponent {
     name              String             @unique
     color             String
     namingPattern     String
+    releaseScope      ReleaseComponentScope
     componentVersions ComponentVersion[]
 
     createdAt   DateTime @default(now())
@@ -167,6 +168,13 @@ model ReleaseComponent {
     createdById String   @db.Uuid
 
     @@index([createdById])
+    @@schema("app")
+}
+
+enum ReleaseComponentScope {
+    version_bound
+    global
+
     @@schema("app")
 }
 

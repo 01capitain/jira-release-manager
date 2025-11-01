@@ -15,7 +15,11 @@ function setupMockDb({
   successorBuiltName,
   seedOnCurrent = true,
 }: {
-  components: { id: string; namingPattern: string }[];
+  components: {
+    id: string;
+    namingPattern: string;
+    releaseScope: "global" | "version_bound";
+  }[];
   currentBuiltName: string;
   successorBuiltName: string;
   seedOnCurrent?: boolean;
@@ -174,10 +178,26 @@ function setupMockDb({
 }
 
 describe("SuccessorBuiltService.createSuccessorBuilt", () => {
-  const comps = [
-    { id: "A", namingPattern: "{release_version}-{built_version}-{increment}" },
-    { id: "B", namingPattern: "{release_version}-{built_version}-{increment}" },
-    { id: "C", namingPattern: "{release_version}-{built_version}-{increment}" },
+  const comps: {
+    id: string;
+    namingPattern: string;
+    releaseScope: "global" | "version_bound";
+  }[] = [
+    {
+      id: "A",
+      namingPattern: "{release_version}-{built_version}-{increment}",
+      releaseScope: "global",
+    },
+    {
+      id: "B",
+      namingPattern: "{release_version}-{built_version}-{increment}",
+      releaseScope: "version_bound",
+    },
+    {
+      id: "C",
+      namingPattern: "{release_version}-{built_version}-{increment}",
+      releaseScope: "global",
+    },
   ];
 
   test("selecting all keeps rows on current and seeds successor", async () => {
@@ -242,6 +262,28 @@ describe("SuccessorBuiltService.createSuccessorBuilt", () => {
       "B",
       "C",
     ]);
+  });
+
+  test("global components stay selected even when omitted", async () => {
+    const { db, ids, componentVersions } = setupMockDb({
+      components: comps,
+      currentBuiltName: "version 2.0",
+      successorBuiltName: "version 2.1",
+    });
+    const svc = new SuccessorBuiltService(db);
+    await svc.createSuccessorBuilt(ids.BUILT_X as any, ["B"], "user-2" as any);
+
+    const onX = componentVersions
+      .filter((cv) => cv.builtVersionId === ids.BUILT_X)
+      .map((cv) => cv.releaseComponentId)
+      .sort();
+    const onY = componentVersions
+      .filter((cv) => cv.builtVersionId === ids.BUILT_Y)
+      .map((cv) => cv.releaseComponentId)
+      .sort();
+
+    expect(onX).toEqual(["A", "B", "C"]);
+    expect(onY).toEqual(["A", "B", "C"]);
   });
 
   test("validation: at least one component must be selected", async () => {

@@ -13,6 +13,9 @@ type TokenValues = {
 };
 ```
 
+- `ReleaseComponentDto` exposes a required `releaseScope` field. REST create payloads must include `releaseScope: "version-bound" | "global"`, and responses translate the Prisma enum (`version_bound`/`global`) into the hyphenated API values. Clients should use this field to decide which components are auto-seeded or require per-release selection.
+- Newly created release components do not backfill historical component versions. The API surface (services, successor logic, default selection) respects the provided scope and applies it only to future planning cycles.
+
 - Services compute names from patterns and persist the token snapshot using `Prisma.InputJsonValue` at the database boundary.
 - When transitioning built statuses, a successor built may be created with an incremented version and token snapshot. Component versions for the successor are created or moved later based on user selection.
 - Built version transitions are exposed through explicit per-action mutations (`builtVersion.startDeployment`, `builtVersion.cancelDeployment`, `builtVersion.markActive`, `builtVersion.revertToDeployment`, `builtVersion.deprecate`, `builtVersion.reactivate`) to mirror the one-action-per-endpoint REST design.

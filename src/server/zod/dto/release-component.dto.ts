@@ -1,13 +1,22 @@
-import { ReleaseComponentModelSchema } from "~/server/zod/schemas/variants/pure/ReleaseComponent.pure";
+import {
+  ReleaseComponentModelSchema,
+  ReleaseComponentScopeModelSchema,
+} from "~/server/zod/schemas/variants/pure/ReleaseComponent.pure";
 import { IsoTimestampSchema } from "~/shared/types/iso8601";
-import type { ReleaseComponentDto } from "~/shared/types/release-component";
+import type {
+  ReleaseComponentDto,
+  ReleaseComponentScope,
+} from "~/shared/types/release-component";
 import { UuidV7Schema } from "~/shared/types/uuid";
+import { z } from "zod";
+import { ReleaseComponentScopes } from "~/shared/types/release-component";
 
 const ReleaseComponentModelFieldsSchema = ReleaseComponentModelSchema.pick({
   id: true,
   name: true,
   color: true,
   namingPattern: true,
+  releaseScope: true,
   createdAt: true,
 }).strip();
 export const ReleaseComponentDtoSchema = ReleaseComponentModelFieldsSchema.omit(
@@ -18,6 +27,7 @@ export const ReleaseComponentDtoSchema = ReleaseComponentModelFieldsSchema.omit(
 )
   .extend({
     id: UuidV7Schema,
+    releaseScope: z.enum(ReleaseComponentScopes),
     createdAt: IsoTimestampSchema,
   })
   .meta({
@@ -28,12 +38,21 @@ export const ReleaseComponentDtoSchema = ReleaseComponentModelFieldsSchema.omit(
 
 export const ReleaseComponentIdSchema = ReleaseComponentDtoSchema.shape.id;
 
+const ReleaseComponentScopeMap: Record<
+  z.infer<typeof ReleaseComponentScopeModelSchema>,
+  ReleaseComponentScope
+> = {
+  version_bound: "version-bound",
+  global: "global",
+};
+
 export function toReleaseComponentDto(model: unknown): ReleaseComponentDto {
   const parsed = ReleaseComponentModelSchema.pick({
     id: true,
     name: true,
     color: true,
     namingPattern: true,
+    releaseScope: true,
     createdAt: true,
   })
     .strip()
@@ -43,6 +62,7 @@ export function toReleaseComponentDto(model: unknown): ReleaseComponentDto {
     name: parsed.name,
     color: parsed.color,
     namingPattern: parsed.namingPattern,
+    releaseScope: ReleaseComponentScopeMap[parsed.releaseScope],
     createdAt:
       parsed.createdAt.toISOString() as ReleaseComponentDto["createdAt"],
   };

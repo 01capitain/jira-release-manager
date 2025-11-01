@@ -14,19 +14,36 @@ import {
 import type { ActionLogger } from "~/server/services/action-history.service";
 import { RestError } from "~/server/rest/errors";
 
+type ReleaseComponentScopeDb = "global" | "version_bound";
+
+type ReleaseComponentRow = {
+  id: string;
+  name: string;
+  color: string;
+  namingPattern: string;
+  releaseScope: ReleaseComponentScopeDb;
+  createdAt: Date;
+};
+
+const releaseComponentSelect = {
+  id: true,
+  name: true,
+  color: true,
+  namingPattern: true,
+  releaseScope: true,
+  createdAt: true,
+} as const;
+
 export class ReleaseComponentService {
   constructor(private readonly db: PrismaClient) {}
 
   async list(): Promise<ReleaseComponentDto[]> {
-    const rows = await this.db.releaseComponent.findMany({
+    const delegate = this.db.releaseComponent as unknown as {
+      findMany(args?: unknown): Promise<ReleaseComponentRow[]>;
+    };
+    const rows = await delegate.findMany({
       orderBy: { createdAt: "desc" },
-      select: {
-        id: true,
-        name: true,
-        color: true,
-        namingPattern: true,
-        createdAt: true,
-      },
+      select: releaseComponentSelect,
     });
     return mapToReleaseComponentDtos(rows);
   }
@@ -51,37 +68,34 @@ export class ReleaseComponentService {
         some: { builtVersion: { versionId: filters.releaseId } },
       };
     }
+    const delegate = this.db.releaseComponent as unknown as {
+      findMany(args?: unknown): Promise<ReleaseComponentRow[]>;
+    };
     const [total, rows] = await Promise.all([
       this.db.releaseComponent.count({ where }),
-      this.db.releaseComponent.findMany({
+      delegate.findMany({
         where,
         orderBy: { createdAt: "desc" },
-        select: {
-          id: true,
-          name: true,
-          color: true,
-          namingPattern: true,
-          createdAt: true,
-        },
+        select: releaseComponentSelect,
         skip: (page - 1) * pageSize,
         take: pageSize,
       }),
     ]);
-    return { total, items: mapToReleaseComponentDtos(rows) };
+    return {
+      total,
+      items: mapToReleaseComponentDtos(rows),
+    };
   }
 
   async getById(
     componentId: ReleaseComponent["id"],
   ): Promise<ReleaseComponentDto> {
-    const row = await this.db.releaseComponent.findUnique({
+    const delegate = this.db.releaseComponent as unknown as {
+      findUnique(args: unknown): Promise<ReleaseComponentRow | null>;
+    };
+    const row = await delegate.findUnique({
       where: { id: componentId },
-      select: {
-        id: true,
-        name: true,
-        color: true,
-        namingPattern: true,
-        createdAt: true,
-      },
+      select: releaseComponentSelect,
     });
     if (!row) {
       throw Object.assign(
@@ -102,20 +116,26 @@ export class ReleaseComponentService {
   ): Promise<ReleaseComponentDto> {
     const trimmedName = input.name.trim();
     try {
-      const created = await this.db.releaseComponent.create({
+      const scopeKey = input.releaseScope;
+      if (scopeKey !== "global" && scopeKey !== "version-bound") {
+        throw new RestError(400, "VALIDATION_ERROR", "Invalid release scope", {
+          releaseScope: input.releaseScope,
+        });
+      }
+      const prismaScope: ReleaseComponentScopeDb =
+        scopeKey === "global" ? "global" : "version_bound";
+      const delegate = this.db.releaseComponent as unknown as {
+        create(args: unknown): Promise<ReleaseComponentRow>;
+      };
+      const created = await delegate.create({
         data: {
           name: trimmedName,
           color: input.color,
           namingPattern: input.namingPattern.trim(),
+          releaseScope: prismaScope,
           createdBy: { connect: { id: userId } },
         },
-        select: {
-          id: true,
-          name: true,
-          color: true,
-          namingPattern: true,
-          createdAt: true,
-        },
+        select: releaseComponentSelect,
       });
       await options?.logger?.subaction({
         subactionType: "releaseComponent.persist",

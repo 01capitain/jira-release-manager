@@ -21,6 +21,13 @@ import type {
   SubactionInput,
 } from "~/server/services/action-history.service";
 
+type ReleaseComponentScopeDb = "global" | "version_bound";
+type ComponentSeedRow = {
+  id: string;
+  namingPattern: string | null;
+  releaseScope: ReleaseComponentScopeDb;
+};
+
 export class BuiltVersionService {
   constructor(private readonly db: PrismaClient) {}
 
@@ -65,12 +72,16 @@ export class BuiltVersionService {
       });
 
       // Fetch all release components
-      const components = await tx.releaseComponent.findMany({
-        select: { id: true, namingPattern: true },
+      const releaseComponentDelegate = tx.releaseComponent as unknown as {
+        findMany(args?: unknown): Promise<ComponentSeedRow[]>;
+      };
+      const components = await releaseComponentDelegate.findMany({
+        select: { id: true, namingPattern: true, releaseScope: true },
       });
 
       if (components.length > 0) {
         for (const comp of components) {
+          if (comp.releaseScope !== "global") continue;
           if (!comp.namingPattern?.trim()) continue;
           const { valid } = validatePattern(comp.namingPattern);
           if (!valid) continue; // skip invalid patterns defensively
@@ -136,6 +147,17 @@ export class BuiltVersionService {
       select: { id: true, versionId: true },
     });
 
+    const releaseComponentDelegate = this.db.releaseComponent as unknown as {
+      findMany(args?: unknown): Promise<Array<{ id: string }>>;
+    };
+    const globalComponents = await releaseComponentDelegate.findMany({
+      where: { releaseScope: "global" },
+      select: { id: true },
+    });
+    const globalComponentIds = new Set(
+      globalComponents.map((component) => component.id),
+    );
+
     const builds = await this.db.builtVersion.findMany({
       where: { versionId: built.versionId },
       orderBy: { createdAt: "desc" },
@@ -161,13 +183,8 @@ export class BuiltVersionService {
       null;
 
     if (!activeBuiltId) {
-      const components = await this.db.releaseComponent.findMany({
-        select: { id: true },
-      });
       return BuiltVersionDefaultSelectionSchema.parse({
-        selectedReleaseComponentIds: components.map(
-          (component) => component.id,
-        ),
+        selectedReleaseComponentIds: Array.from(globalComponentIds),
       });
     }
 
@@ -178,6 +195,11 @@ export class BuiltVersionService {
     const uniqueComponentIds = Array.from(
       new Set(selectedRows.map((row) => row.releaseComponentId)),
     );
+    for (const id of globalComponentIds) {
+      if (!uniqueComponentIds.includes(id)) {
+        uniqueComponentIds.push(id);
+      }
+    }
 
     return BuiltVersionDefaultSelectionSchema.parse({
       selectedReleaseComponentIds: uniqueComponentIds,
