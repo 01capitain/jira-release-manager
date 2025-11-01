@@ -10,7 +10,7 @@ import { ThemeProvider } from "~/components/theme/theme-provider";
 
 export const metadata: Metadata = {
   title: "Jira Release Manager",
-  description: "Manage Sorftware Releases with Jira",
+  description: "Manage Software Releases with Jira",
   icons: [{ rel: "icon", url: "/favicon.ico" }],
 };
 
