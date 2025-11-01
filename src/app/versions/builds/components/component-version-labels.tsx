@@ -70,7 +70,6 @@ export function ComponentVersionLabels({
               <span
                 className={cls}
                 title={v.name}
-                aria-label={`Component version ${v.name}`}
               >
                 {v.name}
               </span>
