@@ -50,7 +50,7 @@ export function ComponentVersionLabels({
     );
   }
   return (
-    <div className="mt-3" aria-label="Component versions">
+    <div className="mt-3">
       <ul
         className="flex list-none flex-wrap items-center gap-x-2 gap-y-1 p-0"
         role="list"
@@ -67,11 +67,7 @@ export function ComponentVersionLabels({
           ].join(" ");
           return (
             <li key={v.id} className="leading-none">
-              <span
-                className={cls}
-                title={v.name}
-                aria-label={`Component version ${v.name}`}
-              >
+              <span className={cls} title={v.name}>
                 {v.name}
               </span>
             </li>
