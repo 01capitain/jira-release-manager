@@ -15,6 +15,7 @@ import type {
 } from "~/shared/types/release-component";
 import { cn } from "~/lib/utils";
 import { ColorSwatchPicker } from "~/components/ui/color-swatch-picker";
+import { colorClasses } from "~/shared/ui/color-classes";
 import {
   useCreateReleaseComponentMutation,
   useReleaseComponentsQuery,
@@ -53,11 +54,21 @@ const scopeMeta = scopeOptions.reduce(
   {} as Record<ReleaseComponentScope, { label: string; description: string }>,
 );
 
+const PREVIEW_RELEASE_VERSION = "v26.1";
+const PREVIEW_BUILT_VERSION = `${PREVIEW_RELEASE_VERSION}.0`;
+const PREVIEW_INCREMENT = 0;
+const DEFAULT_NAMING_PATTERN = "{built_version}";
+
+function expandNamingPreview(pattern: string): string {
+  return pattern
+    .replaceAll("{release_version}", PREVIEW_RELEASE_VERSION)
+    .replaceAll("{built_version}", PREVIEW_BUILT_VERSION)
+    .replaceAll("{increment}", String(PREVIEW_INCREMENT));
+}
+
 export default function VersionsComponentsPage() {
   const [name, setName] = React.useState("");
-  const [pattern, setPattern] = React.useState(
-    "{release_version}-{built_version}-{increment}",
-  );
+  const [pattern, setPattern] = React.useState<string>(DEFAULT_NAMING_PATTERN);
   const [color, setColor] =
     React.useState<(typeof AllowedBaseColors)[number]>("blue");
   const [scope, setScope] = React.useState<ReleaseComponentScope | null>(null);
@@ -75,6 +86,24 @@ export default function VersionsComponentsPage() {
       setColor(nextColor as (typeof AllowedBaseColors)[number]);
     }
   }, []);
+
+  const previewPattern = pattern.trim() ? pattern : DEFAULT_NAMING_PATTERN;
+  const formPreviewName = expandNamingPreview(previewPattern);
+  const formPreviewColor = colorClasses(color);
+  const formPreviewBadgeClass = cn(
+    "inline-flex items-center whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium",
+    formPreviewColor.light,
+    formPreviewColor.dark,
+    formPreviewColor.text,
+  );
+  const selectedScopeMeta = scope ? scopeMeta[scope] : null;
+  const formScopeChipClass = cn(
+    "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium",
+    scope
+      ? "bg-neutral-100 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-200"
+      : "border border-dashed border-neutral-300 text-neutral-500 dark:border-neutral-700 dark:text-neutral-400",
+  );
+  const formScopeLabel = selectedScopeMeta?.label ?? "Select scope";
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -95,7 +124,7 @@ export default function VersionsComponentsPage() {
       await createMutation.mutateAsync(parsed.data);
       setPhase("success");
       setName("");
-      setPattern("{release_version}-{built_version}-{increment}");
+      setPattern(DEFAULT_NAMING_PATTERN);
       setColor("blue");
       setScope(null);
       setPhase("idle");
@@ -135,7 +164,7 @@ export default function VersionsComponentsPage() {
               <Label htmlFor="rc-pattern">Naming Pattern</Label>
               <Input
                 id="rc-pattern"
-                placeholder="{release_version}-{built_version}-{increment}"
+                placeholder={DEFAULT_NAMING_PATTERN}
                 value={pattern}
                 onChange={(e) => setPattern(e.target.value)}
                 disabled={phase === "loading"}
@@ -206,6 +235,28 @@ export default function VersionsComponentsPage() {
                 })}
               </div>
             </fieldset>
+            <div className="sm:col-span-3">
+              <div className="rounded-md border border-dashed border-neutral-300 bg-neutral-50 p-4 text-sm dark:border-neutral-700 dark:bg-neutral-900/40">
+                <div className="text-xs font-medium tracking-wide text-neutral-500 uppercase dark:text-neutral-400">
+                  Preview
+                </div>
+                <div className="mt-2">
+                  <div className="text-base font-semibold">
+                    {name.trim() || "Component name"}
+                  </div>
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <span className={formScopeChipClass}>{formScopeLabel}</span>
+                    <span
+                      className={formPreviewBadgeClass}
+                      title={formPreviewName}
+                      aria-label={`Sample component version ${formPreviewName}`}
+                    >
+                      {formPreviewName}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
             <div className="flex items-end justify-between sm:col-span-3">
               {error ? (
                 <span
@@ -234,61 +285,31 @@ export default function VersionsComponentsPage() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
         {components.map((c: ReleaseComponentDto) => {
           const scopeDetails = scopeMeta[c.releaseScope];
+          const previewColor = colorClasses(c.color);
+          const previewName = expandNamingPreview(c.namingPattern);
+          const previewBadgeClass = cn(
+            "inline-flex items-center whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium",
+            previewColor.light,
+            previewColor.dark,
+            previewColor.text,
+          );
           return (
             <Card key={c.id}>
               <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="text-lg font-semibold">{c.name}</div>
-                    <div className="mt-1 flex flex-wrap items-center gap-2">
-                      <span className="inline-flex items-center rounded-full bg-neutral-100 px-2 py-0.5 text-xs font-medium text-neutral-700 dark:bg-neutral-800 dark:text-neutral-200">
-                        {scopeDetails.label}
-                      </span>
-                      <span className="text-xs text-neutral-500 dark:text-neutral-400">
-                        {scopeDetails.description}
-                      </span>
-                    </div>
-                    <div className="mt-2 text-xs text-neutral-500 dark:text-neutral-400">
-                      {c.namingPattern}
-                    </div>
+                <div>
+                  <div className="text-lg font-semibold">{c.name}</div>
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <span className="inline-flex items-center rounded-full bg-neutral-100 px-2 py-0.5 text-xs font-medium text-neutral-700 dark:bg-neutral-800 dark:text-neutral-200">
+                      {scopeDetails.label}
+                    </span>
+                    <span
+                      className={previewBadgeClass}
+                      title={previewName}
+                      aria-label={`Sample component version ${previewName}`}
+                    >
+                      {previewName}
+                    </span>
                   </div>
-                  {(() => {
-                    const swatch: Record<string, string> = {
-                      slate: "bg-slate-500",
-                      gray: "bg-gray-500",
-                      zinc: "bg-zinc-500",
-                      neutral: "bg-neutral-500",
-                      stone: "bg-stone-500",
-                      red: "bg-red-500",
-                      orange: "bg-orange-500",
-                      amber: "bg-amber-500",
-                      yellow: "bg-yellow-500",
-                      lime: "bg-lime-500",
-                      green: "bg-green-500",
-                      emerald: "bg-emerald-500",
-                      teal: "bg-teal-500",
-                      cyan: "bg-cyan-500",
-                      sky: "bg-sky-500",
-                      blue: "bg-blue-500",
-                      indigo: "bg-indigo-500",
-                      violet: "bg-violet-500",
-                      purple: "bg-purple-500",
-                      fuchsia: "bg-fuchsia-500",
-                      pink: "bg-pink-500",
-                      rose: "bg-rose-500",
-                    };
-                    const cls = swatch[c.color] ?? swatch.neutral;
-                    return (
-                      <span
-                        role="img"
-                        aria-label={`Base color ${c.color}`}
-                        className={["h-6 w-6 rounded-full border", cls].join(
-                          " ",
-                        )}
-                        title={c.color}
-                      />
-                    );
-                  })()}
                 </div>
               </CardContent>
             </Card>
