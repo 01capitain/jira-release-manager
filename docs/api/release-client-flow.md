@@ -3,9 +3,8 @@
 This page summarises the REST endpoints used by the release management UI. Refer to `openapi.yaml` for the canonical schema and pagination contracts.
 
 ## Release Versions
-- `GET /release-versions` — paginated list of release versions (`PaginatedResponse<ReleaseVersionDto>`). Supports `page`, `pageSize`, and `sortBy` (`createdAt` | `name`, prefix with `-` for descending).
+- `GET /release-versions` — paginated list of release versions (`PaginatedResponse<ReleaseVersionDto>`). Supports `page`, `pageSize`, `sortBy` (`createdAt` | `name`, prefix with `-` for descending), and repeatable `relations` (e.g. `relations=builtVersions` to include builds).
 - `POST /release-versions` — create a release version. Body: `ReleaseVersionCreateInput`. Response: `ReleaseVersionDto`.
-- `GET /release-versions/with-builds` — list release versions with their built versions attached. Response: `ReleaseVersionWithBuildsDto[]`.
 
 ## Built Versions
 - `GET /release-versions/{releaseId}/built-versions` — built versions for a given release.

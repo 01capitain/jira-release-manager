@@ -15,10 +15,7 @@ import {
   type ReleaseVersionRelationState,
 } from "~/server/services/release-version.relations";
 import { mapToBuiltVersionTransitionDtos } from "~/server/zod/dto/built-version-transition.dto";
-import {
-  mapToBuiltVersionDtos,
-  toBuiltVersionDto,
-} from "~/server/zod/dto/built-version.dto";
+import { toBuiltVersionDto } from "~/server/zod/dto/built-version.dto";
 import { mapToComponentVersionDtos } from "~/server/zod/dto/component-version.dto";
 import { toReleaseVersionDto } from "~/server/zod/dto/release-version.dto";
 import { toUserSummaryDto } from "~/server/zod/dto/user.dto";
@@ -32,7 +29,6 @@ import type {
   ReleaseVersionRelationKey,
   ReleaseVersionWithRelationsDto,
 } from "~/shared/types/release-version-relations";
-import type { ReleaseVersionWithBuildsDto } from "~/shared/types/release-version-with-builds";
 
 export class ReleaseVersionService {
   constructor(private readonly db: PrismaClient) {}
@@ -286,29 +282,6 @@ export class ReleaseVersionService {
       }
     }
     return toReleaseVersionDto(release);
-  }
-
-  async listWithBuilds(): Promise<ReleaseVersionWithBuildsDto[]> {
-    const rows = await this.db.releaseVersion.findMany({
-      orderBy: { createdAt: "desc" },
-      select: {
-        id: true,
-        name: true,
-        createdAt: true,
-        builtVersions: {
-          orderBy: { createdAt: "desc" },
-          select: { id: true, name: true, versionId: true, createdAt: true },
-        },
-      },
-    });
-    return rows.map((r) => ({
-      ...toReleaseVersionDto({
-        id: r.id,
-        name: r.name,
-        createdAt: r.createdAt,
-      }),
-      builtVersions: mapToBuiltVersionDtos(r.builtVersions),
-    }));
   }
 
   async getById(

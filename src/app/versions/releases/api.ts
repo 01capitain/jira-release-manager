@@ -3,10 +3,11 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 
 import { getJson, postJson } from "~/lib/rest-client";
-import type { ReleaseVersionDto } from "~/shared/types/release-version";
 import type { ReleaseVersionCreateInput } from "~/shared/schemas/release-version";
+import type { ReleaseVersionDto } from "~/shared/types/release-version";
 import type { PaginatedResponse } from "~/shared/types/pagination";
 import type { ReleaseVersionWithBuildsDto } from "~/shared/types/release-version-with-builds";
+import type { ReleaseVersionWithRelationsDto } from "~/shared/types/release-version-relations";
 
 export const createReleaseVersion = async (
   input: ReleaseVersionCreateInput,
@@ -49,9 +50,36 @@ export const fetchReleaseVersions = async (
 export const fetchReleasesWithBuilds = async (): Promise<
   ReleaseVersionWithBuildsDto[]
 > => {
-  return getJson<ReleaseVersionWithBuildsDto[]>(
-    "/api/v1/release-versions/with-builds",
-  );
+  const aggregated: ReleaseVersionWithBuildsDto[] = [];
+  const pageSize = 100;
+  let page = 1;
+  let hasNextPage = true;
+
+  while (hasNextPage) {
+    const search = new URLSearchParams();
+    search.set("page", String(page));
+    search.set("pageSize", String(pageSize));
+    search.set("sortBy", "-createdAt");
+    search.append("relations", "builtVersions");
+
+    const response = await getJson<
+      PaginatedResponse<ReleaseVersionWithRelationsDto>
+    >(`/api/v1/release-versions?${search.toString()}`);
+
+    aggregated.push(
+      ...response.data.map<ReleaseVersionWithBuildsDto>((release) => ({
+        id: release.id,
+        name: release.name,
+        createdAt: release.createdAt,
+        builtVersions: release.builtVersions ?? [],
+      })),
+    );
+
+    hasNextPage = response.pagination.hasNextPage;
+    page += 1;
+  }
+
+  return aggregated;
 };
 
 export const useReleasesWithBuildsQuery = (options?: {
