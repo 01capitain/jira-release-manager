@@ -3,11 +3,6 @@ import { z } from "zod";
 import { ReleaseComponentScopes } from "~/shared/types/release-component";
 
 export const AllowedBaseColors = [
-  "slate",
-  "gray",
-  "zinc",
-  "neutral",
-  "stone",
   "red",
   "orange",
   "amber",

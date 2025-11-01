@@ -352,11 +352,6 @@ paths:
                 color:
                   type: string
                   enum:
-                    - slate
-                    - gray
-                    - zinc
-                    - neutral
-                    - stone
                     - red
                     - orange
                     - amber
