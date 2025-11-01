@@ -50,10 +50,9 @@ export function ComponentVersionLabels({
     );
   }
   return (
-    <div className="mt-3" aria-label="Component versions">
+    <div className="mt-3">
       <ul
         className="flex list-none flex-wrap items-center gap-x-2 gap-y-1 p-0"
-        role="list"
       >
         {versions.map((v) => {
           const c = colorClasses(
