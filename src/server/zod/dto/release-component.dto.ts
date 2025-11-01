@@ -1,15 +1,15 @@
+import { z } from "zod";
 import {
   ReleaseComponentModelSchema,
-  ReleaseComponentScopeModelSchema,
+  type ReleaseComponentScopeModelSchema,
 } from "~/server/zod/schemas/variants/pure/ReleaseComponent.pure";
 import { IsoTimestampSchema } from "~/shared/types/iso8601";
 import type {
   ReleaseComponentDto,
   ReleaseComponentScope,
 } from "~/shared/types/release-component";
-import { UuidV7Schema } from "~/shared/types/uuid";
-import { z } from "zod";
 import { ReleaseComponentScopes } from "~/shared/types/release-component";
+import { UuidV7Schema } from "~/shared/types/uuid";
 
 const ReleaseComponentModelFieldsSchema = ReleaseComponentModelSchema.pick({
   id: true,
