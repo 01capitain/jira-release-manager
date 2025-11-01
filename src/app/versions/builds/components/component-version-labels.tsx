@@ -66,10 +66,7 @@ export function ComponentVersionLabels({
           ].join(" ");
           return (
             <li key={v.id} className="leading-none">
-              <span
-                className={cls}
-                title={v.name}
-              >
+              <span className={cls} title={v.name}>
                 {v.name}
               </span>
             </li>
