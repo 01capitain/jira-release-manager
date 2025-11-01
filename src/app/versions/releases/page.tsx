@@ -48,8 +48,8 @@ export default function VersionsReleasesPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-6">
-      <section className="space-y-6 rounded-lg border border-neutral-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+    <div className="mx-auto w-full space-y-6 px-4 sm:px-6 xl:px-8">
+      <section className="w-full space-y-6 rounded-lg border border-neutral-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
         <div className="flex items-end justify-start gap-2">
           {!open ? (
             <Button onClick={() => setOpen(true)}>New Release</Button>

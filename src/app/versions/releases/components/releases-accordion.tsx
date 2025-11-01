@@ -122,7 +122,7 @@ export default function ReleasesAccordion() {
               </span>
             </summary>
             <div className="p-4">
-              <div className="relative grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3">
+              <div className="relative grid w-full grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
                 {rel.builtVersions.map((b) => (
                   <BuiltVersionCard
                     key={b.id}
