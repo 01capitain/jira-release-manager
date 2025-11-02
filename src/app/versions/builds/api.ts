@@ -186,7 +186,7 @@ export const useCreateBuiltVersionMutation = () => {
     mutationFn: createBuiltVersion,
     onSuccess: async () => {
       await queryClient.invalidateQueries({
-        queryKey: releasesWithBuildsQueryKey,
+        queryKey: ["release-versions", "with-builds"],
       });
     },
   });
@@ -197,7 +197,7 @@ export const useReleasesWithBuildsRefetch = () => {
   return {
     refetch: () =>
       queryClient.invalidateQueries({
-        queryKey: releasesWithBuildsQueryKey,
+        queryKey: ["release-versions", "with-builds"],
       }),
     setData: (
       updater:
@@ -207,7 +207,7 @@ export const useReleasesWithBuildsRefetch = () => {
           ) => ReleaseVersionWithBuildsDto[] | undefined),
     ) =>
       queryClient.setQueryData<ReleaseVersionWithBuildsDto[] | undefined>(
-        releasesWithBuildsQueryKey,
+        releasesWithBuildsQueryKey(),
         updater as ReleaseVersionWithBuildsDto[] | undefined,
       ),
   };

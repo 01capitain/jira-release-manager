@@ -27,7 +27,11 @@ export const useCreateReleaseMutation = () => {
 export const releaseVersionListQueryKey = (params: Record<string, unknown>) =>
   ["release-versions", "list", params] as const;
 
-export const releasesWithBuildsQueryKey = ["release-versions", "with-builds"];
+export const releasesWithBuildsQueryKey = (fetchOptions?: {
+  pageSize?: number;
+  sortBy?: string;
+  maxPages?: number;
+}) => ["release-versions", "with-builds", fetchOptions] as const;
 
 export const fetchReleaseVersions = async (
   params: {
@@ -132,7 +136,7 @@ export const useReleasesWithBuildsQuery = (options?: {
   fetchOptions?: Parameters<typeof fetchReleasesWithBuilds>[0];
 }) => {
   return useQuery({
-    queryKey: releasesWithBuildsQueryKey,
+    queryKey: releasesWithBuildsQueryKey(options?.fetchOptions),
     queryFn: () => fetchReleasesWithBuilds(options?.fetchOptions),
     staleTime: Infinity,
     gcTime: 5 * 60 * 1000,

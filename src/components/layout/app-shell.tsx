@@ -24,7 +24,6 @@ import { useAuthSession } from "~/hooks/use-auth-session";
 import { useDiscordLogin } from "~/hooks/use-discord-login";
 import { Toaster } from "sonner";
 import { SESSION_QUERY_KEY, requestLogout } from "~/lib/auth-client";
-import { releasesWithBuildsQueryKey } from "~/app/versions/releases/api";
 
 type NavGroup = {
   id: string;
@@ -330,7 +329,7 @@ function HeaderActions({ pathname }: { pathname: string }) {
     setIsFetching(true);
     try {
       await queryClient.invalidateQueries({
-        queryKey: releasesWithBuildsQueryKey,
+        queryKey: ["release-versions", "with-builds"],
       });
     } finally {
       setIsFetching(false);

@@ -23,7 +23,6 @@ import {
   prefetchReleaseComponents,
   useReleaseComponentsQuery,
 } from "../../components/api";
-import { releasesWithBuildsQueryKey } from "../../releases/api";
 import {
   builtVersionDefaultSelectionQueryKey,
   builtVersionStatusQueryKey,
@@ -487,7 +486,7 @@ export default function BuiltVersionCard({
                     queryKey: builtVersionDefaultSelectionQueryKey(id),
                   }),
                   queryClient.invalidateQueries({
-                    queryKey: releasesWithBuildsQueryKey,
+                    queryKey: ["release-versions", "with-builds"],
                   }),
                 ]);
 

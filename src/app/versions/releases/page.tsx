@@ -6,7 +6,7 @@ import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { ReleaseVersionCreateSchema } from "~/shared/schemas/release-version";
-import { releasesWithBuildsQueryKey, useCreateReleaseMutation } from "./api";
+import { useCreateReleaseMutation } from "./api";
 import { isRestApiError } from "~/lib/rest-client";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -34,7 +34,7 @@ export default function VersionsReleasesPage() {
       setName("");
       setOpen(false);
       await queryClient.invalidateQueries({
-        queryKey: releasesWithBuildsQueryKey,
+        queryKey: ["release-versions", "with-builds"],
       });
     } catch (err) {
       setError(
