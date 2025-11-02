@@ -4,7 +4,6 @@ import {
 } from "../fixtures/release-components";
 import { releaseVersionFixtures } from "../fixtures/release-versions";
 import { userFixtures } from "../fixtures/users";
-import { BuiltVersionStatusService } from "~/server/services/built-version-status.service";
 import { BuiltVersionService } from "~/server/services/built-version.service";
 import { ReleaseVersionService } from "~/server/services/release-version.service";
 
@@ -14,7 +13,6 @@ const REL_MAIN_ID = releaseVersionFixtures.version177.id;
 const REL_SECONDARY_ID = releaseVersionFixtures.version26_1.id;
 const BUILT_VERSION_LIST_ID = "018f1a50-0000-7000-8000-00000000000e";
 const ACTIVE_BUILT_ID = "018f1a50-0000-7000-8000-00000000000f";
-const NEWER_BUILT_ID = "018f1a50-0000-7000-8000-000000000010";
 const COMPONENT_VERSION_ID = "018f1a50-0000-7000-9000-0000000000c1";
 const USER_1_ID = userFixtures.adamScott.id;
 const USER_2_ID = userFixtures.melanieMayer.id;
@@ -451,75 +449,6 @@ describe("ReleaseVersion and BuiltVersion behavior", () => {
       expect(include?.builtVersions?.orderBy).toEqual({ createdAt: "desc" });
     });
   });
-  describe("TODO: Transition Service Tests", () => {
-    // TODO: Move to separate service and test
-    test("transition to in_deployment creates a successor with higher increment", async () => {
-      const { db, calls } = makeMockDb();
-      const createdAt = new Date("2024-01-01T00:00:00Z");
-      db.builtVersion.findUnique = jest.fn(async () => ({
-        id: BUILT_VERSION_LIST_ID,
-        name: "version 300.0",
-        versionId: REL_MAIN_ID,
-        createdAt,
-      }));
-      db.releaseVersion.findUnique = jest.fn(async () => ({
-        id: REL_MAIN_ID,
-        name: "version 300",
-        lastUsedIncrement: 0,
-      }));
-      db.builtVersion.findFirst = jest.fn(async () => null); // no newer exists
-
-      const ssvc = new BuiltVersionStatusService(db);
-      const res = await ssvc.transition(
-        BUILT_VERSION_LIST_ID as any,
-        "startDeployment",
-        USER_1_ID,
-      );
-      expect(res.status).toBe("in_deployment");
-      expect(res.builtVersion).toMatchObject({
-        id: BUILT_VERSION_LIST_ID,
-        name: "version 300.0",
-        versionId: REL_MAIN_ID,
-        createdAt,
-      });
-
-      // Successor created with next increment (1)
-      const successorCalls = calls["builtVersion.create"] ?? [];
-      const succ = successorCalls[0] as any;
-      expect(succ).toBeDefined();
-      expect(succ?.data?.name).toBe("version 300.1");
-    });
-    //TODO: Move to dedicated service
-    test("no successor is created if a newer built already exists", async () => {
-      const { db } = makeMockDb();
-      const createdAt = new Date("2024-01-01T00:00:00Z");
-      db.builtVersion.findUnique = jest.fn(async () => ({
-        id: ACTIVE_BUILT_ID,
-        name: "version 400.0",
-        versionId: REL_MAIN_ID,
-        createdAt,
-      }));
-      db.releaseVersion.findUnique = jest.fn(async () => ({
-        id: REL_MAIN_ID,
-        name: "version 400",
-        lastUsedIncrement: 1,
-      }));
-      // Simulate a newer build existing
-      db.builtVersion.findFirst = jest.fn(async () => ({ id: NEWER_BUILT_ID }));
-
-      const ssvc = new BuiltVersionStatusService(db);
-      await ssvc.transition(
-        ACTIVE_BUILT_ID as any,
-        "startDeployment",
-        USER_1_ID,
-      );
-      // ensure builtVersion.create was NOT called
-      expect(db.builtVersion.create).not.toHaveBeenCalled();
-      // ensure no component versions were created either
-      expect(db.componentVersion.create).not.toHaveBeenCalled();
-    });
-  });
-
   describe("TODO: Move to BuiltVersionService Tests", () => {
     //TODO: move to BuiltVersionService Test Suite
     test("listByRelease maps rows to DTOs", async () => {
