@@ -1,9 +1,14 @@
 import type { PrismaClient } from "@prisma/client";
+import {
+  releaseComponentFixtures,
+  toReleaseComponentDbRow,
+} from "../fixtures/release-components";
+import { userFixtures } from "../fixtures/users";
 import { ReleaseComponentService } from "~/server/services/release-component.service";
 import { ComponentVersionService } from "~/server/services/component-version.service";
 
-const COMPONENT_A_ID = "00000000-0000-7000-8000-000000000001";
-const COMPONENT_B_ID = "00000000-0000-7000-8000-000000000002";
+const COMPONENT_A_ID = releaseComponentFixtures.iosApp.id;
+const COMPONENT_B_ID = releaseComponentFixtures.desktopAngularJs.id;
 const BUILT_VERSION_ID = "00000000-0000-7000-8000-000000000003";
 const COMPONENT_VERSION_ID = "00000000-0000-7000-8000-000000000004";
 
@@ -78,21 +83,12 @@ type ComponentVersionDelegate = {
 
 describe("ReleaseComponentService", () => {
   test("list returns mapped DTOs", async () => {
-    const createdAt = new Date("2024-03-01T12:00:00Z");
+    const iosFixture = releaseComponentFixtures.iosApp;
     const releaseComponentDelegate: ReleaseComponentDelegate = {
       findMany: jest.fn<
         Promise<ReleaseComponentRow[]>,
         [ReleaseComponentFindManyArgs]
-      >(async () => [
-        {
-          id: COMPONENT_A_ID,
-          name: "Component A",
-          color: "blue",
-          namingPattern: "{release_version}-{built_version}-{increment}",
-          releaseScope: "global",
-          createdAt,
-        },
-      ]),
+      >(async () => [toReleaseComponentDbRow(iosFixture)]),
       create: jest.fn<
         Promise<ReleaseComponentRow>,
         [ReleaseComponentCreateArgs]
@@ -118,18 +114,13 @@ describe("ReleaseComponentService", () => {
     });
     expect(res).toEqual([
       {
-        id: COMPONENT_A_ID,
-        name: "Component A",
-        color: "blue",
-        namingPattern: "{release_version}-{built_version}-{increment}",
-        releaseScope: "global",
-        createdAt: createdAt.toISOString(),
+        ...iosFixture,
       },
     ]);
   });
 
   test("create trims fields and returns DTO", async () => {
-    const createdAt = new Date("2024-03-02T08:30:00Z");
+    const androidFixture = releaseComponentFixtures.androidApp;
     const releaseComponentDelegate: ReleaseComponentDelegate = {
       findMany: jest.fn<
         Promise<ReleaseComponentRow[]>,
@@ -138,34 +129,34 @@ describe("ReleaseComponentService", () => {
       create: jest.fn<
         Promise<ReleaseComponentRow>,
         [ReleaseComponentCreateArgs]
-      >(async (args) => ({
-        id: COMPONENT_B_ID,
-        name: args.data.name,
-        color: args.data.color,
-        namingPattern: args.data.namingPattern,
-        releaseScope: args.data.releaseScope,
-        createdAt,
-      })),
+      >(async (args) =>
+        toReleaseComponentDbRow(androidFixture, {
+          name: args.data.name,
+          color: args.data.color,
+          namingPattern: args.data.namingPattern,
+          releaseScope: args.data.releaseScope,
+        }),
+      ),
     };
     const db = {
       releaseComponent: releaseComponentDelegate,
     } as unknown as PrismaClient;
 
     const svc = new ReleaseComponentService(db);
-    const res = await svc.create("user-1", {
-      name: "  Component B  ",
-      color: "red",
-      namingPattern: "  {release_version}-{increment}  ",
+    const res = await svc.create(userFixtures.adamScott.id, {
+      name: "  Android App  ",
+      color: "emerald",
+      namingPattern: "  app.android.{built_version}  ",
       releaseScope: "global",
     });
 
     expect(releaseComponentDelegate.create).toHaveBeenCalledWith({
       data: {
-        name: "Component B",
-        color: "red",
-        namingPattern: "{release_version}-{increment}",
+        name: "Android App",
+        color: "emerald",
+        namingPattern: "app.android.{built_version}",
         releaseScope: "global",
-        createdBy: { connect: { id: "user-1" } },
+        createdBy: { connect: { id: userFixtures.adamScott.id } },
       },
       select: {
         id: true,
@@ -178,12 +169,10 @@ describe("ReleaseComponentService", () => {
     });
 
     expect(res).toEqual({
-      id: COMPONENT_B_ID,
-      name: "Component B",
-      color: "red",
-      namingPattern: "{release_version}-{increment}",
-      releaseScope: "global",
-      createdAt: createdAt.toISOString(),
+      ...androidFixture,
+      name: "Android App",
+      color: "emerald",
+      namingPattern: "app.android.{built_version}",
     });
   });
 });

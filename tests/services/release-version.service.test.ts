@@ -1,17 +1,23 @@
+import {
+  releaseComponentFixtures,
+  releaseComponentFixtureList,
+} from "../fixtures/release-components";
+import { releaseVersionFixtures } from "../fixtures/release-versions";
+import { userFixtures } from "../fixtures/users";
 import { BuiltVersionStatusService } from "~/server/services/built-version-status.service";
 import { BuiltVersionService } from "~/server/services/built-version.service";
 import { ReleaseVersionService } from "~/server/services/release-version.service";
 
-const COMPONENT_A_ID = "018f1a50-0000-7000-8000-00000000000a";
-const COMPONENT_B_ID = "018f1a50-0000-7000-8000-00000000000b";
-const REL_MAIN_ID = "018f1a50-0000-7000-8000-00000000000c";
-const REL_SECONDARY_ID = "018f1a50-0000-7000-8000-00000000000d";
+const COMPONENT_A_ID = releaseComponentFixtures.iosApp.id;
+const COMPONENT_B_ID = releaseComponentFixtures.phpBackend.id;
+const REL_MAIN_ID = releaseVersionFixtures.version177.id;
+const REL_SECONDARY_ID = releaseVersionFixtures.version26_1.id;
 const BUILT_VERSION_LIST_ID = "018f1a50-0000-7000-8000-00000000000e";
 const ACTIVE_BUILT_ID = "018f1a50-0000-7000-8000-00000000000f";
 const NEWER_BUILT_ID = "018f1a50-0000-7000-8000-000000000010";
 const COMPONENT_VERSION_ID = "018f1a50-0000-7000-9000-0000000000c1";
-const USER_1_ID = "018f1a50-0000-7000-9000-0000000001a1";
-const USER_2_ID = "018f1a50-0000-7000-9000-0000000001a2";
+const USER_1_ID = userFixtures.adamScott.id;
+const USER_2_ID = userFixtures.melanieMayer.id;
 const TRANSITION_ID = "018f1a50-0000-7000-9000-0000000002b1";
 
 // Minimal Prisma-like client mock with only fields used in tests
@@ -82,18 +88,14 @@ function makeMockDb() {
     releaseComponent: {
       findMany: jest.fn(async (args: any = {}) => {
         record("releaseComponent.findMany", {});
-        const all = [
-          {
-            id: COMPONENT_A_ID,
-            namingPattern: "{release_version}-{built_version}-{increment}",
-            releaseScope: "global",
-          },
-          {
-            id: COMPONENT_B_ID,
-            namingPattern: "{release_version}-{built_version}-{increment}",
-            releaseScope: "version_bound",
-          },
-        ];
+        const all = releaseComponentFixtureList.map((fixture) => ({
+          id: fixture.id,
+          namingPattern: fixture.namingPattern,
+          releaseScope:
+            fixture.releaseScope === "version-bound"
+              ? "version_bound"
+              : "global",
+        }));
         if (args?.where?.releaseScope === "global") {
           return all.filter((entry) => entry.releaseScope === "global");
         }
