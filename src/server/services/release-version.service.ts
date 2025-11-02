@@ -179,7 +179,6 @@ export class ReleaseVersionService {
         data: {
           name: name.trim(),
           createdBy: { connect: { id: userId } },
-          // start lastUsedIncrement at -1; we'll set to 0 after creating initial built
         },
         // Select only fields needed for DTO to avoid strict schema issues
         select: { id: true, name: true, createdAt: true },
@@ -189,7 +188,7 @@ export class ReleaseVersionService {
         message: `Release ${release.name} stored`,
         metadata: { id: release.id },
       });
-
+      //TODO: Why is it not using the builtVersioNService to create the built?
       // Auto-create initial built version with increment 0
       const builtIncrement = 0;
       const builtName = `${release.name}.${builtIncrement}`;
@@ -217,6 +216,7 @@ export class ReleaseVersionService {
         data: { lastUsedIncrement: builtIncrement },
       });
 
+      //TODO: Move this to builtVersion Service, this is no release version problem
       // Create initial component versions for this built
       const releaseComponentDelegate = tx.releaseComponent as unknown as {
         findMany(args?: unknown): Promise<
