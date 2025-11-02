@@ -236,38 +236,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/RestError"
-  /release-versions/with-builds:
-    get:
-      operationId: listReleaseVersionsWithBuilds
-      summary: List release versions with attached builds
-      tags:
-        - Release Versions
-      responses:
-        "200":
-          description: Release versions with builds
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    name:
-                      type: string
-                    id:
-                      $ref: "#/components/schemas/uuidv7"
-                    createdAt:
-                      $ref: "#/components/schemas/iso8601Timestamp"
-                    builtVersions:
-                      type: array
-                      items:
-                        $ref: "#/components/schemas/BuiltVersion"
-                  required:
-                    - name
-                    - id
-                    - createdAt
-                    - builtVersions
-                  additionalProperties: false
   /release-components:
     get:
       operationId: listReleaseComponents
@@ -1500,25 +1468,6 @@ components:
         - id
         - createdAt
       additionalProperties: false
-    BuiltVersion:
-      title: Built Version
-      description: Built version summary information.
-      type: object
-      properties:
-        name:
-          type: string
-        id:
-          $ref: "#/components/schemas/uuidv7"
-        versionId:
-          $ref: "#/components/schemas/uuidv7"
-        createdAt:
-          $ref: "#/components/schemas/iso8601Timestamp"
-      required:
-        - name
-        - id
-        - versionId
-        - createdAt
-      additionalProperties: false
     ReleaseComponent:
       title: Release Component
       description: Release component metadata.
@@ -1569,6 +1518,25 @@ components:
         - builtVersion
         - status
         - history
+      additionalProperties: false
+    BuiltVersion:
+      title: Built Version
+      description: Built version summary information.
+      type: object
+      properties:
+        name:
+          type: string
+        id:
+          $ref: "#/components/schemas/uuidv7"
+        versionId:
+          $ref: "#/components/schemas/uuidv7"
+        createdAt:
+          $ref: "#/components/schemas/iso8601Timestamp"
+      required:
+        - name
+        - id
+        - versionId
+        - createdAt
       additionalProperties: false
     ActionHistoryListResponse:
       title: Action History List Response
