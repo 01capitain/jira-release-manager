@@ -103,7 +103,7 @@ export const fetchReleasesWithBuilds = async (options?: {
     }
 
     if (!response) {
-      break;
+      throw new Error(`Unexpected: response undefined after retry loop for page ${page}`);
     }
 
     aggregated.push(
