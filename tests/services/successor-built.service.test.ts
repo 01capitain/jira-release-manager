@@ -1,3 +1,4 @@
+import { releaseComponentFixtures } from "../fixtures/release-components";
 import { SuccessorBuiltService } from "~/server/services/successor-built.service";
 
 type CV = {
@@ -183,22 +184,15 @@ describe("SuccessorBuiltService.createSuccessorBuilt", () => {
     namingPattern: string;
     releaseScope: "global" | "version_bound";
   }[] = [
-    {
-      id: "A",
-      namingPattern: "{release_version}-{built_version}-{increment}",
-      releaseScope: "global",
-    },
-    {
-      id: "B",
-      namingPattern: "{release_version}-{built_version}-{increment}",
-      releaseScope: "version_bound",
-    },
-    {
-      id: "C",
-      namingPattern: "{release_version}-{built_version}-{increment}",
-      releaseScope: "global",
-    },
-  ];
+    releaseComponentFixtures.iosApp,
+    releaseComponentFixtures.desktopAngular,
+    releaseComponentFixtures.phpBackend,
+  ].map((fixture) => ({
+    id: fixture.id,
+    namingPattern: fixture.namingPattern,
+    releaseScope:
+      fixture.releaseScope === "version-bound" ? "version_bound" : "global",
+  }));
 
   test("selecting all keeps rows on current and seeds successor", async () => {
     const { db, ids, componentVersions } = setupMockDb({
@@ -218,18 +212,11 @@ describe("SuccessorBuiltService.createSuccessorBuilt", () => {
     const onY = componentVersions.filter(
       (cv) => cv.builtVersionId === ids.BUILT_Y,
     );
-    expect(onX.map((r) => r.releaseComponentId).sort()).toEqual([
-      "A",
-      "B",
-      "C",
-    ]);
-    expect(onY.map((r) => r.releaseComponentId).sort()).toEqual([
-      "A",
-      "B",
-      "C",
-    ]);
+    const expectedIds = comps.map((c) => c.id).sort();
+    expect(onX.map((r) => r.releaseComponentId).sort()).toEqual(expectedIds);
+    expect(onY.map((r) => r.releaseComponentId).sort()).toEqual(expectedIds);
     expect(summary).toMatchObject({
-      created: 3,
+      created: comps.length,
       updated: 0,
       moved: 0,
       successorBuiltId: ids.BUILT_Y,
@@ -245,7 +232,7 @@ describe("SuccessorBuiltService.createSuccessorBuilt", () => {
     const svc = new SuccessorBuiltService(db);
     await svc.createSuccessorBuilt(
       ids.BUILT_X as any,
-      ["A", "C"],
+      comps.filter((c) => c.releaseScope === "global").map((c) => c.id),
       "user-1" as any,
     );
     const onX = componentVersions.filter(
@@ -255,13 +242,19 @@ describe("SuccessorBuiltService.createSuccessorBuilt", () => {
       (cv) => cv.builtVersionId === ids.BUILT_Y,
     );
     // current (closed): only A and C
-    expect(onX.map((r) => r.releaseComponentId).sort()).toEqual(["A", "C"]);
+    const globalIds = comps
+      .filter((c) => c.releaseScope === "global")
+      .map((c) => c.id)
+      .sort();
+    const versionBoundIds = comps
+      .filter((c) => c.releaseScope === "version_bound")
+      .map((c) => c.id)
+      .sort();
+    expect(onX.map((r) => r.releaseComponentId).sort()).toEqual(globalIds);
     // successor: moved B and seeded A,C
-    expect(onY.map((r) => r.releaseComponentId).sort()).toEqual([
-      "A",
-      "B",
-      "C",
-    ]);
+    expect(onY.map((r) => r.releaseComponentId).sort()).toEqual(
+      [...globalIds, ...versionBoundIds].sort(),
+    );
   });
 
   test("global components stay selected even when omitted", async () => {
@@ -271,7 +264,11 @@ describe("SuccessorBuiltService.createSuccessorBuilt", () => {
       successorBuiltName: "version 2.1",
     });
     const svc = new SuccessorBuiltService(db);
-    await svc.createSuccessorBuilt(ids.BUILT_X as any, ["B"], "user-2" as any);
+    await svc.createSuccessorBuilt(
+      ids.BUILT_X as any,
+      comps.filter((c) => c.releaseScope === "version_bound").map((c) => c.id),
+      "user-2" as any,
+    );
 
     const onX = componentVersions
       .filter((cv) => cv.builtVersionId === ids.BUILT_X)
@@ -282,8 +279,9 @@ describe("SuccessorBuiltService.createSuccessorBuilt", () => {
       .map((cv) => cv.releaseComponentId)
       .sort();
 
-    expect(onX).toEqual(["A", "B", "C"]);
-    expect(onY).toEqual(["A", "B", "C"]);
+    const expectedIds = comps.map((c) => c.id).sort();
+    expect(onX).toEqual(expectedIds);
+    expect(onY).toEqual(expectedIds);
   });
 
   test("validation: at least one component must be selected", async () => {

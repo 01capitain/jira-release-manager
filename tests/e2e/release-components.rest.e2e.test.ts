@@ -1,6 +1,12 @@
 import { Prisma } from "@prisma/client";
 import type { Session } from "next-auth";
 import { NextRequest } from "next/server";
+import {
+  releaseComponentFixtureList,
+  releaseComponentFixtures,
+  toReleaseComponentDbRow,
+} from "../fixtures/release-components";
+import { userFixtures } from "../fixtures/users";
 
 jest.mock("superjson", () => ({
   __esModule: true,
@@ -58,7 +64,7 @@ const parseJsonObject = async (
 };
 
 const authenticatedSession: Session = {
-  user: { id: "user-123", name: "Test User" },
+  user: { id: userFixtures.adamScott.id, name: userFixtures.adamScott.name },
   expires: "2099-01-01T00:00:00.000Z",
 };
 
@@ -271,33 +277,14 @@ describe("Release Components REST endpoints", () => {
   describe("GET /api/v1/release-components", () => {
     it("returns a paginated list sorted by newest first", async () => {
       authMock.mockResolvedValue(authenticatedSession);
-      const records: ReleaseComponentRecord[] = [
-        {
-          id: "018f1a50-0000-7000-8000-000000000001",
-          name: "API",
-          color: "red",
-          namingPattern: "{release_version}-{increment}",
-          releaseScope: "global",
-          createdAt: new Date("2024-06-01T12:00:00.000Z"),
-        },
-        {
-          id: "018f1a50-0000-7000-8000-000000000002",
-          name: "Frontend",
-          color: "blue",
-          namingPattern: "{release_version}-{increment}",
-          releaseScope: "version_bound",
-          createdAt: new Date("2024-06-02T12:00:00.000Z"),
-        },
-        {
-          id: "018f1a50-0000-7000-8000-000000000003",
-          name: "Worker",
-          color: "green",
-          namingPattern: "{release_version}-{increment}",
-          releaseScope: "global",
-          createdAt: new Date("2024-06-03T12:00:00.000Z"),
-        },
-      ];
+      const records = releaseComponentFixtureList.map((fixture) =>
+        toReleaseComponentDbRow(fixture),
+      );
       setComponentRecords(records);
+      const expectedOrder = [...releaseComponentFixtureList].sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      );
 
       const request = new NextRequest(
         "http://test/api/v1/release-components?page=1&pageSize=2",
@@ -309,25 +296,16 @@ describe("Release Components REST endpoints", () => {
 
       expect(response.status).toBe(200);
       expect(payload).toMatchObject({
-        total: 3,
+        total: records.length,
         page: 1,
         pageSize: 2,
-        items: [
-          {
-            id: records[2]?.id,
-            name: records[2]?.name,
-            color: records[2]?.color,
-            namingPattern: records[2]?.namingPattern,
-            releaseScope: "global",
-          },
-          {
-            id: records[1]?.id,
-            name: records[1]?.name,
-            color: records[1]?.color,
-            namingPattern: records[1]?.namingPattern,
-            releaseScope: "version-bound",
-          },
-        ],
+        items: expectedOrder.slice(0, 2).map((fixture) => ({
+          id: fixture.id,
+          name: fixture.name,
+          color: fixture.color,
+          namingPattern: fixture.namingPattern,
+          releaseScope: fixture.releaseScope,
+        })),
       });
       expect(
         (mockDb.releaseComponent as { findMany: jest.Mock }).findMany,
@@ -352,18 +330,12 @@ describe("Release Components REST endpoints", () => {
   describe("GET /api/v1/release-components/:id", () => {
     it("returns a single component", async () => {
       authMock.mockResolvedValue(authenticatedSession);
-      const record: ReleaseComponentRecord = {
-        id: "018f1a50-0000-7000-8000-000000000010",
-        name: "Checkout",
-        color: "orange",
-        namingPattern: "{release_version}-{increment}",
-        releaseScope: "version_bound",
-        createdAt: new Date("2024-06-05T12:00:00.000Z"),
-      };
+      const fixture = releaseComponentFixtures.desktopAngularJs;
+      const record = toReleaseComponentDbRow(fixture);
       setComponentRecords([record]);
 
       const request = new NextRequest(
-        "http://test/api/v1/release-components/018f1a50-0000-7000-8000-000000000010",
+        `http://test/api/v1/release-components/${fixture.id}`,
         { method: "GET" },
       );
 
@@ -374,11 +346,11 @@ describe("Release Components REST endpoints", () => {
 
       expect(response.status).toBe(200);
       expect(payload).toMatchObject({
-        id: record.id,
-        name: record.name,
-        color: record.color,
-        namingPattern: record.namingPattern,
-        releaseScope: "version-bound",
+        id: fixture.id,
+        name: fixture.name,
+        color: fixture.color,
+        namingPattern: fixture.namingPattern,
+        releaseScope: fixture.releaseScope,
         createdAt: record.createdAt.toISOString(),
       });
     });
@@ -420,7 +392,7 @@ describe("Release Components REST endpoints", () => {
           color: "teal",
           namingPattern: "{release_version}-{built_version}-{increment}",
           releaseScope: "version_bound",
-          createdBy: { connect: { id: "user-123" } },
+          createdBy: { connect: { id: userFixtures.adamScott.id } },
         },
         select: {
           id: true,
@@ -493,23 +465,15 @@ describe("Release Components REST endpoints", () => {
 
     it("returns 409 when the component name already exists", async () => {
       authMock.mockResolvedValue(authenticatedSession);
-      setComponentRecords([
-        {
-          id: "018f1a50-0000-7000-8000-000000000020",
-          name: "Scheduler",
-          color: "teal",
-          namingPattern: "{release_version}-{increment}",
-          releaseScope: "version_bound",
-          createdAt: new Date("2024-06-08T12:00:00.000Z"),
-        },
-      ]);
+      const existing = releaseComponentFixtures.phpBackend;
+      setComponentRecords([toReleaseComponentDbRow(existing)]);
 
       const request = new NextRequest("http://test/api/v1/release-components", {
         method: "POST",
         body: JSON.stringify({
-          name: "scheduler",
-          color: "teal",
-          namingPattern: "{release_version}-{built_version}-{increment}",
+          name: "php backend",
+          color: existing.color,
+          namingPattern: existing.namingPattern,
           releaseScope: "version-bound",
         }),
         headers: {
@@ -524,7 +488,7 @@ describe("Release Components REST endpoints", () => {
       expect(response.status).toBe(409);
       expect(payload).toMatchObject({
         code: "CONFLICT",
-        message: "Release component scheduler already exists",
+        message: "Release component php backend already exists",
       });
     });
   });

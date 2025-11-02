@@ -1,17 +1,23 @@
+import {
+  releaseComponentFixtures,
+  releaseComponentFixtureList,
+} from "../fixtures/release-components";
+import { releaseVersionFixtures } from "../fixtures/release-versions";
+import { userFixtures } from "../fixtures/users";
 import { BuiltVersionStatusService } from "~/server/services/built-version-status.service";
 import { BuiltVersionService } from "~/server/services/built-version.service";
 import { ReleaseVersionService } from "~/server/services/release-version.service";
 
-const COMPONENT_A_ID = "018f1a50-0000-7000-8000-00000000000a";
-const COMPONENT_B_ID = "018f1a50-0000-7000-8000-00000000000b";
-const REL_MAIN_ID = "018f1a50-0000-7000-8000-00000000000c";
-const REL_SECONDARY_ID = "018f1a50-0000-7000-8000-00000000000d";
+const COMPONENT_A_ID = releaseComponentFixtures.iosApp.id;
+const COMPONENT_B_ID = releaseComponentFixtures.phpBackend.id;
+const REL_MAIN_ID = releaseVersionFixtures.version177.id;
+const REL_SECONDARY_ID = releaseVersionFixtures.version26_1.id;
 const BUILT_VERSION_LIST_ID = "018f1a50-0000-7000-8000-00000000000e";
 const ACTIVE_BUILT_ID = "018f1a50-0000-7000-8000-00000000000f";
 const NEWER_BUILT_ID = "018f1a50-0000-7000-8000-000000000010";
 const COMPONENT_VERSION_ID = "018f1a50-0000-7000-9000-0000000000c1";
-const USER_1_ID = "018f1a50-0000-7000-9000-0000000001a1";
-const USER_2_ID = "018f1a50-0000-7000-9000-0000000001a2";
+const USER_1_ID = userFixtures.adamScott.id;
+const USER_2_ID = userFixtures.melanieMayer.id;
 const TRANSITION_ID = "018f1a50-0000-7000-9000-0000000002b1";
 
 // Minimal Prisma-like client mock with only fields used in tests
@@ -82,18 +88,14 @@ function makeMockDb() {
     releaseComponent: {
       findMany: jest.fn(async (args: any = {}) => {
         record("releaseComponent.findMany", {});
-        const all = [
-          {
-            id: COMPONENT_A_ID,
-            namingPattern: "{release_version}-{built_version}-{increment}",
-            releaseScope: "global",
-          },
-          {
-            id: COMPONENT_B_ID,
-            namingPattern: "{release_version}-{built_version}-{increment}",
-            releaseScope: "version_bound",
-          },
-        ];
+        const all = releaseComponentFixtureList.map((fixture) => ({
+          id: fixture.id,
+          namingPattern: fixture.namingPattern,
+          releaseScope:
+            fixture.releaseScope === "version-bound"
+              ? "version_bound"
+              : "global",
+        }));
         if (args?.where?.releaseScope === "global") {
           return all.filter((entry) => entry.releaseScope === "global");
         }
@@ -155,15 +157,18 @@ describe("ReleaseVersion and BuiltVersion behavior", () => {
     expect(builtArgs?.data?.name).toBe("version 100.0"); // ends with .0
 
     // component versions created for each release component (2 total)
-    expect(db.componentVersion.upsert).toHaveBeenCalledTimes(2);
+    expect(db.componentVersion.upsert).toHaveBeenCalledTimes(
+      releaseComponentFixtureList.length,
+    );
     const seededComponentIds = new Set(
       (db.componentVersion.upsert as jest.Mock).mock.calls.map(
         ([args]: any[]) =>
-          args.create.releaseComponent.connect.id as typeof COMPONENT_A_ID,
+          args.create.releaseComponent.connect
+            .id as (typeof releaseComponentFixtureList)[number]["id"],
       ),
     );
     expect(seededComponentIds).toEqual(
-      new Set([COMPONENT_A_ID, COMPONENT_B_ID]),
+      new Set(releaseComponentFixtureList.map((fixture) => fixture.id)),
     );
     (db.componentVersion.upsert as jest.Mock).mock.calls.forEach(
       ([args]: any[]) => {
@@ -187,18 +192,12 @@ describe("ReleaseVersion and BuiltVersion behavior", () => {
           namingPattern: true,
         },
       });
-      return [
-        {
-          id: COMPONENT_A_ID,
-          namingPattern: "{release_version}-{built_version}-{increment}",
-          releaseScope: "global",
-        },
-        {
-          id: COMPONENT_B_ID,
-          namingPattern: "{release_version}-{built_version}-{increment}",
-          releaseScope: "version_bound",
-        },
-      ];
+      return releaseComponentFixtureList.map((fixture) => ({
+        id: fixture.id,
+        namingPattern: fixture.namingPattern,
+        releaseScope:
+          fixture.releaseScope === "version-bound" ? "version_bound" : "global",
+      }));
     });
     db.releaseVersion.findUniqueOrThrow = jest.fn(async () => ({
       id: REL_MAIN_ID,
@@ -208,11 +207,15 @@ describe("ReleaseVersion and BuiltVersion behavior", () => {
     const svc = new ReleaseVersionService(db);
     await svc.create(USER_1_ID, "version 101");
 
-    expect(db.componentVersion.upsert).toHaveBeenCalledTimes(2);
+    expect(db.componentVersion.upsert).toHaveBeenCalledTimes(
+      releaseComponentFixtureList.length,
+    );
     const componentIds = (db.componentVersion.upsert as jest.Mock).mock.calls
       .map(([args]: any[]) => args.create.releaseComponent.connect.id)
       .sort();
-    expect(componentIds).toEqual([COMPONENT_A_ID, COMPONENT_B_ID].sort());
+    expect(componentIds).toEqual(
+      [...releaseComponentFixtureList.map((fixture) => fixture.id)].sort(),
+    );
   });
 
   test("list returns bare DTOs when no relations are requested", async () => {
@@ -429,8 +432,11 @@ describe("ReleaseVersion and BuiltVersion behavior", () => {
     }));
     const bsvc = new BuiltVersionService(db);
     await bsvc.create(USER_1_ID, REL2 as any, "version 200.0");
-    // Only global component triggers creation
-    expect(db.componentVersion.create).toHaveBeenCalledTimes(1);
+    // Only global components trigger creation
+    const globalCount = releaseComponentFixtureList.filter(
+      (fixture) => fixture.releaseScope === "global",
+    ).length;
+    expect(db.componentVersion.create).toHaveBeenCalledTimes(globalCount);
   });
 
   test("transition to in_deployment creates a successor with higher increment", async () => {

@@ -1,5 +1,10 @@
 import type { Session } from "next-auth";
 import { NextRequest } from "next/server";
+import {
+  releaseComponentFixtureList,
+  releaseComponentFixtures,
+} from "../fixtures/release-components";
+import { userFixtures } from "../fixtures/users";
 
 jest.mock("superjson", () => ({
   __esModule: true,
@@ -55,13 +60,13 @@ type ReleaseRecord = {
 const releaseData: ReleaseRecord[] = [];
 let releaseCounter = 0;
 let builtCounter = 0;
-const COMPONENT_A_ID = "018f1a50-0000-7000-9000-00000000c0a1";
-const COMPONENT_B_ID = "018f1a50-0000-7000-9000-00000000c0b2";
+const COMPONENT_A_ID = releaseComponentFixtures.iosApp.id;
+const COMPONENT_B_ID = releaseComponentFixtures.phpBackend.id;
 const COMPONENT_VERSION_ID = "018f1a50-0000-7000-9000-00000000c0d1";
 const COMPONENT_VERSION_ID_2 = "018f1a50-0000-7000-9000-00000000c0d2";
-const USER_1_ID = "018f1a50-0000-7000-9000-00000000d0a1";
-const USER_2_ID = "018f1a50-0000-7000-9000-00000000d0a2";
-const SESSION_USER_ID = "018f1a50-0000-7000-9000-00000000d0ff";
+const USER_1_ID = userFixtures.adamScott.id;
+const USER_2_ID = userFixtures.melanieMayer.id;
+const SESSION_USER_ID = userFixtures.adamScott.id;
 const TRANSITION_ID = "018f1a50-0000-7000-9000-00000000d1b1";
 const USER_3_ID = "018f1a50-0000-7000-9000-00000000d0a3";
 const TRANSITION_ID_2 = "018f1a50-0000-7000-9000-00000000d1b2";
@@ -207,7 +212,7 @@ async function parseJsonObject(
 }
 
 const authenticatedSession: Session = {
-  user: { id: SESSION_USER_ID, name: "Test User" },
+  user: { id: SESSION_USER_ID, name: userFixtures.adamScott.name },
   expires: "2099-01-01T00:00:00.000Z",
 };
 
@@ -715,18 +720,12 @@ describe("Release Versions REST endpoints", () => {
 
     it("seeds component versions for all release components", async () => {
       authMock.mockResolvedValue(authenticatedSession);
-      const components = [
-        {
-          id: COMPONENT_A_ID,
-          namingPattern: "{release_version}-{built_version}-{increment}",
-          releaseScope: "global" as const,
-        },
-        {
-          id: COMPONENT_B_ID,
-          namingPattern: "{release_version}-{built_version}-{increment}",
-          releaseScope: "version_bound" as const,
-        },
-      ];
+      const components = releaseComponentFixtureList.map((fixture) => ({
+        id: fixture.id,
+        namingPattern: fixture.namingPattern,
+        releaseScope:
+          fixture.releaseScope === "version-bound" ? "version_bound" : "global",
+      }));
       (
         mockDb.releaseComponent as { findMany: jest.Mock }
       ).findMany.mockResolvedValue(components);
@@ -760,11 +759,13 @@ describe("Release Versions REST endpoints", () => {
           },
         ]
       >;
-      expect(upsertCalls).toHaveLength(2);
+      expect(upsertCalls).toHaveLength(releaseComponentFixtureList.length);
       const seededIds = new Set(
         upsertCalls.map(([args]) => args.create.releaseComponent.connect.id),
       );
-      expect(seededIds).toEqual(new Set([COMPONENT_A_ID, COMPONENT_B_ID]));
+      expect(seededIds).toEqual(
+        new Set(releaseComponentFixtureList.map((fixture) => fixture.id)),
+      );
       upsertCalls.forEach(([args]) => {
         expect(args.create.increment).toBe(0);
         expect(
