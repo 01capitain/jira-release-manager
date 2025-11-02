@@ -1,6 +1,7 @@
 import { parse as parseCookie } from "cookie";
 import type { Session } from "next-auth";
 import { NextRequest } from "next/server";
+import { userFixtures } from "../fixtures/users";
 
 jest.mock("superjson", () => ({
   __esModule: true,
@@ -38,7 +39,7 @@ const actionData: ActionRecord[] = [];
 const makeUuid = (offset: number) =>
   `018f1a50-0000-7000-8000-${offset.toString(16).padStart(12, "0")}`;
 
-const USER_ID = makeUuid(50_000);
+const USER_ID = userFixtures.adamScott.id;
 
 const cloneAction = (record: ActionRecord): ActionRecord => ({
   ...record,
@@ -180,7 +181,7 @@ const executeHandler = async (request: NextRequest): Promise<Response> => {
 const authenticatedSession: Session = {
   user: {
     id: USER_ID,
-    name: "Action Tester",
+    name: userFixtures.adamScott.name,
   },
   expires: "2099-01-01T00:00:00.000Z",
 };
@@ -222,7 +223,7 @@ describe("GET /api/v1/action-history", () => {
           ? {
               id: authenticatedSession.user.id,
               name: authenticatedSession.user.name ?? null,
-              email: "tester@example.com",
+              email: userFixtures.adamScott.email ?? null,
             }
           : {
               id: makeUuid(80_000),
@@ -251,7 +252,7 @@ describe("GET /api/v1/action-history", () => {
         createdBy: {
           id: authenticatedSession.user.id,
           name: authenticatedSession.user.name ?? null,
-          email: "tester@example.com",
+          email: userFixtures.adamScott.email ?? null,
         },
         sessionToken,
         subactions: [
@@ -275,7 +276,7 @@ describe("GET /api/v1/action-history", () => {
         createdBy: {
           id: authenticatedSession.user.id,
           name: authenticatedSession.user.name ?? null,
-          email: "tester@example.com",
+          email: userFixtures.adamScott.email ?? null,
         },
         sessionToken,
         subactions: [
@@ -314,7 +315,7 @@ describe("GET /api/v1/action-history", () => {
           createdBy: {
             id: authenticatedSession.user?.id,
             name: authenticatedSession.user?.name ?? null,
-            email: "tester@example.com",
+            email: userFixtures.adamScott.email ?? null,
           },
         },
         {
