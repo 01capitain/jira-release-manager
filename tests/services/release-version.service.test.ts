@@ -157,8 +157,10 @@ describe("ReleaseVersion and BuiltVersion behavior", () => {
       expect(builtArgs).toBeDefined();
       expect(builtArgs?.data?.name).toBe("version 100.0"); // ends with .0
 
-      // component versions created for each release component (2 total)
-      expect(db.componentVersion.upsert).toHaveBeenCalledTimes(2);
+      // component versions created for each release component
+      expect(db.componentVersion.upsert).toHaveBeenCalledTimes(
+        releaseComponentFixtureList.length,
+      );
       const seededComponentIds = new Set(
         (db.componentVersion.upsert as jest.Mock).mock.calls.map(
           ([args]: any[]) =>
@@ -166,7 +168,7 @@ describe("ReleaseVersion and BuiltVersion behavior", () => {
         ),
       );
       expect(seededComponentIds).toEqual(
-        new Set([COMPONENT_A_ID, COMPONENT_B_ID]),
+        new Set(releaseComponentFixtureList.map((fixture) => fixture.id)),
       );
       (db.componentVersion.upsert as jest.Mock).mock.calls.forEach(
         ([args]: any[]) => {
@@ -182,6 +184,18 @@ describe("ReleaseVersion and BuiltVersion behavior", () => {
     });
     test("creating a release requests naming data for all components", async () => {
       const { db } = makeMockDb();
+      const expectedComponents = [
+        {
+          id: COMPONENT_A_ID,
+          namingPattern: "{release_version}-{built_version}-{increment}",
+          releaseScope: "global",
+        },
+        {
+          id: COMPONENT_B_ID,
+          namingPattern: "{release_version}-{built_version}-{increment}",
+          releaseScope: "version_bound",
+        },
+      ];
       db.releaseComponent.findMany = jest.fn(async (args: any) => {
         expect(args).toMatchObject({
           select: {
@@ -189,18 +203,7 @@ describe("ReleaseVersion and BuiltVersion behavior", () => {
             namingPattern: true,
           },
         });
-        return [
-          {
-            id: COMPONENT_A_ID,
-            namingPattern: "{release_version}-{built_version}-{increment}",
-            releaseScope: "global",
-          },
-          {
-            id: COMPONENT_B_ID,
-            namingPattern: "{release_version}-{built_version}-{increment}",
-            releaseScope: "version_bound",
-          },
-        ];
+        return expectedComponents;
       });
       db.releaseVersion.findUniqueOrThrow = jest.fn(async () => ({
         id: REL_MAIN_ID,
@@ -210,11 +213,17 @@ describe("ReleaseVersion and BuiltVersion behavior", () => {
       const svc = new ReleaseVersionService(db);
       await svc.create(USER_1_ID, "version 101");
 
-      expect(db.componentVersion.upsert).toHaveBeenCalledTimes(2);
-      const componentIds = (db.componentVersion.upsert as jest.Mock).mock.calls
-        .map(([args]: any[]) => args.create.releaseComponent.connect.id)
-        .sort();
-      expect(componentIds).toEqual([COMPONENT_A_ID, COMPONENT_B_ID].sort());
+      expect(db.componentVersion.upsert).toHaveBeenCalledTimes(
+        expectedComponents.length,
+      );
+      const componentIds = new Set(
+        (db.componentVersion.upsert as jest.Mock).mock.calls.map(
+          ([args]: any[]) => args.create.releaseComponent.connect.id,
+        ),
+      );
+      expect(componentIds).toEqual(
+        new Set(expectedComponents.map((component) => component.id)),
+      );
     });
     test("creating a builtVersion creates component versions for each release component", async () => {
       const { db } = makeMockDb();
@@ -225,8 +234,11 @@ describe("ReleaseVersion and BuiltVersion behavior", () => {
       }));
       const bsvc = new BuiltVersionService(db);
       await bsvc.create(USER_1_ID, REL2 as any, "version 200.0");
-      // Only global component triggers creation
-      expect(db.componentVersion.create).toHaveBeenCalledTimes(1);
+      // Only global components trigger creation
+      const globalCount = releaseComponentFixtureList.filter(
+        (fixture) => fixture.releaseScope === "global",
+      ).length;
+      expect(db.componentVersion.create).toHaveBeenCalledTimes(globalCount);
     });
   });
   describe("ReleaseVersionService.list()", () => {
