@@ -58,7 +58,7 @@ export const fetchReleasesWithBuilds = async (options?: {
 }): Promise<ReleaseVersionWithBuildsDto[]> => {
   const DEFAULT_PAGE_SIZE = 10;
   const DEFAULT_SORT_BY = "-createdAt";
-  const DEFAULT_MAX_PAGES = 10;
+  const DEFAULT_MAX_PAGES = 1000;
   const MAX_ATTEMPTS = 3;
   const RETRY_BASE_DELAY_MS = 200;
 
@@ -119,10 +119,11 @@ export const fetchReleasesWithBuilds = async (options?: {
     page += 1;
   }
 
-  if (page > maxPages && hasNextPage) {
+  if (Number.isFinite(maxPages) && page > maxPages && hasNextPage) {
     throw new Error(
       `Pagination aborted after reaching maximum of ${maxPages} pages (aggregated: ${aggregated.length})`,
     );
+  }
   }
 
   return aggregated;
