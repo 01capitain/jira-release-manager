@@ -6,6 +6,7 @@ import { Geist } from "next/font/google";
 
 import { AppShell } from "~/components/layout/app-shell";
 import { ReactQueryProvider } from "~/components/providers/react-query-provider";
+import { TelemetryProvider } from "~/components/providers/telemetry-provider";
 import { ThemeProvider } from "~/components/theme/theme-provider";
 
 export const metadata: Metadata = {
@@ -25,11 +26,13 @@ export default function RootLayout({
   return (
     <html lang="en" className={geist.variable} suppressHydrationWarning>
       <body className="min-h-screen bg-black text-neutral-900 antialiased dark:bg-black dark:text-neutral-100">
-        <ReactQueryProvider>
-          <ThemeProvider>
-            <AppShell>{children}</AppShell>
-          </ThemeProvider>
-        </ReactQueryProvider>
+        <TelemetryProvider>
+          <ReactQueryProvider>
+            <ThemeProvider>
+              <AppShell>{children}</AppShell>
+            </ThemeProvider>
+          </ReactQueryProvider>
+        </TelemetryProvider>
       </body>
     </html>
   );
