@@ -712,10 +712,27 @@ describe("Release Versions REST endpoints", () => {
       });
       expect(
         (mockDb.builtVersion as { create: jest.Mock }).create,
-      ).toHaveBeenCalledWith({
-        data: recordContaining({ name: "Release 100.0" }),
-        select: { id: true, name: true },
-      });
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            name: "Release 100.0",
+            createdBy: { connect: { id: SESSION_USER_ID } },
+            version: expect.objectContaining({
+              connect: expect.objectContaining({ id: expect.any(String) }),
+            }),
+            tokenValues: {
+              release_version: "Release 100",
+              increment: 0,
+            },
+          }),
+          select: {
+            id: true,
+            name: true,
+            versionId: true,
+            createdAt: true,
+          },
+        }),
+      );
     });
 
     it("seeds component versions for all release components", async () => {

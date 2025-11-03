@@ -29,9 +29,15 @@ import type {
   ReleaseVersionRelationKey,
   ReleaseVersionWithRelationsDto,
 } from "~/shared/types/release-version-relations";
+import { BuiltVersionService } from "~/server/services/built-version.service";
 
 export class ReleaseVersionService {
-  constructor(private readonly db: PrismaClient) {}
+  constructor(
+    private readonly db: PrismaClient,
+    private readonly builtVersionService: BuiltVersionService = new BuiltVersionService(
+      db,
+    ),
+  ) {}
 
   private buildRelationsInclude(
     state: ReleaseVersionRelationState,
@@ -188,91 +194,23 @@ export class ReleaseVersionService {
         message: `Release ${release.name} stored`,
         metadata: { id: release.id },
       });
-      //TODO: Why is it not using the builtVersioNService to create the built?
       // Auto-create initial built version with increment 0
       const builtIncrement = 0;
       const builtName = `${release.name}.${builtIncrement}`;
-      const built = await tx.builtVersion.create({
-        data: {
-          name: builtName,
-          version: { connect: { id: release.id } },
-          createdBy: { connect: { id: userId } },
-          tokenValues: {
-            release_version: release.name,
-            increment: builtIncrement,
-          } as Prisma.InputJsonValue,
-        },
-        select: { id: true, name: true },
-      });
-      auditTrail.push({
-        subactionType: "builtVersion.autoCreate",
-        message: `Initial built ${built.name} created`,
-        metadata: { id: built.id, releaseId: release.id },
-      });
+      const { auditTrail: builtTrail } =
+        await this.builtVersionService.createInitialForRelease(tx, {
+          userId,
+          releaseId: release.id,
+          releaseName: release.name,
+          builtName,
+        });
+      auditTrail.push(...builtTrail);
 
       // Update release's lastUsedIncrement to 0
       await tx.releaseVersion.update({
         where: { id: release.id },
         data: { lastUsedIncrement: builtIncrement },
       });
-
-      //TODO: Move this to builtVersion Service, this is no release version problem
-      // Create initial component versions for this built
-      const releaseComponentDelegate = tx.releaseComponent as unknown as {
-        findMany(args?: unknown): Promise<
-          Array<{
-            id: string;
-            namingPattern: string | null;
-          }>
-        >;
-      };
-      const components = await releaseComponentDelegate.findMany({
-        select: { id: true, namingPattern: true },
-      });
-      if (components.length > 0) {
-        const { validatePattern, expandPattern } = await import(
-          "~/server/services/component-version-naming.service"
-        );
-        for (const comp of components) {
-          if (!comp.namingPattern?.trim()) continue;
-          const { valid } = validatePattern(comp.namingPattern);
-          if (!valid) continue;
-          const componentIncrement = 0;
-          const computedName = expandPattern(comp.namingPattern, {
-            releaseVersion: release.name,
-            builtVersion: built.name,
-            nextIncrement: componentIncrement,
-          });
-          await tx.componentVersion.upsert({
-            where: {
-              builtVersionId_releaseComponentId: {
-                builtVersionId: built.id,
-                releaseComponentId: comp.id,
-              },
-            },
-            update: {},
-            create: {
-              name: computedName,
-              increment: componentIncrement,
-              releaseComponent: { connect: { id: comp.id } },
-              builtVersion: { connect: { id: built.id } },
-              tokenValues: {
-                release_version: release.name,
-                built_version: built.name,
-                increment: componentIncrement,
-              } as Prisma.InputJsonValue,
-            },
-          });
-          auditTrail.push({
-            subactionType: "componentVersion.seed",
-            message: `Seeded component for built ${built.name}`,
-            metadata: {
-              releaseComponentId: comp.id,
-              builtVersionId: built.id,
-            },
-          });
-        }
-      }
 
       return release;
     });
