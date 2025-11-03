@@ -103,7 +103,9 @@ export const fetchReleasesWithBuilds = async (options?: {
     }
 
     if (!response) {
-      throw new Error(`Unexpected: response undefined after retry loop for page ${page}`);
+      throw new Error(
+        `Unexpected: response undefined after retry loop for page ${page}`,
+      );
     }
 
     aggregated.push(
@@ -123,7 +125,6 @@ export const fetchReleasesWithBuilds = async (options?: {
     throw new Error(
       `Pagination aborted after reaching maximum of ${maxPages} pages (aggregated: ${aggregated.length})`,
     );
-  }
   }
 
   return aggregated;

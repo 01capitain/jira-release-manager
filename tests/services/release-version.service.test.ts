@@ -6,6 +6,7 @@ import { releaseVersionFixtures } from "../fixtures/release-versions";
 import { userFixtures } from "../fixtures/users";
 import { BuiltVersionService } from "~/server/services/built-version.service";
 import { ReleaseVersionService } from "~/server/services/release-version.service";
+import type { ActionLogger } from "~/server/services/action-history.service";
 
 const COMPONENT_A_ID = releaseComponentFixtures.iosApp.id;
 const COMPONENT_B_ID = releaseComponentFixtures.phpBackend.id;
@@ -88,6 +89,7 @@ function makeMockDb() {
         record("releaseComponent.findMany", {});
         const all = releaseComponentFixtureList.map((fixture) => ({
           id: fixture.id,
+          name: fixture.name,
           namingPattern: fixture.namingPattern,
           releaseScope:
             fixture.releaseScope === "version-bound"
@@ -168,6 +170,12 @@ describe("ReleaseVersion and BuiltVersion behavior", () => {
       expect(seededComponentIds).toEqual(
         new Set(releaseComponentFixtureList.map((fixture) => fixture.id)),
       );
+      expect(seededComponentIds.has(releaseComponentFixtures.iosApp.id)).toBe(
+        true,
+      );
+      expect(
+        seededComponentIds.has(releaseComponentFixtures.phpBackend.id),
+      ).toBe(true);
       (db.componentVersion.upsert as jest.Mock).mock.calls.forEach(
         ([args]: any[]) => {
           expect(args.create.increment).toBe(0);
@@ -185,11 +193,13 @@ describe("ReleaseVersion and BuiltVersion behavior", () => {
       const expectedComponents = [
         {
           id: COMPONENT_A_ID,
+          name: "Component A",
           namingPattern: "{release_version}-{built_version}-{increment}",
           releaseScope: "global",
         },
         {
           id: COMPONENT_B_ID,
+          name: "Component B",
           namingPattern: "{release_version}-{built_version}-{increment}",
           releaseScope: "version_bound",
         },
@@ -198,7 +208,9 @@ describe("ReleaseVersion and BuiltVersion behavior", () => {
         expect(args).toMatchObject({
           select: {
             id: true,
+            name: true,
             namingPattern: true,
+            releaseScope: true,
           },
         });
         return expectedComponents;
@@ -222,6 +234,76 @@ describe("ReleaseVersion and BuiltVersion behavior", () => {
       expect(componentIds).toEqual(
         new Set(expectedComponents.map((component) => component.id)),
       );
+    });
+    test("creating a release delegates built creation and emits action history subactions", async () => {
+      const { db } = makeMockDb();
+      const builtId = BUILT_VERSION_LIST_ID;
+      const builtService = {
+        createInitialForRelease: jest.fn(async (_tx: any, params: any) => ({
+          built: {
+            id: builtId,
+            name: params.builtName,
+            versionId: params.releaseId,
+            createdAt: new Date(),
+          },
+          auditTrail: [
+            {
+              subactionType: "builtVersion.autoCreate",
+              message: `Built version ${params.builtName} created`,
+              metadata: { id: builtId, versionId: params.releaseId },
+            },
+            {
+              subactionType: "componentVersion.seed",
+              message: `Seeded ${releaseComponentFixtures.iosApp.name} for ${params.builtName}`,
+              metadata: {
+                releaseComponentId: releaseComponentFixtures.iosApp.id,
+                builtVersionId: builtId,
+              },
+            },
+            {
+              subactionType: "componentVersion.seed",
+              message: `Seeded ${releaseComponentFixtures.phpBackend.name} for ${params.builtName}`,
+              metadata: {
+                releaseComponentId: releaseComponentFixtures.phpBackend.id,
+                builtVersionId: builtId,
+              },
+            },
+          ],
+        })),
+      };
+      const logger: ActionLogger = {
+        id: "action-1",
+        subaction: jest.fn(async () => undefined),
+        complete: jest.fn(async () => undefined),
+      };
+
+      const svc = new ReleaseVersionService(
+        db,
+        builtService as unknown as BuiltVersionService,
+      );
+      await svc.create(USER_1_ID, "version 102", { logger });
+
+      expect(builtService.createInitialForRelease).toHaveBeenCalledTimes(1);
+      const releaseCallEntries = (logger.subaction as jest.Mock).mock.calls.map(
+        ([entry]: [any]) => entry,
+      );
+      const releasePersist = releaseCallEntries.filter(
+        (entry) => entry.subactionType === "releaseVersion.persist",
+      );
+      expect(releasePersist).toHaveLength(1);
+
+      const builtSubactions = releaseCallEntries.filter(
+        (entry) => entry.subactionType === "builtVersion.autoCreate",
+      );
+      expect(builtSubactions).toHaveLength(1);
+
+      const componentSubactions = releaseCallEntries.filter(
+        (entry) => entry.subactionType === "componentVersion.seed",
+      );
+      expect(componentSubactions).toHaveLength(2);
+      for (const entry of componentSubactions) {
+        expect(entry.message).toMatch(/Seeded (iOS App|PHP Backend)/);
+      }
     });
     test("creating a builtVersion creates component versions for each release component", async () => {
       const { db } = makeMockDb();
@@ -450,6 +532,39 @@ describe("ReleaseVersion and BuiltVersion behavior", () => {
     });
   });
   describe("TODO: Move to BuiltVersionService Tests", () => {
+    test("createInitialForRelease seeds all release components with increment 0", async () => {
+      const { db } = makeMockDb();
+      const svc = new BuiltVersionService(db);
+      const releaseName = "version 300";
+      const builtName = `${releaseName}.0`;
+
+      const result = await svc.createInitialForRelease(db, {
+        userId: USER_1_ID,
+        releaseId: REL_MAIN_ID,
+        releaseName,
+        builtName,
+      });
+
+      expect(db.releaseVersion.findUniqueOrThrow).not.toHaveBeenCalled();
+      expect(db.builtVersion.create).toHaveBeenCalledTimes(1);
+      expect(db.componentVersion.upsert).toHaveBeenCalledTimes(
+        releaseComponentFixtureList.length,
+      );
+      for (const [args] of (db.componentVersion.upsert as jest.Mock).mock
+        .calls) {
+        expect(args.create.increment).toBe(0);
+      }
+      const seedSubactions = result.auditTrail.filter(
+        (entry) => entry.subactionType === "componentVersion.seed",
+      );
+      expect(seedSubactions).toHaveLength(releaseComponentFixtureList.length);
+      expect(seedSubactions.map((entry) => entry.message)).toEqual(
+        expect.arrayContaining([
+          expect.stringContaining(releaseComponentFixtures.iosApp.name),
+          expect.stringContaining(releaseComponentFixtures.phpBackend.name),
+        ]),
+      );
+    });
     //TODO: move to BuiltVersionService Test Suite
     test("listByRelease maps rows to DTOs", async () => {
       const { db } = makeMockDb();
