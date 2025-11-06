@@ -59,7 +59,7 @@ To test locally, run an OTLP-compatible collector such as the [OpenTelemetry Col
 
 - The `TelemetryProvider` (see `src/components/providers/telemetry-provider.tsx`) initializes tracing/metrics once on the client using `@opentelemetry/sdk-trace-web`.
 - Collected telemetry flows to the OTLP HTTP endpoints defined by the `NEXT_PUBLIC_OTEL_*` variables.
-- A basic `app.page_view` counter metric ships with each navigation; expand with additional counters or histograms as needed.
+- A basic `app.page_view` counter metric fires once on application startup; subscribe to router events (or similar custom logic) and increment the counter manually if you need per-navigation metrics.
 
 ### Best Practices
 
@@ -79,7 +79,7 @@ To test locally, run an OTLP-compatible collector such as the [OpenTelemetry Col
 - Introduce manual instrumentation with `@opentelemetry/api`:
 
   ```ts
-  import { trace } from "@opentelemetry/api";
+  import { SpanStatusCode, trace } from "@opentelemetry/api";
 
   const tracer = trace.getTracer("jira-release-manager");
   await tracer.startActiveSpan("release.sync", async (span) => {
