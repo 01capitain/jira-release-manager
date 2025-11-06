@@ -66,9 +66,17 @@ To ensure your build never completes without the environment variables the proje
 
 Why do I need to destructure the environment variable in the `runtimeEnv`? This is due to how Next.js bundles environment variables in certain runtimes. By destructuring it manually, you ensure that the variable will never be stripped out from the bundle.
 
-Optionally, you can also keep `.env.example` updated:
+### Maintain `.env.example` parity
 
-📄 `.env.example`: Enter your environment variable, but be sure to not include the value if it is secret, i.e. `KEY=VALUE` or `KEY=`
+Keeping `.env.example` aligned with the real `.env` is required so new contributors can boot the project without guesswork. Whenever you add or rename an environment variable:
+
+1. Update `.env` with the real value (or placeholder).
+2. Mirror the key in `.env.example` with no secret value (`KEY=` or `KEY=<non-secret>`).
+3. Document any usage nuances inline with a short comment if helpful.
+
+This manual parity check should happen in every PR review. If you prefer automation, add a lightweight Husky pre-commit (e.g. a script that diffs `.env` keys against `.env.example`) or wire the same script into CI to block merges when the files drift. Feel free to reference or extend any shared hook described in `docs/guides/open_telemetry_setup.md` once it exists.
+
+📄 `.env.example`: Enter your environment variable, but be sure to not include the value if it is secret, i.e. `KEY=VALUE` or `KEY=`
 
 ### Example
 

@@ -14,7 +14,7 @@ This guide explains how to enable OpenTelemetry (OTel) for both the server (Next
 
 ## 1. Environment Variables
 
-Edit `.env` (and keep `.env.example` in sync) using the variables below. All values are optional—telemetry only starts when endpoints are provided. See `docs/guides/Add an environment variable.md` for validation details.
+Edit `.env` using the variables below and mirror every key in `.env.example` per the policy in `docs/guides/Add an environment variable.md#maintain-envexample-parity`. All values are optional—telemetry only starts when endpoints are provided. If you wire the optional Husky/CI parity check described in that guide, this section becomes part of the enforcement surface for contributors. See the same guide for validator details.
 
 ```bash
 # Service identity
