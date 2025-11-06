@@ -77,6 +77,7 @@ To test locally, run an OTLP-compatible collector such as the [OpenTelemetry Col
 ## 5. Extending Telemetry
 
 - Introduce manual instrumentation with `@opentelemetry/api`:
+
   ```ts
   import { trace } from "@opentelemetry/api";
 
@@ -94,6 +95,7 @@ To test locally, run an OTLP-compatible collector such as the [OpenTelemetry Col
     }
   });
   ```
+
 - Emit domain metrics with the shared MeterProvider (Node or browser) for counters/histograms tied to business KPIs.
 - Configure resource attributes (e.g., `SERVICE_VERSION`, deployment environment) via `OTEL_RESOURCE_ATTRIBUTES`.
 
