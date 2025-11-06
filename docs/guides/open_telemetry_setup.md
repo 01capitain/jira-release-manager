@@ -35,6 +35,14 @@ NEXT_PUBLIC_OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=http://localhost:4318/v1/metrics
 # Optional verbose diagnostics (avoid in production)
 OTEL_DEBUG=false
 NEXT_PUBLIC_OTEL_DEBUG=false
+
+# Optional resource enrichment
+# SERVICE_VERSION falls back to package.json version when unset
+SERVICE_VERSION=0.1.0
+# DEPLOYMENT_ENVIRONMENT falls back to NODE_ENV when unset
+DEPLOYMENT_ENVIRONMENT=staging
+# SERVICE_INSTANCE_ID falls back to HOSTNAME or a generated UUID when unset
+SERVICE_INSTANCE_ID=release-manager-api-1
 ```
 
 ### Running a Local Collector
@@ -54,6 +62,7 @@ To test locally, run an OTLP-compatible collector such as the [OpenTelemetry Col
 - **Sampling**: the default parent-based sampler is often sufficient; adjust via environment variables (`OTEL_TRACES_SAMPLER` and related `OTEL_TRACES_SAMPLER_ARG`) if needed.
 - **Context propagation**: when adding custom async work ensure context is carried using `context.with` or instrumentation utilities.
 - **Error capture**: throw errors normally—instrumentations enrich spans with exception data automatically.
+- **Resource metadata**: set `SERVICE_VERSION`, `DEPLOYMENT_ENVIRONMENT`, and `SERVICE_INSTANCE_ID` (or let the defaults kick in) so traces can be filtered by deploys/hosts in your backend.
 
 ## 3. Browser Instrumentation
 

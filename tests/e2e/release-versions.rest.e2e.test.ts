@@ -61,7 +61,6 @@ const releaseData: ReleaseRecord[] = [];
 let releaseCounter = 0;
 let builtCounter = 0;
 const COMPONENT_A_ID = releaseComponentFixtures.iosApp.id;
-const COMPONENT_B_ID = releaseComponentFixtures.phpBackend.id;
 const COMPONENT_VERSION_ID = "018f1a50-0000-7000-9000-00000000c0d1";
 const COMPONENT_VERSION_ID_2 = "018f1a50-0000-7000-9000-00000000c0d2";
 const USER_1_ID = userFixtures.adamScott.id;
@@ -195,10 +194,6 @@ const clearReleaseRecords = () => {
 
 type JsonResponse = {
   json: () => Promise<unknown>;
-};
-
-const recordContaining = (value: Record<string, unknown>) => {
-  return expect.objectContaining(value) as Record<string, unknown>;
 };
 
 async function parseJsonObject(
