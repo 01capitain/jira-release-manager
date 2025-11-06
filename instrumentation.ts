@@ -79,19 +79,20 @@ export async function register() {
   sdk.start();
   globalThis.__otelNodeSdkStarted = true;
 
-  const shutdown = async () => {
-    await sdk.shutdown().catch((error) => {
-      diag.error("OTel shutdown failed", error);
-    });
+  const shutdown = () => sdk.shutdown();
+
+  const handleSignal = () => {
+    void (async () => {
+      try {
+        await shutdown();
+        process.exit(0);
+      } catch (error) {
+        diag.error("OTel shutdown failed", error);
+        process.exit(1);
+      }
+    })();
   };
 
-  process.on("exit", () => {
-    void shutdown();
-  });
-  process.on("SIGTERM", () => {
-    void shutdown();
-  });
-  process.on("SIGINT", () => {
-    void shutdown();
-  });
+  process.on("SIGTERM", handleSignal);
+  process.on("SIGINT", handleSignal);
 }
