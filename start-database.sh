@@ -119,6 +119,8 @@ remove_leftover_container "jira-release-manager-postgres"
 remove_leftover_container "jira-release-manager-telemetry"
 
 export DB_USER DB_PASSWORD DB_NAME DB_PORT
+export GRAFANA_ADMIN_USER="${GRAFANA_ADMIN_USER:-admin}"
+export GRAFANA_ADMIN_PASSWORD="${GRAFANA_ADMIN_PASSWORD:-hotelkit123}"
 export COMPOSE_PROJECT_NAME="jira-release-manager"
 
 "${COMPOSE_CMD[@]}" up -d postgres observability

@@ -1,7 +1,18 @@
+import { context, propagation, type TextMapSetter } from "@opentelemetry/api";
+
 export type RestApiErrorPayload = {
   code: string;
   message: string;
   details?: Record<string, unknown> | null;
+};
+
+const headersSetter: TextMapSetter<Headers> = {
+  set(carrier, key, value) {
+    if (!carrier || typeof carrier.set !== "function" || value === undefined) {
+      return;
+    }
+    carrier.set(key, value);
+  },
 };
 
 export class RestApiError extends Error {
@@ -46,15 +57,23 @@ export const requestJson = async <TResponse>(
   input: RequestInfo,
   init?: RequestInit,
 ): Promise<TResponse> => {
+  const headers = new Headers({ Accept: "application/json" });
+
+  if (init?.body !== undefined) {
+    headers.set("Content-Type", "application/json");
+  }
+
+  if (init?.headers) {
+    new Headers(init.headers).forEach((value, key) => {
+      headers.set(key, value);
+    });
+  }
+
+  propagation.inject(context.active(), headers, headersSetter);
+
   const response = await fetch(input, {
-    headers: {
-      Accept: "application/json",
-      ...(init?.body !== undefined
-        ? { "Content-Type": "application/json" }
-        : {}),
-      ...(init?.headers ?? {}),
-    },
     ...init,
+    headers,
   });
 
   if (!response.ok) {

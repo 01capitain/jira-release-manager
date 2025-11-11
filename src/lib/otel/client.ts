@@ -1,8 +1,11 @@
 "use client";
 
 import { diag, DiagConsoleLogger, DiagLogLevel } from "@opentelemetry/api";
+import { getWebAutoInstrumentations } from "@opentelemetry/auto-instrumentations-web";
+import { ZoneContextManager } from "@opentelemetry/context-zone-peer-dep";
 import { OTLPMetricExporter } from "@opentelemetry/exporter-metrics-otlp-http";
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
+import { registerInstrumentations } from "@opentelemetry/instrumentation";
 import { resourceFromAttributes } from "@opentelemetry/resources";
 import {
   PeriodicExportingMetricReader,
@@ -75,7 +78,19 @@ export const initializeClientTelemetry = () => {
       resource,
       spanProcessors: [new BatchSpanProcessor(exporter)],
     });
-    tracerProvider.register();
+    tracerProvider.register({ contextManager: new ZoneContextManager() });
+
+    registerInstrumentations({
+      tracerProvider,
+      instrumentations: [
+        getWebAutoInstrumentations({
+          "@opentelemetry/instrumentation-fetch": {
+            propagateTraceHeaderCorsUrls: [/^(?!chrome-extension:\/\/).*/],
+            clearTimingResources: true,
+          },
+        }),
+      ],
+    });
   }
 
   if (metricsEndpoint) {

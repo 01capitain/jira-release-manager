@@ -51,24 +51,30 @@ Follow our deployment guides for [Docker](https://create.t3.gg/en/deployment/doc
 
 ## Local Telemetry Sandbox
 
-Use Docker Compose to start the observability stack alongside Postgres:
+Run the entire Grafana Alloy + Tempo + Loki + Prometheus + Grafana stack from the single Dockerfile. Credentials are configurable via `GRAFANA_ADMIN_USER` / `GRAFANA_ADMIN_PASSWORD` (defaults: `admin` / `hotelkit123`).
 
 ```bash
-./start-database.sh
-# or manually:
-docker compose up -d postgres observability
+# optional: override defaults in your shell or .env
+export GRAFANA_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+export GRAFANA_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-hotelkit123}
+
+docker build -f observability/otel-sandbox/Dockerfile -t jira-release-manager-otel .
+docker run --rm \
+  -e GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin} \
+  -e GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-hotelkit123} \
+  -p 4318:4318 \
+  -p 4317:4317 \
+  -p 3001:3001 \
+  -p 3200:3200 \
+  -p 3100:3100 \
+  -p 9090:9090 \
+  -p 9464:9464 \
+  jira-release-manager-otel
 ```
 
-Docker Desktop / Podman Desktop will show a single `jira-release-manager` project that contains both services, keeping the containers grouped. The `observability` service is built from `observability/otel-sandbox/Dockerfile` and exposes the usual ports:
+Grafana (http://localhost:3001, default `admin` / `hotelkit123`) comes pre-provisioned with datasources and the *OTel Sandbox* dashboard. Because the container writes everything to `/tmp`, telemetry persists only for the container’s lifetime.
 
-- 4318 / 4317 – OTLP HTTP / gRPC
-- 3001 – Grafana
-- 3200 – Tempo
-- 3100 – Loki
-- 9090 – Prometheus
-- 9464 – Alloy metrics
-
-Set your application exporters to use the stack:
+Set the application exporters to send data to the sandbox:
 
 ```bash
 export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
@@ -78,7 +84,7 @@ export NEXT_PUBLIC_OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://localhost:4318/v1/t
 export NEXT_PUBLIC_OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=http://localhost:4318/v1/metrics
 ```
 
-Grafana is available at `http://localhost:3001` (default credentials `admin` / `admin`). The stack stores everything under `/tmp` inside the container, so data resets automatically when the container stops.
+Need Postgres too? `./start-database.sh` (or `docker compose up -d postgres observability`) still boots both services under the shared `jira-release-manager` project in Docker Desktop / Podman Desktop by reusing the same Dockerfile. These helpers automatically pass the Grafana credentials using the same `GRAFANA_ADMIN_*` environment variables.
 
 ## Scripts
 

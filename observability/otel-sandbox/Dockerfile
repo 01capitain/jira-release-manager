@@ -14,7 +14,8 @@ ENV DEBIAN_FRONTEND=noninteractive \
     GF_PATHS_DATA=/tmp/grafana \
     GF_PATHS_LOGS=/tmp/grafana/logs \
     GF_PATHS_PLUGINS=/tmp/grafana/plugins \
-    GF_SECURITY_ADMIN_PASSWORD=admin
+    GF_SECURITY_ADMIN_USER=admin \
+    GF_SECURITY_ADMIN_PASSWORD=hotelkit123
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates curl tar unzip tini \

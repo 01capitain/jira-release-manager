@@ -26,6 +26,9 @@ services:
     image: jira-release-manager-otel
     container_name: jira-release-manager-telemetry
     restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-hotelkit123}
     depends_on:
       - postgres
     ports:

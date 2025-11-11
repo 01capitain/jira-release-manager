@@ -3,6 +3,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 
 import { getJson, postJson } from "~/lib/rest-client";
+import { withUiSpan } from "~/lib/otel/ui-span";
 import type { ReleaseVersionCreateInput } from "~/shared/schemas/release-version";
 import type { PaginatedResponse } from "~/shared/types/pagination";
 import type { ReleaseVersionDto } from "~/shared/types/release-version";
@@ -12,9 +13,11 @@ import type { ReleaseVersionWithBuildsDto } from "~/shared/types/release-version
 export const createReleaseVersion = async (
   input: ReleaseVersionCreateInput,
 ): Promise<ReleaseVersionDto> => {
-  return postJson<ReleaseVersionCreateInput, ReleaseVersionDto>(
-    "/api/v1/release-versions",
-    input,
+  return withUiSpan("ui.release.create", () =>
+    postJson<ReleaseVersionCreateInput, ReleaseVersionDto>(
+      "/api/v1/release-versions",
+      input,
+    ),
   );
 };
 
