@@ -130,12 +130,14 @@ export async function register() {
   sdk.start();
   globalThis.__otelNodeSdkStarted = true;
 
-  const shutdown = () => sdk.shutdown();
+  let isShuttingDown = false;
 
   const handleSignal = () => {
+    if (isShuttingDown) return;
+    isShuttingDown = true;
     void (async () => {
       try {
-        await shutdown();
+        await sdk.shutdown();
         process.exit(0);
       } catch (error) {
         diag.error("OTel shutdown failed", error);
