@@ -87,7 +87,7 @@ export async function register() {
   }
 
   if (process.env.OTEL_DEBUG === "true") {
-    diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.INFO);
+    diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.DEBUG);
   }
 
   const traceExporter = getTraceExporter();
