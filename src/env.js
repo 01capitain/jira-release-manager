@@ -19,6 +19,11 @@ export const env = createEnv({
     JIRA_BASE_URL: z.string().url().optional(),
     JIRA_PROJECT_KEY: z.string().optional(),
     NODE_ENV: z.enum(["development", "test", "production"]),
+    OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: z.string().url().optional(),
+    OTEL_EXPORTER_OTLP_METRICS_ENDPOINT: z.string().url().optional(),
+    OTEL_EXPORTER_OTLP_ENDPOINT: z.string().url().optional(),
+    OTEL_SERVICE_NAME: z.string().optional(),
+    OTEL_DEBUG: z.enum(["true", "false"]).optional(),
   },
 
   /**
@@ -28,6 +33,14 @@ export const env = createEnv({
    */
   client: {
     // NEXT_PUBLIC_CLIENTVAR: z.string(),
+    NEXT_PUBLIC_OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: z.string().url().optional(),
+    NEXT_PUBLIC_OTEL_EXPORTER_OTLP_METRICS_ENDPOINT: z
+      .string()
+      .url()
+      .optional(),
+    NEXT_PUBLIC_OTEL_EXPORTER_OTLP_ENDPOINT: z.string().url().optional(),
+    NEXT_PUBLIC_OTEL_SERVICE_NAME: z.string().optional(),
+    NEXT_PUBLIC_OTEL_DEBUG: z.enum(["true", "false"]).optional(),
   },
 
   /**
@@ -43,6 +56,21 @@ export const env = createEnv({
     JIRA_BASE_URL: process.env.JIRA_BASE_URL,
     JIRA_PROJECT_KEY: process.env.JIRA_PROJECT_KEY,
     NODE_ENV: process.env.NODE_ENV,
+    OTEL_EXPORTER_OTLP_TRACES_ENDPOINT:
+      process.env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT,
+    OTEL_EXPORTER_OTLP_METRICS_ENDPOINT:
+      process.env.OTEL_EXPORTER_OTLP_METRICS_ENDPOINT,
+    OTEL_EXPORTER_OTLP_ENDPOINT: process.env.OTEL_EXPORTER_OTLP_ENDPOINT,
+    OTEL_SERVICE_NAME: process.env.OTEL_SERVICE_NAME,
+    OTEL_DEBUG: process.env.OTEL_DEBUG,
+    NEXT_PUBLIC_OTEL_EXPORTER_OTLP_TRACES_ENDPOINT:
+      process.env.NEXT_PUBLIC_OTEL_EXPORTER_OTLP_TRACES_ENDPOINT,
+    NEXT_PUBLIC_OTEL_EXPORTER_OTLP_METRICS_ENDPOINT:
+      process.env.NEXT_PUBLIC_OTEL_EXPORTER_OTLP_METRICS_ENDPOINT,
+    NEXT_PUBLIC_OTEL_EXPORTER_OTLP_ENDPOINT:
+      process.env.NEXT_PUBLIC_OTEL_EXPORTER_OTLP_ENDPOINT,
+    NEXT_PUBLIC_OTEL_SERVICE_NAME: process.env.NEXT_PUBLIC_OTEL_SERVICE_NAME,
+    NEXT_PUBLIC_OTEL_DEBUG: process.env.NEXT_PUBLIC_OTEL_DEBUG,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially
