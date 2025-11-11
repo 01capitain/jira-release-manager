@@ -6,36 +6,27 @@ import { resourceFromAttributes } from "@opentelemetry/resources";
 import { PeriodicExportingMetricReader } from "@opentelemetry/sdk-metrics";
 import { NodeSDK, type NodeSDKConfiguration } from "@opentelemetry/sdk-node";
 import { SemanticResourceAttributes } from "@opentelemetry/semantic-conventions";
-import { randomUUID } from "node:crypto";
-import { readFileSync } from "node:fs";
-
-const packageJsonUrl = new URL("./package.json", import.meta.url);
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
 
 const getPackageVersion = (): string | undefined => {
-  try {
-    const raw = readFileSync(packageJsonUrl, "utf-8");
-    const parsed = JSON.parse(raw) as unknown;
-    if (!isRecord(parsed)) {
-      return undefined;
-    }
-    const version = parsed.version;
-    return typeof version === "string" ? version : undefined;
-  } catch {
-    return undefined;
-  }
+  const version = process.env.npm_package_version;
+  return typeof version === "string" && version.length > 0
+    ? version
+    : undefined;
 };
 
-const resolveServiceInstanceId = () => {
+const resolveServiceInstanceId = async () => {
   if (process.env.SERVICE_INSTANCE_ID) {
     return process.env.SERVICE_INSTANCE_ID;
   }
   if (process.env.HOSTNAME) {
     return process.env.HOSTNAME;
   }
-  const generated = randomUUID();
+  const generated =
+    globalThis.crypto?.randomUUID?.() ??
+    Math.random().toString(36).slice(2, 12);
   process.env.SERVICE_INSTANCE_ID = generated;
   return generated;
 };
@@ -126,7 +117,7 @@ export async function register() {
     process.env.SERVICE_VERSION ?? getPackageVersion() ?? undefined;
   const deploymentEnvironment =
     process.env.DEPLOYMENT_ENVIRONMENT ?? process.env.NODE_ENV;
-  const serviceInstanceId = resolveServiceInstanceId();
+  const serviceInstanceId = await resolveServiceInstanceId();
 
   const resourceAttributes: Record<string, string> = {
     [SemanticResourceAttributes.SERVICE_NAME]:
@@ -159,22 +150,25 @@ export async function register() {
   sdk.start();
   globalThis.__otelNodeSdkStarted = true;
 
-  let isShuttingDown = false;
+  const nodeProcess = globalThis.process;
+  if (!nodeProcess || typeof nodeProcess.on !== "function") {
+    return;
+  }
 
+  let isShuttingDown = false;
   const handleSignal = () => {
     if (isShuttingDown) return;
     isShuttingDown = true;
-    void (async () => {
-      try {
-        await sdk.shutdown();
-        process.exit(0);
-      } catch (error) {
-        diag.error("OTel shutdown failed", error);
-        process.exit(1);
-      }
-    })();
+    void sdk.shutdown().catch((error) => {
+      diag.error("OTel shutdown failed", error);
+    });
   };
 
-  process.on("SIGTERM", handleSignal);
-  process.on("SIGINT", handleSignal);
+  if (typeof nodeProcess.once === "function") {
+    nodeProcess.once("SIGTERM", handleSignal);
+    nodeProcess.once("SIGINT", handleSignal);
+  } else {
+    nodeProcess.on("SIGTERM", handleSignal);
+    nodeProcess.on("SIGINT", handleSignal);
+  }
 }

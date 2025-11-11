@@ -1,7 +1,10 @@
 "use client";
 
+import "zone.js";
+
 import { diag, DiagConsoleLogger, DiagLogLevel } from "@opentelemetry/api";
 import { getWebAutoInstrumentations } from "@opentelemetry/auto-instrumentations-web";
+import { setGlobalErrorHandler } from "@opentelemetry/core";
 import { ZoneContextManager } from "@opentelemetry/context-zone-peer-dep";
 import { OTLPMetricExporter } from "@opentelemetry/exporter-metrics-otlp-http";
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
@@ -51,6 +54,16 @@ const getMetricsEndpoint = () =>
     "/v1/metrics",
   );
 
+const buildBrowserExporterConfig = (
+  url: string,
+): { url: string; headers: Record<string, string> } => ({
+  url,
+  // Passing an explicit headers object forces the OTLP browser exporter to use
+  // the fetch transport instead of navigator.sendBeacon, which routinely fails
+  // in local dev and floods the console with errors.
+  headers: {},
+});
+
 export const initializeClientTelemetry = () => {
   if (initialized || typeof window === "undefined") return;
 
@@ -66,6 +79,9 @@ export const initializeClientTelemetry = () => {
   } else {
     diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.ERROR);
   }
+  setGlobalErrorHandler((error) => {
+    diag.debug("OTel browser instrumentation error", error);
+  });
 
   const resource = resourceFromAttributes({
     [SemanticResourceAttributes.SERVICE_NAME]:
@@ -73,7 +89,9 @@ export const initializeClientTelemetry = () => {
   });
 
   if (traceEndpoint) {
-    const exporter = new OTLPTraceExporter({ url: traceEndpoint });
+    const exporter = new OTLPTraceExporter(
+      buildBrowserExporterConfig(traceEndpoint),
+    );
     const tracerProvider = new WebTracerProvider({
       resource,
       spanProcessors: [new BatchSpanProcessor(exporter)],
@@ -94,7 +112,9 @@ export const initializeClientTelemetry = () => {
   }
 
   if (metricsEndpoint) {
-    const metricExporter = new OTLPMetricExporter({ url: metricsEndpoint });
+    const metricExporter = new OTLPMetricExporter(
+      buildBrowserExporterConfig(metricsEndpoint),
+    );
     const meterProvider = new MeterProvider({
       resource,
       readers: [

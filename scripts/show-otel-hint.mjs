@@ -129,7 +129,9 @@ const runCollectorTest = async () => {
 
   if (targets.length === 0) {
     console.log(
-      success("✓ Skipping OTLP connectivity test (no endpoints configured)."),
+      `${MESSAGE_PREFIX}${success(
+        "✓ Skipping OTLP connectivity test (no endpoints configured).",
+      )}`,
     );
     console.log("");
     return true;
@@ -145,7 +147,7 @@ const runCollectorTest = async () => {
 
   if (unreachable.length === 0) {
     console.log(
-      success(MESSAGE_PREFIX + "✓ Local OpenTelemetry collector reachable."),
+      `${MESSAGE_PREFIX}${success("✓ Local OpenTelemetry collector reachable.")}`,
     );
     console.log("");
     return true;
@@ -156,15 +158,15 @@ const runCollectorTest = async () => {
     .join(", ");
 
   console.error(
-    warning(
+    `${MESSAGE_PREFIX}${warning(
       `⚠️  Unable to reach the local OpenTelemetry collector (${formattedTargets}).`,
-    ),
+    )}`,
   );
   console.error(
-    "Start the Jira Release Manager containers before running `pnpm dev`.",
+    `${MESSAGE_PREFIX}Start the Jira Release Manager containers before running \`pnpm dev\`.`,
   );
   console.error(
-    "Use `./start-database.sh` or `docker compose up -d postgres observability` to boot them.",
+    `${MESSAGE_PREFIX}Use \`./start-database.sh\` or \`docker compose up -d postgres observability\` to boot them.`,
   );
   console.error("");
   return false;
