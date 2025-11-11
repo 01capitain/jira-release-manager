@@ -1,46 +1,75 @@
 #!/usr/bin/env bash
-# Use this script to start a docker container for a local development database
+# Use this script to start all local infrastructure (Postgres + telemetry stack)
+# using Docker Compose so everything appears under a single "jira-release-manager"
+# project inside Docker Desktop / Podman Desktop.
 
-# TO RUN ON WINDOWS:
-# 1. Install WSL (Windows Subsystem for Linux) - https://learn.microsoft.com/en-us/windows/wsl/install
-# 2. Install Docker Desktop or Podman Deskop
-# - Docker Desktop for Windows - https://docs.docker.com/docker-for-windows/install/
-# - Podman Desktop - https://podman.io/getting-started/installation
-# 3. Open WSL - `wsl`
-# 4. Run this script - `./start-database.sh`
+set -euo pipefail
 
-# On Linux and macOS you can run this script directly - `./start-database.sh`
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$PROJECT_ROOT"
 
-# import env variables from .env
+ENV_FILE="$PROJECT_ROOT/.env"
+if [ ! -f "$ENV_FILE" ]; then
+  echo ".env file not found. Copy .env.example to .env and configure DATABASE_URL before continuing."
+  exit 1
+fi
+
 set -a
-source .env
+source "$ENV_FILE"
+set +a
 
-DB_PASSWORD=$(echo "$DATABASE_URL" | awk -F':' '{print $3}' | awk -F'@' '{print $1}')
-DB_PORT=$(echo "$DATABASE_URL" | awk -F':' '{print $4}' | awk -F'\/' '{print $1}')
-DB_NAME=$(echo "$DATABASE_URL" | awk -F'/' '{print $4}')
-DB_CONTAINER_NAME="$DB_NAME-postgres"
-
-if ! [ -x "$(command -v docker)" ] && ! [ -x "$(command -v podman)" ]; then
-  echo -e "Docker or Podman is not installed. Please install docker or podman and try again.\nDocker install guide: https://docs.docker.com/engine/install/\nPodman install guide: https://podman.io/getting-started/installation"
+if [ -z "${DATABASE_URL:-}" ]; then
+  echo "DATABASE_URL is not set in $ENV_FILE"
   exit 1
 fi
 
-# determine which docker command to use
-if [ -x "$(command -v docker)" ]; then
-  DOCKER_CMD="docker"
-elif [ -x "$(command -v podman)" ]; then
-  DOCKER_CMD="podman"
+if ! command -v node >/dev/null 2>&1; then
+  echo "Node.js is required to parse DATABASE_URL. Please ensure Node is installed."
+  exit 1
 fi
 
-if ! $DOCKER_CMD info > /dev/null 2>&1; then
-  echo "$DOCKER_CMD daemon is not running. Please start $DOCKER_CMD and try again."
+parse_output=$(
+  DATABASE_URL="$DATABASE_URL" node -e '
+    if (!process.env.DATABASE_URL) {
+      process.exit(1);
+    }
+    const url = new URL(process.env.DATABASE_URL);
+    const dbName = url.pathname.replace(/^\//, "").split("?")[0];
+    const username = url.username || "postgres";
+    const password = url.password || "password";
+    const host = url.hostname || "localhost";
+    const port = url.port || "5432";
+    process.stdout.write(
+      `${username} ${password} ${host} ${port} ${dbName || "jira-release-manager"}`
+    );
+  '
+)
+
+if [ -z "$parse_output" ]; then
+  echo "Unable to parse DATABASE_URL. Ensure it is a valid connection string."
   exit 1
+fi
+
+read -r DB_USER DB_PASSWORD DB_HOST DB_PORT DB_NAME <<<"$parse_output"
+
+if [ "$DB_PASSWORD" = "password" ]; then
+  echo "You are using the default database password"
+  read -p "Should we generate a random password for you? [y/N]: " -r REPLY
+  if ! [[ $REPLY =~ ^[Yy]$ ]]; then
+    echo "Please change the default password in the .env file and try again"
+    exit 1
+  fi
+  DB_PASSWORD=$(openssl rand -base64 12 | tr '+/' '-_')
+  sed -i '' "s#:password@#:$DB_PASSWORD@#" "$ENV_FILE"
+  echo "Updated DATABASE_URL with a random password."
 fi
 
 if command -v nc >/dev/null 2>&1; then
-  if nc -z localhost "$DB_PORT" 2>/dev/null; then
-    echo "Port $DB_PORT is already in use."
-    exit 1
+  if [[ "$DB_HOST" == "localhost" || "$DB_HOST" == "127.0.0.1" ]]; then
+    if nc -z "$DB_HOST" "$DB_PORT" 2>/dev/null; then
+      echo "Port $DB_PORT is already in use."
+      exit 1
+    fi
   fi
 else
   echo "Warning: Unable to check if port $DB_PORT is already in use (netcat not installed)"
@@ -51,34 +80,47 @@ else
   fi
 fi
 
-if [ "$($DOCKER_CMD ps -q -f name=$DB_CONTAINER_NAME)" ]; then
-  echo "Database container '$DB_CONTAINER_NAME' already running"
-  exit 0
+declare -a COMPOSE_CMD=()
+ORCHESTRATOR=""
+
+if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
+  COMPOSE_CMD=(docker compose)
+  ORCHESTRATOR="docker"
+elif command -v docker-compose >/dev/null 2>&1; then
+  COMPOSE_CMD=(docker-compose)
+  ORCHESTRATOR="docker"
+elif command -v podman >/dev/null 2>&1 && podman compose version >/dev/null 2>&1; then
+  COMPOSE_CMD=(podman compose)
+  ORCHESTRATOR="podman"
+elif command -v podman-compose >/dev/null 2>&1; then
+  COMPOSE_CMD=(podman-compose)
+  ORCHESTRATOR="podman"
 fi
 
-if [ "$($DOCKER_CMD ps -q -a -f name=$DB_CONTAINER_NAME)" ]; then
-  $DOCKER_CMD start "$DB_CONTAINER_NAME"
-  echo "Existing database container '$DB_CONTAINER_NAME' started"
-  exit 0
+if [ -z "${COMPOSE_CMD[*]:-}" ]; then
+  echo "Docker Compose v2 or Podman Compose is required. Install Docker Desktop or Podman with compose support."
+  exit 1
 fi
 
-if [ "$DB_PASSWORD" = "password" ]; then
-  echo "You are using the default database password"
-  read -p "Should we generate a random password for you? [y/N]: " -r REPLY
-  if ! [[ $REPLY =~ ^[Yy]$ ]]; then
-    echo "Please change the default password in the .env file and try again"
-    exit 1
+if ! "$ORCHESTRATOR" info >/dev/null 2>&1; then
+  echo "$ORCHESTRATOR daemon is not running. Please start $ORCHESTRATOR and try again."
+  exit 1
+fi
+
+remove_leftover_container() {
+  local container_name="$1"
+  if "$ORCHESTRATOR" ps -a --format '{{.Names}}' | grep -Fxq "$container_name"; then
+    echo "Removing leftover container '$container_name' to avoid naming conflicts."
+    "$ORCHESTRATOR" rm -f "$container_name" >/dev/null
   fi
-  # Generate a random URL-safe password
-  DB_PASSWORD=$(openssl rand -base64 12 | tr '+/' '-_')
-  sed -i '' "s#:password@#:$DB_PASSWORD@#" .env
-fi
+}
 
-$DOCKER_CMD run -d \
-  --name $DB_CONTAINER_NAME \
-  -e POSTGRES_USER="postgres" \
-  -e POSTGRES_PASSWORD="$DB_PASSWORD" \
-  -e POSTGRES_DB="$DB_NAME" \
-  -p "$DB_PORT":5432 \
-  -v ./init.sql:/docker-entrypoint-initdb.d/init.sql \
-  postgres:18 && echo "Database container '$DB_CONTAINER_NAME' was successfully created"
+remove_leftover_container "jira-release-manager-postgres"
+remove_leftover_container "jira-release-manager-telemetry"
+
+export DB_USER DB_PASSWORD DB_NAME DB_PORT
+export COMPOSE_PROJECT_NAME="jira-release-manager"
+
+"${COMPOSE_CMD[@]}" up -d postgres observability
+
+echo "Infrastructure containers are running under the 'jira-release-manager' project."

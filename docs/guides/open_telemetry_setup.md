@@ -51,22 +51,15 @@ To test locally, run an OTLP-compatible collector such as the [OpenTelemetry Col
 
 ### Running the bundled sandbox
 
-For a full Grafana-based sandbox (Alloy, Tempo, Prometheus, Loki, Grafana OSS) run the single Dockerfile in `observability/otel-sandbox`:
+Launch Postgres and the full Grafana-based sandbox (Alloy, Tempo, Prometheus, Loki, Grafana OSS) with Docker Compose so everything sits under the same `jira-release-manager` project inside Docker Desktop / Podman Desktop:
 
 ```bash
-docker build -f observability/otel-sandbox/Dockerfile -t jira-release-manager-otel .
-docker run --rm \
-  -p 4318:4318 \
-  -p 4317:4317 \
-  -p 3001:3001 \
-  -p 3200:3200 \
-  -p 3100:3100 \
-  -p 9090:9090 \
-  -p 9464:9464 \
-  jira-release-manager-otel
+./start-database.sh
+# or manually:
+docker compose up -d postgres observability
 ```
 
-The container exposes OTLP receivers on `http://localhost:4318` and pre-provisions Grafana at `http://localhost:3001` (credentials: `admin` / `admin`). All data is stored beneath `/tmp` inside the container, so it clears automatically when the container stops. Grafana ships with a starter dashboard (`OTel Sandbox Overview`) that ties traces, metrics, and logs together; use it as a quick sanity check before diving into Explore.
+The `observability` service is built from `observability/otel-sandbox/Dockerfile` and exposes the same ports as before (`4317`/`4318` for OTLP, `3001` Grafana, `3200` Tempo, `3100` Loki, `9090` Prometheus, `9464` Alloy). Grafana is available at `http://localhost:3001` (credentials: `admin` / `admin`). All data is stored beneath `/tmp` inside the container, so it clears automatically when the service stops. Run `docker compose down` when you want to tear everything down.
 
 ## 2. Server Instrumentation
 

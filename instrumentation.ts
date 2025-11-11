@@ -44,18 +44,42 @@ declare global {
   var __otelNodeSdkStarted: boolean | undefined;
 }
 
+const withDefaultPath = (endpoint: string | undefined, defaultPath: string) => {
+  if (!endpoint) return undefined;
+  try {
+    const url = new URL(endpoint);
+    if (url.pathname === "" || url.pathname === "/") {
+      url.pathname = defaultPath;
+    }
+    return url.toString();
+  } catch {
+    const normalizedDefault = defaultPath.startsWith("/")
+      ? defaultPath
+      : `/${defaultPath}`;
+    const trimmed = endpoint.endsWith("/") ? endpoint.slice(0, -1) : endpoint;
+    if (trimmed.endsWith(normalizedDefault)) {
+      return trimmed;
+    }
+    return `${trimmed}${normalizedDefault}`;
+  }
+};
+
 const getTraceExporter = () => {
-  const endpoint =
+  const endpoint = withDefaultPath(
     process.env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT ??
-    process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
+      process.env.OTEL_EXPORTER_OTLP_ENDPOINT,
+    "/v1/traces",
+  );
   if (!endpoint) return undefined;
   return new OTLPTraceExporter({ url: endpoint });
 };
 
 const getMetricReader = () => {
-  const endpoint =
+  const endpoint = withDefaultPath(
     process.env.OTEL_EXPORTER_OTLP_METRICS_ENDPOINT ??
-    process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
+      process.env.OTEL_EXPORTER_OTLP_ENDPOINT,
+    "/v1/metrics",
+  );
   if (!endpoint) return undefined;
   const exporter = new OTLPMetricExporter({ url: endpoint });
   return new PeriodicExportingMetricReader({
@@ -82,14 +106,18 @@ const shouldStart = () => {
   return hasTrace || hasMetrics;
 };
 
+const configureDiagnostics = () => {
+  const level =
+    process.env.OTEL_DEBUG === "true" ? DiagLogLevel.DEBUG : DiagLogLevel.WARN;
+  diag.setLogger(new DiagConsoleLogger(), level);
+};
+
 export async function register() {
   if (!shouldStart()) {
     return;
   }
 
-  if (process.env.OTEL_DEBUG === "true") {
-    diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.DEBUG);
-  }
+  configureDiagnostics();
 
   const traceExporter = getTraceExporter();
   const metricReader = getMetricReader();
@@ -124,7 +152,7 @@ export async function register() {
     config.traceExporter = traceExporter;
   }
   if (metricReader) {
-    config.metricReader = metricReader;
+    config.metricReaders = [metricReader];
   }
 
   const sdk = new NodeSDK(config);

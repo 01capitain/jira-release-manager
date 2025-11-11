@@ -14,13 +14,39 @@ import { SemanticResourceAttributes } from "@opentelemetry/semantic-conventions"
 
 let initialized = false;
 
+const withDefaultPath = (endpoint: string | undefined, defaultPath: string) => {
+  if (!endpoint) return undefined;
+  try {
+    const url = new URL(endpoint);
+    if (url.pathname === "" || url.pathname === "/") {
+      url.pathname = defaultPath;
+    }
+    return url.toString();
+  } catch {
+    const normalizedDefault = defaultPath.startsWith("/")
+      ? defaultPath
+      : `/${defaultPath}`;
+    const trimmed = endpoint.endsWith("/") ? endpoint.slice(0, -1) : endpoint;
+    if (trimmed.endsWith(normalizedDefault)) {
+      return trimmed;
+    }
+    return `${trimmed}${normalizedDefault}`;
+  }
+};
+
 const getTraceEndpoint = () =>
-  process.env.NEXT_PUBLIC_OTEL_EXPORTER_OTLP_TRACES_ENDPOINT ??
-  process.env.NEXT_PUBLIC_OTEL_EXPORTER_OTLP_ENDPOINT;
+  withDefaultPath(
+    process.env.NEXT_PUBLIC_OTEL_EXPORTER_OTLP_TRACES_ENDPOINT ??
+      process.env.NEXT_PUBLIC_OTEL_EXPORTER_OTLP_ENDPOINT,
+    "/v1/traces",
+  );
 
 const getMetricsEndpoint = () =>
-  process.env.NEXT_PUBLIC_OTEL_EXPORTER_OTLP_METRICS_ENDPOINT ??
-  process.env.NEXT_PUBLIC_OTEL_EXPORTER_OTLP_ENDPOINT;
+  withDefaultPath(
+    process.env.NEXT_PUBLIC_OTEL_EXPORTER_OTLP_METRICS_ENDPOINT ??
+      process.env.NEXT_PUBLIC_OTEL_EXPORTER_OTLP_ENDPOINT,
+    "/v1/metrics",
+  );
 
 export const initializeClientTelemetry = () => {
   if (initialized || typeof window === "undefined") return;

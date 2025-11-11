@@ -32,7 +32,7 @@ prometheus \
   &
 child_pids+=($!)
 
-alloy run --stability.level=experimental /etc/alloy/config.river &
+alloy run --stability.level=experimental --log.level=warn /etc/alloy/config.river &
 child_pids+=($!)
 
 grafana server \

@@ -18,9 +18,9 @@
 
 ### Database
 
-PostgreSQL 17.5, running in a Docker container.
+PostgreSQL 17.5, running inside the shared Docker Compose project.
 
-Set up with `./start-database.sh`.
+Set up with `./start-database.sh`, which now boots Postgres and the telemetry stack together under the `jira-release-manager` project.
 
 ### ORM
 
@@ -51,22 +51,24 @@ Follow our deployment guides for [Docker](https://create.t3.gg/en/deployment/doc
 
 ## Local Telemetry Sandbox
 
-Build and run the single-container observability stack located in `observability/otel-sandbox` to inspect traces, metrics, and logs locally:
+Use Docker Compose to start the observability stack alongside Postgres:
 
 ```bash
-docker build -f observability/otel-sandbox/Dockerfile -t jira-release-manager-otel .
-docker run --rm \
-  -p 4318:4318 \
-  -p 4317:4317 \
-  -p 3001:3001 \
-  -p 3200:3200 \
-  -p 3100:3100 \
-  -p 9090:9090 \
-  -p 9464:9464 \
-  jira-release-manager-otel
+./start-database.sh
+# or manually:
+docker compose up -d postgres observability
 ```
 
-Set your application exporters to use the container:
+Docker Desktop / Podman Desktop will show a single `jira-release-manager` project that contains both services, keeping the containers grouped. The `observability` service is built from `observability/otel-sandbox/Dockerfile` and exposes the usual ports:
+
+- 4318 / 4317 – OTLP HTTP / gRPC
+- 3001 – Grafana
+- 3200 – Tempo
+- 3100 – Loki
+- 9090 – Prometheus
+- 9464 – Alloy metrics
+
+Set your application exporters to use the stack:
 
 ```bash
 export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
