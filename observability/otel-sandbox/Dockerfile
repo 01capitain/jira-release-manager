@@ -5,7 +5,7 @@ ARG LOKI_VERSION=3.5.7
 ARG PROMETHEUS_VERSION=3.7.3
 ARG GRAFANA_VERSION=12.2.1
 ARG GRAFANA_ALLOY_VERSION=1.11.3
-ARG TARGETOS
+ARG TARGETARCH
 ARG TARGETARCH
 
 ENV DEBIAN_FRONTEND=noninteractive \
@@ -131,5 +131,8 @@ RUN chmod +x /usr/local/bin/entrypoint.sh \
 USER grafana
 
 EXPOSE 4317 4318 3001 3100 3200 9090 9464
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD curl -f http://localhost:3001/api/health || exit 1
 
 ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/entrypoint.sh"]
