@@ -60,7 +60,7 @@ To test locally, run an OTLP-compatible collector such as the [OpenTelemetry Col
 
 - **Scope**: allow auto-instrumentations to cover framework basics; add manual spans only around critical domain operations (e.g., long-running Jira sync).
 - **Sampling**: the default parent-based sampler is often sufficient; adjust via environment variables (`OTEL_TRACES_SAMPLER` and related `OTEL_TRACES_SAMPLER_ARG`) if needed.
-- **Context propagation**: when adding custom async work ensure context is carried using `context.with` or instrumentation utilities.
+- **Context propagation**: When adding custom async work, ensure context is carried using `context.with` or instrumentation utilities.
 - **Error capture**: throw errors normally—instrumentations enrich spans with exception data automatically.
 - **Resource metadata**: set `SERVICE_VERSION`, `DEPLOYMENT_ENVIRONMENT`, and `SERVICE_INSTANCE_ID` (or let the defaults kick in) so traces can be filtered by deploys/hosts in your backend.
 
