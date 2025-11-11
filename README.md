@@ -18,7 +18,7 @@
 
 ### Database
 
-PostgreSQL 17.5, running inside the shared Docker Compose project.
+PostgreSQL 18, running inside the shared Docker Compose project.
 
 Set up with `./start-database.sh`, which now boots Postgres and the telemetry stack together under the `jira-release-manager` project.
 
