@@ -4,6 +4,8 @@ import { existsSync, readFileSync } from "node:fs";
 import { Socket } from "node:net";
 import { resolve } from "node:path";
 
+import { parse as parseDotenv } from "dotenv";
+
 if (process.env.DISABLE_OTEL_HINT === "true") {
   process.exit(0);
 }
@@ -14,32 +16,6 @@ const success = (text) => `\x1b[92m${text}\x1b[0m`;
 const MESSAGE_PREFIX = "   ";
 const HEADING_INDENT = "   ";
 const BULLET_INDENT = "   - ";
-
-const parseEnv = (raw) => {
-  const entries = [];
-  const lines = raw.split(/\r?\n/);
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) continue;
-    const match = trimmed.match(/^(?:export\s+)?([\w.-]+)\s*=\s*(.*)$/);
-    if (!match) continue;
-    const [, key, rawValue] = match;
-    const value = rawValue.trim();
-    if (value === "") {
-      entries.push([key, ""]);
-      continue;
-    }
-    if (
-      (value.startsWith('"') && value.endsWith('"')) ||
-      (value.startsWith("'") && value.endsWith("'"))
-    ) {
-      entries.push([key, value.slice(1, -1)]);
-      continue;
-    }
-    entries.push([key, value]);
-  }
-  return entries;
-};
 
 const loadEnvFiles = () => {
   const envFiles = [
@@ -53,8 +29,9 @@ const loadEnvFiles = () => {
     const filePath = resolve(process.cwd(), filename);
     if (!existsSync(filePath)) continue;
     const raw = readFileSync(filePath, "utf-8");
-    for (const [key, value] of parseEnv(raw)) {
-      resolved.set(key, value);
+    const parsed = parseDotenv(raw);
+    for (const [key, value] of Object.entries(parsed)) {
+      resolved.set(key, value ?? "");
     }
   }
   for (const [key, value] of resolved) {
