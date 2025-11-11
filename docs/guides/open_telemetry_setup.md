@@ -1,6 +1,6 @@
 # OpenTelemetry Setup & Usage Guide
 
-This guide explains how to enable OpenTelemetry (OTel) for both the server (Next.js API / server components) and the browser client. It also introduces key OTel concepts so new contributors can reason about telemetry confidently while keeping the system vendor-agnostic.
+This guide explains how to enable OpenTelemetry (OTel) for both the server (Next.js API / server components) and the browser client. It also introduces key OTel concepts, so new contributors can reason about telemetry confidently while keeping the system vendor-agnostic.
 
 ## 0. OpenTelemetry in 5 Minutes
 
