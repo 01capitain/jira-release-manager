@@ -28,11 +28,15 @@ const loadEnvFiles = () => {
   for (const filename of envFiles) {
     const filePath = resolve(process.cwd(), filename);
     if (!existsSync(filePath)) continue;
-    const raw = readFileSync(filePath, "utf-8");
-    const parsed = parseDotenv(raw);
-    for (const [key, value] of Object.entries(parsed)) {
-      resolved.set(key, value ?? "");
+    try {
+      const raw = readFileSync(filePath, "utf-8");
+      for (const [key, value] of parseEnv(raw)) {
+        resolved.set(key, value);
+      }
+    } catch {
+      continue;
     }
+  }
   }
   for (const [key, value] of resolved) {
     if (process.env[key] === undefined) {
@@ -77,7 +81,7 @@ const getTargets = () => {
       const port =
         url.port !== ""
           ? Number(url.port)
-          : (FALLBACK_PROTOCOL_PORTS[url.protocol] ?? undefined);
+          : FALLBACK_PROTOCOL_PORTS[url.protocol];
       if (!port) continue;
       targets.set(`${url.hostname}:${port}`, { host: url.hostname, port });
     } catch {
