@@ -131,4 +131,7 @@ RUN chmod +x /usr/local/bin/entrypoint.sh \
 
 EXPOSE 4317 4318 3001 3100 3200 9090 9464
 
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD curl -f http://localhost:3001/api/health || exit 1
+
 ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/entrypoint.sh"]
