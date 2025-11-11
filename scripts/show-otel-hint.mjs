@@ -52,10 +52,15 @@ const loadEnvFiles = () => {
   for (const filename of envFiles) {
     const filePath = resolve(process.cwd(), filename);
     if (!existsSync(filePath)) continue;
-    const raw = readFileSync(filePath, "utf-8");
-    for (const [key, value] of parseEnv(raw)) {
-      resolved.set(key, value);
+    try {
+      const raw = readFileSync(filePath, "utf-8");
+      for (const [key, value] of parseEnv(raw)) {
+        resolved.set(key, value);
+      }
+    } catch {
+      continue;
     }
+  }
   }
   for (const [key, value] of resolved) {
     if (process.env[key] === undefined) {
