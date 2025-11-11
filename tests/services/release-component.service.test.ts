@@ -8,7 +8,6 @@ import { ReleaseComponentService } from "~/server/services/release-component.ser
 import { ComponentVersionService } from "~/server/services/component-version.service";
 
 const COMPONENT_A_ID = releaseComponentFixtures.iosApp.id;
-const COMPONENT_B_ID = releaseComponentFixtures.desktopAngularJs.id;
 const BUILT_VERSION_ID = "00000000-0000-7000-8000-000000000003";
 const COMPONENT_VERSION_ID = "00000000-0000-7000-8000-000000000004";
 

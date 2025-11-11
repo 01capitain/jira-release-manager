@@ -6,6 +6,39 @@ import { resourceFromAttributes } from "@opentelemetry/resources";
 import { NodeSDK, type NodeSDKConfiguration } from "@opentelemetry/sdk-node";
 import { PeriodicExportingMetricReader } from "@opentelemetry/sdk-metrics";
 import { SemanticResourceAttributes } from "@opentelemetry/semantic-conventions";
+import { randomUUID } from "node:crypto";
+import { readFileSync } from "node:fs";
+
+const packageJsonUrl = new URL("./package.json", import.meta.url);
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null;
+
+const getPackageVersion = (): string | undefined => {
+  try {
+    const raw = readFileSync(packageJsonUrl, "utf-8");
+    const parsed = JSON.parse(raw) as unknown;
+    if (!isRecord(parsed)) {
+      return undefined;
+    }
+    const version = parsed.version;
+    return typeof version === "string" ? version : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
+const resolveServiceInstanceId = () => {
+  if (process.env.SERVICE_INSTANCE_ID) {
+    return process.env.SERVICE_INSTANCE_ID;
+  }
+  if (process.env.HOSTNAME) {
+    return process.env.HOSTNAME;
+  }
+  const generated = randomUUID();
+  process.env.SERVICE_INSTANCE_ID = generated;
+  return generated;
+};
 
 declare global {
   var __otelNodeSdkStarted: boolean | undefined;
@@ -54,17 +87,35 @@ export async function register() {
   }
 
   if (process.env.OTEL_DEBUG === "true") {
-    diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.INFO);
+    diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.DEBUG);
   }
 
   const traceExporter = getTraceExporter();
   const metricReader = getMetricReader();
 
+  const serviceVersion =
+    process.env.SERVICE_VERSION ?? getPackageVersion() ?? undefined;
+  const deploymentEnvironment =
+    process.env.DEPLOYMENT_ENVIRONMENT ?? process.env.NODE_ENV;
+  const serviceInstanceId = resolveServiceInstanceId();
+
+  const resourceAttributes: Record<string, string> = {
+    [SemanticResourceAttributes.SERVICE_NAME]:
+      process.env.OTEL_SERVICE_NAME ?? "jira-release-manager",
+    [SemanticResourceAttributes.SERVICE_INSTANCE_ID]: serviceInstanceId,
+  };
+
+  if (serviceVersion) {
+    resourceAttributes[SemanticResourceAttributes.SERVICE_VERSION] =
+      serviceVersion;
+  }
+  if (deploymentEnvironment) {
+    resourceAttributes[SemanticResourceAttributes.DEPLOYMENT_ENVIRONMENT] =
+      deploymentEnvironment;
+  }
+
   const config: Partial<NodeSDKConfiguration> = {
-    resource: resourceFromAttributes({
-      [SemanticResourceAttributes.SERVICE_NAME]:
-        process.env.OTEL_SERVICE_NAME ?? "jira-release-manager",
-    }),
+    resource: resourceFromAttributes(resourceAttributes),
     instrumentations: [getNodeAutoInstrumentations()],
   };
 
@@ -79,12 +130,14 @@ export async function register() {
   sdk.start();
   globalThis.__otelNodeSdkStarted = true;
 
-  const shutdown = () => sdk.shutdown();
+  let isShuttingDown = false;
 
   const handleSignal = () => {
+    if (isShuttingDown) return;
+    isShuttingDown = true;
     void (async () => {
       try {
-        await shutdown();
+        await sdk.shutdown();
         process.exit(0);
       } catch (error) {
         diag.error("OTel shutdown failed", error);

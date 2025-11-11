@@ -1,6 +1,6 @@
 # OpenTelemetry Setup & Usage Guide
 
-This guide explains how to enable OpenTelemetry (OTel) for both the server (Next.js API / server components) and the browser client. It also introduces key OTel concepts so new contributors can reason about telemetry confidently while keeping the system vendor-agnostic.
+This guide explains how to enable OpenTelemetry (OTel) for both the server (Next.js API / server components) and the browser client. It also introduces key OTel concepts, so new contributors can reason about telemetry confidently while keeping the system vendor-agnostic.
 
 ## 0. OpenTelemetry in 5 Minutes
 
@@ -14,7 +14,7 @@ This guide explains how to enable OpenTelemetry (OTel) for both the server (Next
 
 ## 1. Environment Variables
 
-Edit `.env` (and keep `.env.example` in sync) using the variables below. All values are optional—telemetry only starts when endpoints are provided. See `docs/guides/Add an environment variable.md` for validation details.
+Edit `.env` using the variables below and mirror every key in `.env.example` per the policy in `docs/guides/Add an environment variable.md#maintain-envexample-parity`. All values are optional—telemetry only starts when endpoints are provided. If you wire the optional Husky/CI parity check described in that guide, this section becomes part of the enforcement surface for contributors. See the same guide for validator details.
 
 ```bash
 # Service identity
@@ -35,6 +35,14 @@ NEXT_PUBLIC_OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=http://localhost:4318/v1/metrics
 # Optional verbose diagnostics (avoid in production)
 OTEL_DEBUG=false
 NEXT_PUBLIC_OTEL_DEBUG=false
+
+# Optional resource enrichment
+# SERVICE_VERSION falls back to package.json version when unset
+SERVICE_VERSION=0.1.0
+# DEPLOYMENT_ENVIRONMENT falls back to NODE_ENV when unset
+DEPLOYMENT_ENVIRONMENT=staging
+# SERVICE_INSTANCE_ID falls back to HOSTNAME or a generated UUID when unset
+SERVICE_INSTANCE_ID=release-manager-api-1
 ```
 
 ### Running a Local Collector
@@ -71,14 +79,15 @@ The container exposes OTLP receivers on `http://localhost:4318` and pre-provisio
 
 - **Scope**: allow auto-instrumentations to cover framework basics; add manual spans only around critical domain operations (e.g., long-running Jira sync).
 - **Sampling**: the default parent-based sampler is often sufficient; adjust via environment variables (`OTEL_TRACES_SAMPLER` and related `OTEL_TRACES_SAMPLER_ARG`) if needed.
-- **Context propagation**: when adding custom async work ensure context is carried using `context.with` or instrumentation utilities.
+- **Context propagation**: When adding custom async work, ensure context is carried using `context.with` or instrumentation utilities.
 - **Error capture**: throw errors normally—instrumentations enrich spans with exception data automatically.
+- **Resource metadata**: set `SERVICE_VERSION`, `DEPLOYMENT_ENVIRONMENT`, and `SERVICE_INSTANCE_ID` (or let the defaults kick in) so traces can be filtered by deploys/hosts in your backend.
 
 ## 3. Browser Instrumentation
 
 - The `TelemetryProvider` (see `src/components/providers/telemetry-provider.tsx`) initializes tracing/metrics once on the client using `@opentelemetry/sdk-trace-web`.
 - Collected telemetry flows to the OTLP HTTP endpoints defined by the `NEXT_PUBLIC_OTEL_*` variables.
-- A basic `app.page_view` counter metric ships with each navigation; expand with additional counters or histograms as needed.
+- A basic `app.page_view` counter metric fires once on application startup; subscribe to router events (or similar custom logic) and increment the counter manually if you need per-navigation metrics.
 
 ### Best Practices
 
@@ -98,7 +107,7 @@ The container exposes OTLP receivers on `http://localhost:4318` and pre-provisio
 - Introduce manual instrumentation with `@opentelemetry/api`:
 
   ```ts
-  import { trace } from "@opentelemetry/api";
+  import { SpanStatusCode, trace } from "@opentelemetry/api";
 
   const tracer = trace.getTracer("jira-release-manager");
   await tracer.startActiveSpan("release.sync", async (span) => {
