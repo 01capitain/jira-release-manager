@@ -105,7 +105,7 @@ const getTargets = () => {
       const port =
         url.port !== ""
           ? Number(url.port)
-          : (FALLBACK_PROTOCOL_PORTS[url.protocol] ?? undefined);
+          : FALLBACK_PROTOCOL_PORTS[url.protocol];
       if (!port) continue;
       targets.set(`${url.hostname}:${port}`, { host: url.hostname, port });
     } catch {
