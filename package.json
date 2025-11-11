@@ -50,6 +50,7 @@
     "@opentelemetry/sdk-trace-base": "^2.2.0",
     "@opentelemetry/sdk-trace-web": "^2.2.0",
     "@opentelemetry/semantic-conventions": "^1.37.0",
+    "@opentelemetry/core": "^2.2.0",
     "@prisma/client": "^6.18.0",
     "@radix-ui/react-scroll-area": "^1.2.10",
     "@radix-ui/react-separator": "^1.1.7",

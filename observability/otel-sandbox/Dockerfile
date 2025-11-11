@@ -128,6 +128,7 @@ RUN chmod +x /usr/local/bin/entrypoint.sh \
     && ln -s /opt/prometheus/prometheus /usr/local/bin/prometheus \
     && ln -s /opt/alloy/alloy /usr/local/bin/alloy \
     && ln -s /opt/grafana/bin/grafana /usr/local/bin/grafana
+USER grafana
 
 EXPOSE 4317 4318 3001 3100 3200 9090 9464
 
