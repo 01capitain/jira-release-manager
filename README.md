@@ -49,6 +49,35 @@ If that port is changed you need to also update the webhook within the [Discord 
 
 Follow our deployment guides for [Docker](https://create.t3.gg/en/deployment/docker) for more information.
 
+## Local Telemetry Sandbox
+
+Build and run the single-container observability stack located in `observability/otel-sandbox` to inspect traces, metrics, and logs locally:
+
+```bash
+docker build -f observability/otel-sandbox/Dockerfile -t jira-release-manager-otel .
+docker run --rm \
+  -p 4318:4318 \
+  -p 4317:4317 \
+  -p 3001:3001 \
+  -p 3200:3200 \
+  -p 3100:3100 \
+  -p 9090:9090 \
+  -p 9464:9464 \
+  jira-release-manager-otel
+```
+
+Set your application exporters to use the container:
+
+```bash
+export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
+export OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://localhost:4318/v1/traces
+export OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=http://localhost:4318/v1/metrics
+export NEXT_PUBLIC_OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://localhost:4318/v1/traces
+export NEXT_PUBLIC_OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=http://localhost:4318/v1/metrics
+```
+
+Grafana is available at `http://localhost:3001` (default credentials `admin` / `admin`). The stack stores everything under `/tmp` inside the container, so data resets automatically when the container stops.
+
 ## Scripts
 
 This project includes a set of scripts to help with development and maintenance.

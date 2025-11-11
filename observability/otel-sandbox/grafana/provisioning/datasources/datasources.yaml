@@ -1,0 +1,44 @@
+apiVersion: 1
+
+datasources:
+  - name: Tempo
+    type: tempo
+    access: proxy
+    uid: tempo
+    url: http://127.0.0.1:3200
+    editable: true
+    jsonData:
+      httpMethod: GET
+      serviceMap:
+        datasourceUid: tempo
+      tracesToLogs:
+        datasourceUid: loki
+        tags: ["service.name", "telemetry.sdk.language"]
+        mappedTags: []
+        spanStartTimeShift: "1m"
+        spanEndTimeShift: "1m"
+        filterByTraceID: true
+        filterBySpanID: true
+
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    uid: prometheus
+    url: http://127.0.0.1:9090
+    isDefault: true
+    editable: true
+    jsonData:
+      httpMethod: GET
+
+  - name: Loki
+    type: loki
+    access: proxy
+    uid: loki
+    url: http://127.0.0.1:3100
+    editable: true
+    jsonData:
+      derivedFields:
+        - datasourceUid: tempo
+          matcherRegex: "trace_id=(\\w+)"
+          name: trace_id
+          url: "$${__value.raw}"

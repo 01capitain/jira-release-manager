@@ -49,6 +49,25 @@ SERVICE_INSTANCE_ID=release-manager-api-1
 
 To test locally, run an OTLP-compatible collector such as the [OpenTelemetry Collector](https://opentelemetry.io/docs/collector/) or [Grafana Alloy](https://grafana.com/oss/opentelemetry/) and point the endpoints above to the collector’s HTTP receiver (default `http://localhost:4318`).
 
+### Running the bundled sandbox
+
+For a full Grafana-based sandbox (Alloy, Tempo, Prometheus, Loki, Grafana OSS) run the single Dockerfile in `observability/otel-sandbox`:
+
+```bash
+docker build -f observability/otel-sandbox/Dockerfile -t jira-release-manager-otel .
+docker run --rm \
+  -p 4318:4318 \
+  -p 4317:4317 \
+  -p 3001:3001 \
+  -p 3200:3200 \
+  -p 3100:3100 \
+  -p 9090:9090 \
+  -p 9464:9464 \
+  jira-release-manager-otel
+```
+
+The container exposes OTLP receivers on `http://localhost:4318` and pre-provisions Grafana at `http://localhost:3001` (credentials: `admin` / `admin`). All data is stored beneath `/tmp` inside the container, so it clears automatically when the container stops. Grafana ships with a starter dashboard (`OTel Sandbox Overview`) that ties traces, metrics, and logs together; use it as a quick sanity check before diving into Explore.
+
 ## 2. Server Instrumentation
 
 - The root-level `instrumentation.ts` file starts the Node SDK using `@opentelemetry/sdk-node` automatically when the app boots in a Node.js runtime.
