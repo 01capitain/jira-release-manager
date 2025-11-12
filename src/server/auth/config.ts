@@ -3,6 +3,7 @@ import { type DefaultSession, type NextAuthConfig } from "next-auth";
 import DiscordProvider from "next-auth/providers/discord";
 
 import { db } from "~/server/db";
+import { claimSeedOwnership } from "~/server/seed/claim-seed-ownership";
 
 /**
  * Module augmentation for `next-auth` types. Allows us to add custom properties to the `session`
@@ -62,6 +63,21 @@ export const authConfig = {
         };
       }
       return session;
+    },
+  },
+  events: {
+    signIn: async ({ user }) => {
+      if (!user?.id) return;
+      try {
+        const claimed = await claimSeedOwnership({ userId: user.id });
+        if (claimed) {
+          console.info(
+            `[seed] Assigned placeholder release data to authenticated user ${user.id}`,
+          );
+        }
+      } catch (error) {
+        console.error("Failed to claim seed ownership", error);
+      }
     },
   },
 } satisfies NextAuthConfig;

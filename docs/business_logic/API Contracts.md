@@ -69,3 +69,9 @@ sequenceDiagram
         B-->>U: Show login failure message
     end
 ```
+
+## Seed Ownership Transfer
+
+- Local fixtures are inserted with a synthetic `SEED_PLACEHOLDER_USER` so every `createdById` can be satisfied before OAuth runs.
+- The NextAuth `signIn` event invokes `claimSeedOwnership()` which, inside a single transaction, moves `createdById` references (release components, releases, built versions, built version transitions, action logs) from the placeholder to the first authenticated user and removes the placeholder row.
+- Operators can re-run the process manually with `pnpm run seed:claim-owner <user-id|email>` when recovering from partially completed migrations.
