@@ -8,10 +8,9 @@ const prisma = new PrismaClient();
 async function main() {
   const identifier = process.argv[2];
   if (!identifier) {
-    console.error(
+    throw new Error(
       "Usage: pnpm tsx scripts/claim-seed-owner.ts <user-id|user-email>",
     );
-    process.exit(1);
   }
 
   const user = identifier.includes("@")
@@ -19,8 +18,7 @@ async function main() {
     : await prisma.user.findUnique({ where: { id: identifier } });
 
   if (!user) {
-    console.error(`User '${identifier}' not found.`);
-    process.exit(1);
+    throw new Error(`User '${identifier}' not found.`);
   }
 
   const claimed = await claimSeedOwnership({ userId: user.id, prisma });
@@ -36,8 +34,8 @@ async function main() {
 main()
   .catch((err) => {
     console.error("Failed to assign placeholder data");
-    console.error(err);
-    process.exit(1);
+    console.error(err instanceof Error ? err.message : err);
+    process.exitCode = 1;
   })
   .finally(async () => {
     await prisma.$disconnect();
