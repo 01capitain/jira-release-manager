@@ -82,13 +82,17 @@ function assertDevelopmentEnv() {
 
 async function cleanup(tx: SeedClient) {
   await tx.componentVersion.deleteMany({
-    where: { builtVersionId: { in: BUILT_VERSION_IDS } },
+    where: { releaseComponentId: { in: RELEASE_COMPONENT_IDS } },
   });
   await tx.builtVersionTransition.deleteMany({
-    where: { builtVersionId: { in: BUILT_VERSION_IDS } },
+    where: {
+      builtVersion: {
+        versionId: { in: RELEASE_VERSION_IDS },
+      },
+    },
   });
   await tx.builtVersion.deleteMany({
-    where: { id: { in: BUILT_VERSION_IDS } },
+    where: { versionId: { in: RELEASE_VERSION_IDS } },
   });
   await tx.releaseVersion.deleteMany({
     where: { id: { in: RELEASE_VERSION_IDS } },
