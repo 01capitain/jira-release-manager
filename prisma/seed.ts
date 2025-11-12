@@ -32,9 +32,6 @@ const RELEASE_COMPONENT_IDS = releaseComponentFixtureList.map(
 const RELEASE_VERSION_IDS = releaseVersionFixtureList.map(
   (fixture) => fixture.id,
 );
-const BUILT_VERSION_IDS = releaseVersionFixtureList.flatMap((fixture) =>
-  fixture.builtVersions.map((built) => built.id),
-);
 const USER_IDS = [
   SEED_PLACEHOLDER_USER.id,
   ...userFixtureList.map((fixture) => fixture.id),

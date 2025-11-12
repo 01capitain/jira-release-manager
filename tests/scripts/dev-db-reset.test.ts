@@ -66,12 +66,12 @@ describe("parseFlags", () => {
   });
 
   it("exits the process on unknown flags", () => {
-    const exitSpy = jest
-      .spyOn(process, "exit")
-      .mockImplementation((() => {
-        throw new Error("exit");
-      }) as never);
-    const errorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+    const exitSpy = jest.spyOn(process, "exit").mockImplementation((() => {
+      throw new Error("exit");
+    }) as never);
+    const errorSpy = jest
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
 
     expect(() => parseFlags(["--unknown"])).toThrow("exit");
     expect(errorSpy).toHaveBeenCalledWith(
@@ -88,12 +88,12 @@ describe("assertDevEnv", () => {
   });
 
   it("exits the process when NODE_ENV differs", () => {
-    const exitSpy = jest
-      .spyOn(process, "exit")
-      .mockImplementation((() => {
-        throw new Error("exit");
-      }) as never);
-    const errorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+    const exitSpy = jest.spyOn(process, "exit").mockImplementation((() => {
+      throw new Error("exit");
+    }) as never);
+    const errorSpy = jest
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
 
     expect(() => assertDevEnv("production")).toThrow("exit");
     expect(errorSpy).toHaveBeenCalledWith(

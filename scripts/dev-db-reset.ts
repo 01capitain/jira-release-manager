@@ -156,7 +156,6 @@ async function printDetails() {
     } else {
       payload = grey("(no output)");
     }
-    // eslint-disable-next-line no-await-in-loop
     await streamOutput(payload);
   }
 }
@@ -181,10 +180,10 @@ export async function runStage(stage: Stage) {
     let stdout = "";
     let stderr = "";
 
-    child.stdout?.on("data", (data) => {
+    child.stdout?.on("data", (data: Buffer) => {
       stdout += data.toString();
     });
-    child.stderr?.on("data", (data) => {
+    child.stderr?.on("data", (data: Buffer) => {
       stderr += data.toString();
     });
     child.on("close", (code) => {
@@ -223,12 +222,11 @@ async function printSummaryAndLogs() {
 export async function run(stages: Stage[]): Promise<void> {
   try {
     for (const stage of stages) {
-      // eslint-disable-next-line no-await-in-loop
       await runStage(stage);
     }
     await printSummaryAndLogs();
     console.log("\n✔ Database reset complete (development only)");
-  } catch (err) {
+  } catch {
     await printSummaryAndLogs();
     console.error("\n✖ Database reset failed");
     process.exit(1);
@@ -264,8 +262,7 @@ async function main() {
   await run(stages);
 }
 
-const invokedDirectly =
-  process.argv[1]?.endsWith("dev-db-reset.ts") ?? false;
+const invokedDirectly = process.argv[1]?.endsWith("dev-db-reset.ts") ?? false;
 
 if (invokedDirectly) {
   void main();

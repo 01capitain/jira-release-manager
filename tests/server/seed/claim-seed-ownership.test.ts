@@ -3,12 +3,6 @@ import type { PrismaClient } from "@prisma/client";
 import { claimSeedOwnership } from "~/server/seed/claim-seed-ownership";
 import { SEED_PLACEHOLDER_USER } from "~/server/seed/constants";
 
-type MockDelegate = {
-  updateMany?: jest.Mock;
-  findUnique?: jest.Mock;
-  delete?: jest.Mock;
-};
-
 const createMockPrisma = () => {
   const mockDelegates = {
     user: {
@@ -22,12 +16,13 @@ const createMockPrisma = () => {
     actionLog: { updateMany: jest.fn() },
   };
 
+  const transactionSpy = jest.fn(async (cb) => cb(mockDelegates));
   const prisma = {
-    $transaction: jest.fn(async (cb) => cb(mockDelegates)),
+    $transaction: transactionSpy,
     ...mockDelegates,
   } as unknown as PrismaClient & typeof mockDelegates;
 
-  return { prisma, mockDelegates };
+  return { prisma, mockDelegates, transactionSpy };
 };
 
 describe("claimSeedOwnership", () => {
@@ -74,7 +69,7 @@ describe("claimSeedOwnership", () => {
   });
 
   it("reassigns all placeholder-owned records and deletes the placeholder user", async () => {
-    const { prisma, mockDelegates } = createMockPrisma();
+    const { prisma, mockDelegates, transactionSpy } = createMockPrisma();
     mockDelegates.user.findUnique
       .mockResolvedValueOnce(placeholderUser) // placeholder lookup
       .mockResolvedValueOnce(targetUser); // target lookup
@@ -85,24 +80,32 @@ describe("claimSeedOwnership", () => {
     });
 
     expect(result).toBe(true);
-    const targets = [
-      mockDelegates.releaseComponent.updateMany,
-      mockDelegates.releaseVersion.updateMany,
-      mockDelegates.builtVersion.updateMany,
+    expect(mockDelegates.releaseComponent.updateMany).toHaveBeenCalledWith({
+      where: { createdById: placeholderUser.id },
+      data: { createdById: targetUser.id },
+    });
+    expect(mockDelegates.releaseVersion.updateMany).toHaveBeenCalledWith({
+      where: { createdById: placeholderUser.id },
+      data: { createdById: targetUser.id },
+    });
+    expect(mockDelegates.builtVersion.updateMany).toHaveBeenCalledWith({
+      where: { createdById: placeholderUser.id },
+      data: { createdById: targetUser.id },
+    });
+    expect(
       mockDelegates.builtVersionTransition.updateMany,
-      mockDelegates.actionLog.updateMany,
-    ];
-
-    for (const delegate of targets) {
-      expect(delegate).toHaveBeenCalledWith({
-        where: { createdById: placeholderUser.id },
-        data: { createdById: targetUser.id },
-      });
-    }
+    ).toHaveBeenCalledWith({
+      where: { createdById: placeholderUser.id },
+      data: { createdById: targetUser.id },
+    });
+    expect(mockDelegates.actionLog.updateMany).toHaveBeenCalledWith({
+      where: { createdById: placeholderUser.id },
+      data: { createdById: targetUser.id },
+    });
 
     expect(mockDelegates.user.delete).toHaveBeenCalledWith({
       where: { id: placeholderUser.id },
     });
-    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(transactionSpy).toHaveBeenCalledTimes(1);
   });
 });
