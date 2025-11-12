@@ -3,8 +3,8 @@ import { getNodeAutoInstrumentations } from "@opentelemetry/auto-instrumentation
 import { OTLPMetricExporter } from "@opentelemetry/exporter-metrics-otlp-http";
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
 import { resourceFromAttributes } from "@opentelemetry/resources";
-import { NodeSDK, type NodeSDKConfiguration } from "@opentelemetry/sdk-node";
 import { PeriodicExportingMetricReader } from "@opentelemetry/sdk-metrics";
+import { NodeSDK, type NodeSDKConfiguration } from "@opentelemetry/sdk-node";
 import { SemanticResourceAttributes } from "@opentelemetry/semantic-conventions";
 import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
@@ -60,7 +60,8 @@ const getMetricReader = () => {
   const exporter = new OTLPMetricExporter({ url: endpoint });
   return new PeriodicExportingMetricReader({
     exporter,
-    exportIntervalMillis: 30_000,
+    exportIntervalMillis:
+      Number(process.env.OTEL_METRIC_EXPORT_INTERVAL) || 60_000,
   });
 };
 
