@@ -60,7 +60,14 @@ if [ "$DB_PASSWORD" = "password" ]; then
     exit 1
   fi
   DB_PASSWORD=$(openssl rand -base64 12 | tr '+/' '-_')
-  sed -i '' "s#:password@#:$DB_PASSWORD@#" "$ENV_FILE"
+  tmp_env_file="$(mktemp "${ENV_FILE}.XXXXXX")"
+  if sed "s#:password@#:$DB_PASSWORD@#" "$ENV_FILE" >"$tmp_env_file"; then
+    mv "$tmp_env_file" "$ENV_FILE"
+  else
+    rm -f "$tmp_env_file"
+    echo "Failed to update $ENV_FILE with the new password."
+    exit 1
+  fi
   echo "Updated DATABASE_URL with a random password."
 fi
 

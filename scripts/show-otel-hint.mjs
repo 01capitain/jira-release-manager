@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { Socket } from "node:net";
 import { resolve } from "node:path";
 
-import { parse as parseDotenv } from "dotenv";
+import { config as loadDotenv } from "dotenv";
 
 if (process.env.DISABLE_OTEL_HINT === "true") {
   process.exit(0);
@@ -19,24 +19,17 @@ const BULLET_INDENT = "   - ";
 
 const loadEnvFiles = () => {
   const envFiles = [
-    ".env",
-    ".env.development",
-    ".env.local",
     ".env.development.local",
+    ".env.local",
+    ".env.development",
+    ".env",
   ];
-  const resolved = new Map();
   for (const filename of envFiles) {
     const filePath = resolve(process.cwd(), filename);
     if (!existsSync(filePath)) continue;
-    const raw = readFileSync(filePath, "utf-8");
-    const parsed = parseDotenv(raw);
-    for (const [key, value] of Object.entries(parsed)) {
-      resolved.set(key, value ?? "");
-    }
-  }
-  for (const [key, value] of resolved) {
-    if (process.env[key] === undefined) {
-      process.env[key] = value;
+    const result = loadDotenv({ path: filePath, override: false });
+    if (result.error) {
+      throw result.error;
     }
   }
 };
