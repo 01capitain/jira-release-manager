@@ -42,20 +42,18 @@ export async function claimSeedOwnership({
       throw new Error(`User ${userId} not found while claiming seed ownership`);
     }
 
-    await Promise.all(
-      OwnershipTargets.map((model) => {
-        const delegate = tx[model] as unknown as {
-          updateMany(args: {
-            where: { createdById: string };
-            data: { createdById: string };
-          }): Promise<unknown>;
-        };
-        return delegate.updateMany({
-          where: { createdById: placeholder.id },
-          data: { createdById: userId },
-        });
-      }),
-    );
+    for (const model of OwnershipTargets) {
+      const delegate = tx[model] as unknown as {
+        updateMany(args: {
+          where: { createdById: string };
+          data: { createdById: string };
+        }): Promise<unknown>;
+      };
+      await delegate.updateMany({
+        where: { createdById: placeholder.id },
+        data: { createdById: userId },
+      });
+    }
 
     await tx.user.delete({ where: { id: placeholder.id } });
     return true;
