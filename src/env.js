@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { createEnv } from "@t3-oss/env-nextjs";
 import { z } from "zod";
+import { join } from "node:path";
 
 const serverSchema = {
   AUTH_SECRET:
@@ -63,10 +64,8 @@ const parseEnvExampleKeys = () => {
     return [];
   }
 
-  const exampleFile = readFileSync(
-    new URL("../.env.example", import.meta.url),
-    "utf-8",
-  );
+  const examplePath = join(process.cwd(), ".env.example");
+  const exampleFile = readFileSync(examplePath, "utf-8");
   return exampleFile
     .split(/\r?\n/)
     .map((line) => line.trim())
