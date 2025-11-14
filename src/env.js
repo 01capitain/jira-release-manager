@@ -65,7 +65,12 @@ const parseEnvExampleKeys = () => {
   }
 
   const examplePath = join(process.cwd(), ".env.example");
-  const exampleFile = readFileSync(examplePath, "utf-8");
+  let exampleFile;
+  try {
+    exampleFile = readFileSync(examplePath, "utf-8");
+  } catch {
+    return [];
+  }
   return exampleFile
     .split(/\r?\n/)
     .map((line) => line.trim())
