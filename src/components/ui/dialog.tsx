@@ -7,10 +7,10 @@ import { XIcon } from "lucide-react";
 import { cn } from "~/lib/utils";
 
 const Dialog = React.forwardRef<
-  React.ElementRef<typeof DialogPrimitive.Root>,
+  never,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Root>
->(function Dialog(props, ref) {
-  return <DialogPrimitive.Root ref={ref} data-slot="dialog" {...props} />;
+>(function Dialog(props, _ref) {
+  return <DialogPrimitive.Root data-slot="dialog" {...props} />;
 });
 
 const DialogTrigger = React.forwardRef<
@@ -23,12 +23,10 @@ const DialogTrigger = React.forwardRef<
 });
 
 const DialogPortal = React.forwardRef<
-  React.ElementRef<typeof DialogPrimitive.Portal>,
+  never,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Portal>
->(function DialogPortal(props, ref) {
-  return (
-    <DialogPrimitive.Portal ref={ref} data-slot="dialog-portal" {...props} />
-  );
+>(function DialogPortal(props, _ref) {
+  return <DialogPrimitive.Portal data-slot="dialog-portal" {...props} />;
 });
 
 const DialogClose = React.forwardRef<

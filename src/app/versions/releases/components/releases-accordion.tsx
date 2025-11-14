@@ -114,6 +114,11 @@ export default function ReleasesAccordion({
         const ids = rel.builtVersions.map((b) => b.id);
         const names = rel.builtVersions.map((b) => b.name);
         const mode = viewModeByRelease[rel.id] ?? "list";
+        const calendarEvents = mapBuiltVersionsToCalendarEvents(
+          rel,
+          [],
+          releaseComponentLookup,
+        );
         return (
           <details
             key={rel.id}
@@ -166,16 +171,8 @@ export default function ReleasesAccordion({
               </div>
             </summary>
             <div className="p-4">
-              const calendarEvents = React.useMemo(
-                () => mapBuiltVersionsToCalendarEvents(rel, [], releaseComponentLookup),
-                [rel, releaseComponentLookup]
-              );
-
               {mode === "calendar" ? (
-                <ReleaseCalendar
-                  release={rel}
-                  events={calendarEvents}
-                />
+                <ReleaseCalendar release={rel} events={calendarEvents} />
               ) : (
                 <div className="relative grid w-full grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
                   {rel.builtVersions.map((b) => (
