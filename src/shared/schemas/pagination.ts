@@ -15,7 +15,7 @@ const createIntegerSchema = (min: number, options?: { coerce?: boolean }) => {
   const base = options?.coerce ? z.coerce.number() : z.number();
   return base
     .min(min)
-    .refine(Number.isInteger, { message: INTEGER_MESSAGE })
+    .refine(Number.isInteger, { error: INTEGER_MESSAGE })
     .meta({ type: "integer" });
 };
 
@@ -27,7 +27,7 @@ const createIntegerDocSchema = (min: number) =>
   z
     .number()
     .min(min)
-    .refine(Number.isInteger, { message: INTEGER_MESSAGE })
+    .refine(Number.isInteger, { error: INTEGER_MESSAGE })
     .meta({ type: "integer" });
 
 const defaultDescriptions = {
@@ -103,7 +103,7 @@ export function createPaginatedRequestSchema<TSortBy extends string>(
         .enum(Array.from(allowedSorts))
         .default(defaultSort)
         .refine((v) => allowedSorts.has(v), {
-          message: `sortBy must be one of: ${Array.from(allowedSorts).join(", ")}`,
+          error: `sortBy must be one of: ${Array.from(allowedSorts).join(", ")}`,
         })
         .describe(descriptions.sortBy ?? defaultDescriptions.sortBy),
     })

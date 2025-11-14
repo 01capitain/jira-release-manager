@@ -7,9 +7,6 @@ import { PeriodicExportingMetricReader } from "@opentelemetry/sdk-metrics";
 import { NodeSDK, type NodeSDKConfiguration } from "@opentelemetry/sdk-node";
 import { SemanticResourceAttributes } from "@opentelemetry/semantic-conventions";
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null;
-
 const getPackageVersion = (): string | undefined => {
   const version = process.env.npm_package_version;
   return typeof version === "string" && version.length > 0
