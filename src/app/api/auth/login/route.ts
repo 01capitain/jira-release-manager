@@ -9,10 +9,10 @@ const loginSchema = z.object({
     .string()
     .trim()
     .refine((value) => value.startsWith("/") && !value.startsWith("//"), {
-      message: "returnTo must be a relative path without protocol",
+      error: "returnTo must be a relative path without protocol",
     })
     .refine((value) => !value.includes("\\") && !value.includes("//"), {
-      message: "returnTo must not contain backslashes or double slashes",
+      error: "returnTo must not contain backslashes or double slashes",
     })
     .max(1024)
     .optional(),
@@ -39,7 +39,7 @@ export const POST = async (request: Request): Promise<Response> => {
     if (!parsed.success) {
       // If provider is the issue, return BAD_REQUEST
       const providerIssue = parsed.error.issues.find(
-        (issue) => issue.path[0] === "provider"
+        (issue) => issue.path[0] === "provider",
       );
       if (providerIssue) {
         return Response.json(BAD_REQUEST, { status: 400 });
@@ -51,7 +51,7 @@ export const POST = async (request: Request): Promise<Response> => {
           message:
             parsed.error.issues[0]?.message ?? "Invalid request parameters",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
     payload = parsed.data;

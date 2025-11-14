@@ -22,7 +22,7 @@ otelcol.processor.batch "default" {
 
 otelcol.exporter.otlp "tempo" {
   client {
-    endpoint = "127.0.0.1:4317"
+    endpoint = "127.0.0.1:4319"
     tls {
       insecure = true
     }

@@ -1,17 +1,15 @@
 "use client";
 
-import { useEffect } from "react";
-
 import { initializeClientTelemetry } from "~/lib/otel/client";
+
+if (typeof window !== "undefined") {
+  initializeClientTelemetry();
+}
 
 export const TelemetryProvider = ({
   children,
 }: {
   children: React.ReactNode;
 }) => {
-  useEffect(() => {
-    initializeClientTelemetry();
-  }, []);
-
   return <>{children}</>;
 };

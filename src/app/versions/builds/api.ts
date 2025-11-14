@@ -8,6 +8,7 @@ import {
   requestJson,
   type RestApiError,
 } from "~/lib/rest-client";
+import { withUiSpan } from "~/lib/otel/ui-span";
 import type { BuiltVersionDto } from "~/shared/types/built-version";
 import type { BuiltVersionCreateInput } from "~/shared/schemas/built-version";
 import type { BuiltVersionDefaultSelection } from "~/shared/schemas/built-version-selection";
@@ -84,9 +85,11 @@ export const fetchComponentVersionsByBuilt = async (
 export const createBuiltVersion = async (
   input: BuiltVersionCreateInput,
 ): Promise<BuiltVersionDto> => {
-  return postJson<BuiltVersionCreateInput, BuiltVersionDto>(
-    `/api/v1/release-versions/${input.versionId}/built-versions`,
-    input,
+  return withUiSpan("ui.built.create", () =>
+    postJson<BuiltVersionCreateInput, BuiltVersionDto>(
+      `/api/v1/release-versions/${input.versionId}/built-versions`,
+      input,
+    ),
   );
 };
 
@@ -109,9 +112,11 @@ export const transitionBuiltVersion = async ({
   action: BuiltVersionAction;
 }): Promise<BuiltVersionTransitionResponse> => {
   const segment = transitionSegments[action];
-  return requestJson<BuiltVersionTransitionResponse>(
-    `/api/v1/release-versions/${releaseId}/built-versions/${builtVersionId}/${segment}`,
-    { method: "POST" },
+  return withUiSpan(`ui.built.transition.${action}`, () =>
+    requestJson<BuiltVersionTransitionResponse>(
+      `/api/v1/release-versions/${releaseId}/built-versions/${builtVersionId}/${segment}`,
+      { method: "POST" },
+    ),
   );
 };
 
@@ -130,9 +135,11 @@ export const createSuccessorBuilt = async (input: {
   builtVersionId: string;
   selectedReleaseComponentIds: string[];
 }): Promise<BuiltVersionSuccessorResponse> => {
-  return postJson<typeof input, BuiltVersionSuccessorResponse>(
-    `/api/v1/built-versions/${input.builtVersionId}/successor`,
-    input,
+  return withUiSpan("ui.built.successor.create", () =>
+    postJson<typeof input, BuiltVersionSuccessorResponse>(
+      `/api/v1/built-versions/${input.builtVersionId}/successor`,
+      input,
+    ),
   );
 };
 

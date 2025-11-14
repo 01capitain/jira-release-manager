@@ -6,36 +6,24 @@ import { resourceFromAttributes } from "@opentelemetry/resources";
 import { PeriodicExportingMetricReader } from "@opentelemetry/sdk-metrics";
 import { NodeSDK, type NodeSDKConfiguration } from "@opentelemetry/sdk-node";
 import { SemanticResourceAttributes } from "@opentelemetry/semantic-conventions";
-import { randomUUID } from "node:crypto";
-import { readFileSync } from "node:fs";
-
-const packageJsonUrl = new URL("./package.json", import.meta.url);
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null;
 
 const getPackageVersion = (): string | undefined => {
-  try {
-    const raw = readFileSync(packageJsonUrl, "utf-8");
-    const parsed = JSON.parse(raw) as unknown;
-    if (!isRecord(parsed)) {
-      return undefined;
-    }
-    const version = parsed.version;
-    return typeof version === "string" ? version : undefined;
-  } catch {
-    return undefined;
-  }
+  const version = process.env.npm_package_version;
+  return typeof version === "string" && version.length > 0
+    ? version
+    : undefined;
 };
 
-const resolveServiceInstanceId = () => {
+const resolveServiceInstanceId = async () => {
   if (process.env.SERVICE_INSTANCE_ID) {
     return process.env.SERVICE_INSTANCE_ID;
   }
   if (process.env.HOSTNAME) {
     return process.env.HOSTNAME;
   }
-  const generated = randomUUID();
+  const generated =
+    globalThis.crypto?.randomUUID?.() ??
+    Math.random().toString(36).slice(2, 12);
   process.env.SERVICE_INSTANCE_ID = generated;
   return generated;
 };
@@ -44,18 +32,42 @@ declare global {
   var __otelNodeSdkStarted: boolean | undefined;
 }
 
+const withDefaultPath = (endpoint: string | undefined, defaultPath: string) => {
+  if (!endpoint) return undefined;
+  try {
+    const url = new URL(endpoint);
+    if (url.pathname === "" || url.pathname === "/") {
+      url.pathname = defaultPath;
+    }
+    return url.toString();
+  } catch {
+    const normalizedDefault = defaultPath.startsWith("/")
+      ? defaultPath
+      : `/${defaultPath}`;
+    const trimmed = endpoint.endsWith("/") ? endpoint.slice(0, -1) : endpoint;
+    if (trimmed.endsWith(normalizedDefault)) {
+      return trimmed;
+    }
+    return `${trimmed}${normalizedDefault}`;
+  }
+};
+
 const getTraceExporter = () => {
-  const endpoint =
+  const endpoint = withDefaultPath(
     process.env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT ??
-    process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
+      process.env.OTEL_EXPORTER_OTLP_ENDPOINT,
+    "/v1/traces",
+  );
   if (!endpoint) return undefined;
   return new OTLPTraceExporter({ url: endpoint });
 };
 
 const getMetricReader = () => {
-  const endpoint =
+  const endpoint = withDefaultPath(
     process.env.OTEL_EXPORTER_OTLP_METRICS_ENDPOINT ??
-    process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
+      process.env.OTEL_EXPORTER_OTLP_ENDPOINT,
+    "/v1/metrics",
+  );
   if (!endpoint) return undefined;
   const exporter = new OTLPMetricExporter({ url: endpoint });
   return new PeriodicExportingMetricReader({
@@ -82,14 +94,18 @@ const shouldStart = () => {
   return hasTrace || hasMetrics;
 };
 
+const configureDiagnostics = () => {
+  const level =
+    process.env.OTEL_DEBUG === "true" ? DiagLogLevel.DEBUG : DiagLogLevel.WARN;
+  diag.setLogger(new DiagConsoleLogger(), level);
+};
+
 export async function register() {
   if (!shouldStart()) {
     return;
   }
 
-  if (process.env.OTEL_DEBUG === "true") {
-    diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.DEBUG);
-  }
+  configureDiagnostics();
 
   const traceExporter = getTraceExporter();
   const metricReader = getMetricReader();
@@ -98,7 +114,7 @@ export async function register() {
     process.env.SERVICE_VERSION ?? getPackageVersion() ?? undefined;
   const deploymentEnvironment =
     process.env.DEPLOYMENT_ENVIRONMENT ?? process.env.NODE_ENV;
-  const serviceInstanceId = resolveServiceInstanceId();
+  const serviceInstanceId = await resolveServiceInstanceId();
 
   const resourceAttributes: Record<string, string> = {
     [SemanticResourceAttributes.SERVICE_NAME]:
@@ -124,29 +140,32 @@ export async function register() {
     config.traceExporter = traceExporter;
   }
   if (metricReader) {
-    config.metricReader = metricReader;
+    config.metricReaders = [metricReader];
   }
 
   const sdk = new NodeSDK(config);
   sdk.start();
   globalThis.__otelNodeSdkStarted = true;
 
-  let isShuttingDown = false;
+  const nodeProcess = globalThis.process;
+  if (!nodeProcess || typeof nodeProcess.on !== "function") {
+    return;
+  }
 
+  let isShuttingDown = false;
   const handleSignal = () => {
     if (isShuttingDown) return;
     isShuttingDown = true;
-    void (async () => {
-      try {
-        await sdk.shutdown();
-        process.exit(0);
-      } catch (error) {
-        diag.error("OTel shutdown failed", error);
-        process.exit(1);
-      }
-    })();
+    void sdk.shutdown().catch((error) => {
+      diag.error("OTel shutdown failed", error);
+    });
   };
 
-  process.on("SIGTERM", handleSignal);
-  process.on("SIGINT", handleSignal);
+  if (typeof nodeProcess.once === "function") {
+    nodeProcess.once("SIGTERM", handleSignal);
+    nodeProcess.once("SIGINT", handleSignal);
+  } else {
+    nodeProcess.on("SIGTERM", handleSignal);
+    nodeProcess.on("SIGINT", handleSignal);
+  }
 }

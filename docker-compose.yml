@@ -1,0 +1,44 @@
+services:
+  postgres:
+    image: postgres:18
+    container_name: jira-release-manager-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
+      POSTGRES_DB: ${DB_NAME:-jira-release-manager}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  observability:
+    build:
+      context: .
+      dockerfile: observability/otel-sandbox/Dockerfile
+    image: jira-release-manager-otel
+    container_name: jira-release-manager-telemetry
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-hotelkit123}
+    depends_on:
+      - postgres
+    ports:
+      - "4318:4318"
+      - "4317:4317"
+      - "3001:3001"
+      - "3200:3200"
+      - "3100:3100"
+      - "9090:9090"
+      - "9464:9464"
+
+volumes:
+  postgres-data:

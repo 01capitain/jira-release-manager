@@ -4,7 +4,7 @@ This guide explains how to enable OpenTelemetry (OTel) for both the server (Next
 
 ## 0. OpenTelemetry in 5 Minutes
 
-- **Signals**: OpenTelemetry captures three major telemetry types—**traces** (request lifecycles broken into spans), **metrics** (aggregated numeric time series), and **logs** (not enabled in this project yet). We focus on traces + metrics.
+- **Signals**: OpenTelemetry captures three major telemetry types—**traces** (request lifecycles broken into spans), **metrics** (aggregated numeric time series), and **logs**. Our local sandbox now ships all three signals through Grafana Alloy into Tempo (traces), Prometheus (metrics), and Loki (logs).
 - **Spans & Traces**: A trace is an end-to-end request; each nested unit of work is a span. Spans carry attributes (key/value pairs), timing data, and status. Auto-instrumentations populate spans for framework boundaries; we add manual spans for critical business logic.
 - **Meters & Metrics**: Metrics aggregate counters, histograms, and gauges. They’re ideal for tracking rates (e.g., releases per hour) or latency distributions.
 - **Resources**: Describe the service emitting telemetry (service name, version, environment). We set these via environment variables so data is identifiable across pipelines.
@@ -49,13 +49,18 @@ SERVICE_INSTANCE_ID=release-manager-api-1
 
 To test locally, run an OTLP-compatible collector such as the [OpenTelemetry Collector](https://opentelemetry.io/docs/collector/) or [Grafana Alloy](https://grafana.com/oss/opentelemetry/) and point the endpoints above to the collector’s HTTP receiver (default `http://localhost:4318`).
 
-### Running the bundled sandbox
+### Running the single-container sandbox
 
-For a full Grafana-based sandbox (Alloy, Tempo, Prometheus, Loki, Grafana OSS) run the single Dockerfile in `observability/otel-sandbox`:
+The complete observability stack (Grafana Alloy, Tempo, Prometheus, Loki, Grafana OSS) now lives inside one Dockerfile. Build and run it directly without Compose, optionally overriding the Grafana admin credentials with the `GRAFANA_ADMIN_USER` / `GRAFANA_ADMIN_PASSWORD` environment variables (defaults: `admin` / `hotelkit123`):
 
 ```bash
+export GRAFANA_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+export GRAFANA_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-hotelkit123}
+
 docker build -f observability/otel-sandbox/Dockerfile -t jira-release-manager-otel .
 docker run --rm \
+  -e GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin} \
+  -e GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-hotelkit123} \
   -p 4318:4318 \
   -p 4317:4317 \
   -p 3001:3001 \
@@ -66,7 +71,9 @@ docker run --rm \
   jira-release-manager-otel
 ```
 
-The container exposes OTLP receivers on `http://localhost:4318` and pre-provisions Grafana at `http://localhost:3001` (credentials: `admin` / `admin`). All data is stored beneath `/tmp` inside the container, so it clears automatically when the container stops. Grafana ships with a starter dashboard (`OTel Sandbox Overview`) that ties traces, metrics, and logs together; use it as a quick sanity check before diving into Explore.
+Data is stored under `/tmp` inside the container, so traces/metrics/logs reset automatically when the container stops. Grafana is available at `http://localhost:3001` (defaults follow the environment variables above). Point your exporters at `http://localhost:4318` (HTTP) or `grpc://localhost:4317` for in-app testing.
+
+> Need Postgres and observability at once? `./start-database.sh` (or `docker compose up -d postgres observability`) still works, but it simply builds the image above and runs the single telemetry container alongside Postgres.
 
 ## 2. Server Instrumentation
 
@@ -86,6 +93,9 @@ The container exposes OTLP receivers on `http://localhost:4318` and pre-provisio
 ## 3. Browser Instrumentation
 
 - The `TelemetryProvider` (see `src/components/providers/telemetry-provider.tsx`) initializes tracing/metrics once on the client using `@opentelemetry/sdk-trace-web`.
+- `@opentelemetry/auto-instrumentations-web` is registered up front so browser `fetch`/XHR calls emit spans and automatically attach `traceparent`/`tracestate` headers.
+- The shared REST helpers (`src/lib/rest-client.ts`) inject the active span context into every request as a fallback, so TanStack Query mutations and custom fetches still propagate trace IDs even outside auto-instrumented paths.
+- Use `withUiSpan` from `src/lib/otel/ui-span.ts` around high-value UI interactions (release creation, built transitions, etc.) to give Tempo readable span names.
 - Collected telemetry flows to the OTLP HTTP endpoints defined by the `NEXT_PUBLIC_OTEL_*` variables.
 - A basic `app.page_view` counter metric fires once on application startup; subscribe to router events (or similar custom logic) and increment the counter manually if you need per-navigation metrics.
 
@@ -97,10 +107,11 @@ The container exposes OTLP receivers on `http://localhost:4318` and pre-provisio
 
 ## 4. Verifying Telemetry
 
-1. Start the Collector or telemetry backend.
-2. Launch the app with telemetry variables configured.
-3. Navigate the UI and hit APIs; confirm spans/metrics arrive via collector logs or backend dashboards.
-4. Use [otel-cli](https://github.com/lightstep/otel-cli) or collector debug exporters for smoke checks if needed.
+1. **Start the sandbox** using the Docker commands above and wait ~30 seconds for Grafana to finish provisioning datasources/dashboards.
+2. **Log in to Grafana** at `http://localhost:3001` → open the *OTel Sandbox* folder → load the *Overview* dashboard. Panels are pre-wired to Prometheus, Loki, and Tempo so you can validate every signal in one view.
+3. **Trigger a UI action** (e.g., create a release or mutate a built version). The browser auto-instrumentations wrap fetch/XHR calls automatically, and the helper spans added around release/build flows expose human-friendly names in Tempo.
+4. **Inspect traces**: From the dashboard, jump into Tempo and confirm the trace shows both the browser span and the downstream Next.js API span carrying the same trace ID.
+5. **Inspect logs/metrics**: The same interaction should emit Loki log lines (via Alloy) and increment the Prometheus counters/histograms surfaced on the overview dashboard. Because storage is ephemeral, repeat the interaction whenever you restart the container.
 
 ## 5. Extending Telemetry
 

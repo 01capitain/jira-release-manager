@@ -14,7 +14,8 @@ ENV DEBIAN_FRONTEND=noninteractive \
     GF_PATHS_DATA=/tmp/grafana \
     GF_PATHS_LOGS=/tmp/grafana/logs \
     GF_PATHS_PLUGINS=/tmp/grafana/plugins \
-    GF_SECURITY_ADMIN_PASSWORD=admin
+    GF_SECURITY_ADMIN_USER=admin \
+    GF_SECURITY_ADMIN_PASSWORD=hotelkit123
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates curl tar unzip tini \
@@ -23,9 +24,10 @@ RUN apt-get update \
 RUN set -eux; \
     mkdir -p /opt/tempo /opt/loki /opt/prometheus /opt/alloy /opt/grafana; \
     mkdir -p /etc/tempo /etc/loki /etc/prometheus /etc/alloy /etc/grafana/provisioning/datasources /etc/grafana/provisioning/dashboards; \
-    mkdir -p /tmp/prometheus /tmp/loki /tmp/tempo /tmp/grafana/logs /tmp/grafana/plugins; \
+    mkdir -p /tmp/prometheus /tmp/loki /tmp/tempo /tmp/grafana/logs /tmp/grafana/plugins /data-alloy; \
     groupadd --system grafana; \
-    useradd --system --home-dir /tmp/grafana --gid grafana grafana
+    useradd --system --home-dir /tmp/grafana --gid grafana grafana; \
+    chown -R grafana:grafana /tmp/prometheus /tmp/loki /tmp/tempo /tmp/grafana /data-alloy
 
 RUN set -eux; \
     case "${TARGETARCH}" in \
