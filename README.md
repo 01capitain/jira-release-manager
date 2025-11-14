@@ -72,7 +72,7 @@ docker run --rm \
   jira-release-manager-otel
 ```
 
-Grafana (http://localhost:3001, default `admin` / `hotelkit123`) comes pre-provisioned with datasources and the *OTel Sandbox* dashboard. Because the container writes everything to `/tmp`, telemetry persists only for the container’s lifetime.
+Grafana (<http://localhost:3001>, default `admin` / `hotelkit123`) comes pre-provisioned with datasources and the _OTel Sandbox_ dashboard. Because the container writes everything to `/tmp`, telemetry persists only for the container's lifetime.
 
 Set the application exporters to send data to the sandbox:
 
