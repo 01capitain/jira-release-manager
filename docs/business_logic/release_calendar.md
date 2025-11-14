@@ -27,7 +27,8 @@ type ReleaseCalendarEvent = {
 ## UX Behavior
 
 - Heading: `Release {name} calendar` with focus transfer for accessibility. View toggles now live in the accordion header (calendar/list icons) so the calendar sits inline with the expanded release card.
-- Month initialization: the calendar opens on the month of the release creation date; when unavailable, it falls back to the current month.
+- Month initialization: the calendar opens on the month of the release creation date when no builds exist. Once builds are present, the view automatically spans from the earliest to the latest build date, still respecting the 5-column work week layout.
+- Range adjustments: a shadcn `Calendar` (range mode) lets operators pick custom start/end dates within the available build window; the visualization updates immediately and a reset button returns to the default earliest→latest range.
 - Only weekdays (Monday–Friday) are rendered so the layout mirrors the operational work week.
 - Each calendar cell renders every event chip (built name + component chips) with vertically expanding rows (no scrollbars) so the entire work week remains readable even with many deployments.
 - The UI respects both light and dark mode via shared color utilities; the `BuiltVersionCalendarEvent` component is the single source of styling for all chips rendered inside the calendar.

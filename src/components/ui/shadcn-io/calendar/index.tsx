@@ -1,6 +1,6 @@
 "use client";
 
-import { getDay, getDaysInMonth, isSameDay } from "date-fns";
+import { addDays, getDay, getDaysInMonth } from "date-fns";
 import { atom, useAtom } from "jotai";
 import {
   Check,
@@ -50,12 +50,16 @@ type CalendarContextProps = {
   locale: Intl.LocalesArgument;
   startDay: number;
   visibleDays: number;
+  rangeStart?: Date;
+  rangeEnd?: Date;
 };
 
 const CalendarContext = createContext<CalendarContextProps>({
   locale: "en-US",
   startDay: 0,
   visibleDays: 7,
+  rangeStart: undefined,
+  rangeEnd: undefined,
 });
 
 export type Status = {
@@ -196,8 +200,10 @@ export type CalendarBodyProps = {
 export const CalendarBody = ({ features, children }: CalendarBodyProps) => {
   const [month] = useCalendarMonth();
   const [year] = useCalendarYear();
-  const { startDay, visibleDays } = useContext(CalendarContext);
+  const { startDay, visibleDays, rangeStart, rangeEnd } =
+    useContext(CalendarContext);
   const showWorkWeekOnly = visibleDays === 5;
+  const useRangeOverride = Boolean(rangeStart && rangeEnd);
 
   // Memoize expensive date calculations
   const currentMonthDate = useMemo(
@@ -209,27 +215,60 @@ export const CalendarBody = ({ features, children }: CalendarBodyProps) => {
     [currentMonthDate],
   );
   const normalizedDayIndex = useCallback(
-    (day: number) => {
-      return (getDay(new Date(year, month, day)) - startDay + 7) % 7;
+    (input: Date) => {
+      return (getDay(input) - startDay + 7) % 7;
     },
-    [month, startDay, year],
+    [startDay],
   );
 
-  // Memoize features filtering by day to avoid recalculating on every render
-  const featuresByDay = useMemo(() => {
-    const result: Record<number, Feature[]> = {};
-    for (let day = 1; day <= daysInMonth; day++) {
-      result[day] = features.filter((feature) => {
-        return isSameDay(new Date(feature.endAt), new Date(year, month, day));
-      });
+  const featuresByDateKey = useMemo(() => {
+    const map = new Map<string, Feature[]>();
+    features.forEach((feature) => {
+      const key = new Date(feature.endAt).toDateString();
+      const current = map.get(key);
+      if (current) {
+        current.push(feature);
+      } else {
+        map.set(key, [feature]);
+      }
+    });
+    return map;
+  }, [features]);
+
+  const rangeDisplayStart = useMemo(() => {
+    if (!useRangeOverride || !rangeStart) return null;
+    const start = new Date(rangeStart);
+    while (normalizedDayIndex(start) !== 0) {
+      start.setDate(start.getDate() - 1);
     }
-    return result;
-  }, [features, daysInMonth, year, month]);
+    return start;
+  }, [normalizedDayIndex, rangeStart, useRangeOverride]);
+
+  const rangeDisplayEnd = useMemo(() => {
+    if (!useRangeOverride || !rangeEnd) return null;
+    const end = new Date(rangeEnd);
+    while (normalizedDayIndex(end) !== 4) {
+      end.setDate(end.getDate() + 1);
+    }
+    return end;
+  }, [normalizedDayIndex, rangeEnd, useRangeOverride]);
 
   const firstDay = useMemo(
     () => (getDay(currentMonthDate) - startDay + 7) % 7,
     [currentMonthDate, startDay],
   );
+
+  const firstWorkingDayOffset = useMemo(() => {
+    if (!showWorkWeekOnly) return 0;
+    const totalColumns = 5;
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dayIndex = normalizedDayIndex(new Date(year, month, day));
+      if (dayIndex < totalColumns) {
+        return dayIndex;
+      }
+    }
+    return 0;
+  }, [showWorkWeekOnly, daysInMonth, normalizedDayIndex, month, year]);
 
   // Memoize previous month calculations
   const prevMonthData = useMemo(() => {
@@ -255,17 +294,82 @@ export const CalendarBody = ({ features, children }: CalendarBodyProps) => {
     return { nextMonthDaysArray };
   }, [month, year]);
 
-  const firstWorkingDayOffset = useMemo(() => {
-    if (!showWorkWeekOnly) return 0;
+  if (
+    showWorkWeekOnly &&
+    useRangeOverride &&
+    rangeDisplayStart &&
+    rangeDisplayEnd
+  ) {
     const totalColumns = 5;
-    for (let day = 1; day <= daysInMonth; day++) {
-      const dayIndex = normalizedDayIndex(day);
-      if (dayIndex < totalColumns) {
-        return dayIndex;
+    const weeks: ReactNode[][] = [];
+    let currentWeek: ReactNode[] = [];
+    const baseCellClasses =
+      "relative flex min-h-[130px] w-full flex-col gap-1 border-b border-r border-t border-neutral-200 bg-white p-2 text-xs text-muted-foreground dark:border-neutral-800 dark:bg-neutral-900";
+
+    const addCell = (node: ReactNode) => {
+      currentWeek.push(node);
+      if (currentWeek.length === totalColumns) {
+        weeks.push(currentWeek);
+        currentWeek = [];
       }
+    };
+
+    const createBlankCell = (key: string) => (
+      <div key={key} className={baseCellClasses} />
+    );
+
+    const totalDays =
+      Math.floor(
+        (rangeDisplayEnd.getTime() - rangeDisplayStart.getTime()) /
+          (1000 * 60 * 60 * 24),
+      ) + 1;
+
+    for (let offset = 0; offset < totalDays; offset++) {
+      const day = addDays(rangeDisplayStart, offset);
+      const dayIndex = normalizedDayIndex(day);
+      if (dayIndex >= totalColumns) continue;
+      const dateKey = day.toDateString();
+      const featuresForDay = featuresByDateKey.get(dateKey) ?? [];
+      const outsideRange =
+        (rangeStart !== undefined ? day < rangeStart : false) ||
+        (rangeEnd !== undefined ? day > rangeEnd : false);
+      const isFriday = dayIndex === 4;
+      addCell(
+        <div key={`day-${day.getTime()}`} className={baseCellClasses}>
+          <span
+            className={cn(
+              "text-sm font-medium text-neutral-600 dark:text-neutral-200",
+              isFriday && "text-red-700 dark:text-red-400",
+            )}
+          >
+            {day.getDate()}
+          </span>
+          {!outsideRange ? (
+            <div className="flex flex-col gap-2">
+              {featuresForDay.map((feature) => (
+                <div key={feature.id}>{children({ feature })}</div>
+              ))}
+            </div>
+          ) : null}
+        </div>,
+      );
     }
-    return 0;
-  }, [showWorkWeekOnly, daysInMonth, normalizedDayIndex]);
+
+    if (currentWeek.length > 0) {
+      while (currentWeek.length < totalColumns) {
+        currentWeek.push(
+          createBlankCell(`pad-end-${currentWeek.length}-${weeks.length}`),
+        );
+      }
+      weeks.push(currentWeek);
+    }
+
+    return (
+      <div className="grid flex-grow grid-cols-5 border-l border-neutral-200 dark:border-neutral-800">
+        {weeks.flat()}
+      </div>
+    );
+  }
 
   if (showWorkWeekOnly) {
     const totalColumns = 5;
@@ -291,12 +395,20 @@ export const CalendarBody = ({ features, children }: CalendarBodyProps) => {
     }
 
     for (let day = 1; day <= daysInMonth; day++) {
-      const dayIndex = normalizedDayIndex(day);
+      const date = new Date(year, month, day);
+      const dayIndex = normalizedDayIndex(date);
       if (dayIndex >= totalColumns) continue;
-      const featuresForDay = featuresByDay[day] ?? [];
+      const dateKey = date.toDateString();
+      const featuresForDay = featuresByDateKey.get(dateKey) ?? [];
+      const isFriday = dayIndex === 4;
       addCell(
         <div key={`day-${day}`} className={baseCellClasses}>
-          <span className="text-sm font-medium text-neutral-600 dark:text-neutral-200">
+          <span
+            className={cn(
+              "text-sm font-medium text-neutral-600 dark:text-neutral-200",
+              isFriday && "text-red-700 dark:text-red-400",
+            )}
+          >
             {day}
           </span>
           <div className="flex flex-col gap-2">
@@ -338,14 +450,25 @@ export const CalendarBody = ({ features, children }: CalendarBodyProps) => {
   }
 
   for (let day = 1; day <= daysInMonth; day++) {
-    const featuresForDay = featuresByDay[day] ?? [];
+    const dateKey = new Date(year, month, day).toDateString();
+    const featuresForDay = featuresByDateKey.get(dateKey) ?? [];
+    const isFriday = normalizedDayIndex(new Date(year, month, day)) === 4;
 
     days.push(
       <div
-        className="text-muted-foreground relative flex h-full w-full flex-col gap-1 p-1 text-xs"
+        className={cn(
+          "text-muted-foreground relative flex h-full w-full flex-col gap-1 p-1 text-xs",
+          isFriday && "bg-red-50 dark:bg-red-950/30",
+        )}
         key={day}
       >
-        {day}
+        <span
+          className={cn(
+            isFriday ? "text-red-700 dark:text-red-400" : "text-inherit",
+          )}
+        >
+          {day}
+        </span>
         <div className="mt-1 flex flex-col gap-1 overflow-y-auto">
           {featuresForDay.map((feature) => (
             <div key={feature.id}>{children({ feature })}</div>
@@ -571,6 +694,8 @@ export type CalendarProviderProps = {
 
 type ExtendedCalendarProviderProps = CalendarProviderProps & {
   visibleDays?: number;
+  rangeStart?: Date;
+  rangeEnd?: Date;
 };
 
 export const CalendarProvider = ({
@@ -579,8 +704,12 @@ export const CalendarProvider = ({
   children,
   className,
   visibleDays = 7,
+  rangeStart,
+  rangeEnd,
 }: ExtendedCalendarProviderProps) => (
-  <CalendarContext.Provider value={{ locale, startDay, visibleDays }}>
+  <CalendarContext.Provider
+    value={{ locale, startDay, visibleDays, rangeStart, rangeEnd }}
+  >
     <div className={cn("relative flex flex-col", className)}>{children}</div>
   </CalendarContext.Provider>
 );
