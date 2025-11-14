@@ -218,47 +218,48 @@ export default function ReleaseCalendar({
             ) : null}
           </div>
         ) : null}
-        <CalendarProvider
-          className="w-full"
-          startDay={1}
-          visibleDays={5}
-          rangeStart={rangeStart}
-          rangeEnd={rangeEnd}
-        >
-          {showNavigation ? (
-            <CalendarDate className="flex flex-wrap items-center gap-3">
-              <CalendarDatePicker className="flex flex-wrap gap-2">
-                <CalendarMonthPicker />
-                <CalendarYearPicker
-                  start={yearBounds.start}
-                  end={yearBounds.end}
-                />
-              </CalendarDatePicker>
-              <CalendarDatePagination className="ml-auto" />
-            </CalendarDate>
-          ) : null}
-          <div className="rounded-lg border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900">
-            <CalendarHeader className="border-b border-neutral-200 px-2 py-2 dark:border-neutral-800" />
-            <CalendarBody features={features}>
-              {({ feature }) => {
-                const event = (feature as CalendarFeature).event;
-                return (
-                  <BuiltVersionCalendarEvent
-                    name={event.builtVersionName}
-                    statusLabel={event.statusLabel}
-                    components={event.components}
-                  />
-                );
-              }}
-            </CalendarBody>
-          </div>
-        </CalendarProvider>
         {events.length === 0 ? (
           <p className="text-sm text-neutral-500 dark:text-neutral-400">
             This release does not have any builds yet. New builds will appear on
             the calendar as they are created.
           </p>
-        ) : null}
+        ) : (
+          <CalendarProvider
+            className="w-full"
+            startDay={1}
+            visibleDays={5}
+            rangeStart={rangeStart}
+            rangeEnd={rangeEnd}
+          >
+            {showNavigation ? (
+              <CalendarDate className="flex flex-wrap items-center gap-3">
+                <CalendarDatePicker className="flex flex-wrap gap-2">
+                  <CalendarMonthPicker />
+                  <CalendarYearPicker
+                    start={yearBounds.start}
+                    end={yearBounds.end}
+                  />
+                </CalendarDatePicker>
+                <CalendarDatePagination className="ml-auto" />
+              </CalendarDate>
+            ) : null}
+            <div className="rounded-lg border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900">
+              <CalendarHeader className="border-b border-neutral-200 px-2 py-2 dark:border-neutral-800" />
+              <CalendarBody features={features}>
+                {({ feature }) => {
+                  const event = (feature as CalendarFeature).event;
+                  return (
+                    <BuiltVersionCalendarEvent
+                      name={event.builtVersionName}
+                      statusLabel={event.statusLabel}
+                      components={event.components}
+                    />
+                  );
+                }}
+              </CalendarBody>
+            </div>
+          </CalendarProvider>
+        )}
       </CardContent>
     </Card>
   );

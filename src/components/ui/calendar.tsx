@@ -7,7 +7,7 @@ import {
   ChevronRightIcon,
 } from "lucide-react";
 import { DayPicker, getDefaultClassNames } from "react-day-picker";
-import type { DayButton } from "react-day-picker";
+import type { DayButtonProps } from "react-day-picker";
 
 import { cn } from "~/lib/utils";
 import { Button, buttonVariants } from "~/components/ui/button";
@@ -181,7 +181,7 @@ function CalendarDayButton({
   day,
   modifiers,
   ...props
-}: React.ComponentProps<typeof DayButton>) {
+}: DayButtonProps) {
   const defaultClassNames = getDefaultClassNames();
 
   const ref = React.useRef<HTMLButtonElement>(null);
