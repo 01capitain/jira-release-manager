@@ -102,7 +102,7 @@ const RELEASE_VERSIONS = {
           //releaseComponentFixtures.nestJsBackend.id,
           releaseComponentFixtures.phpBackend.id,
           //releaseComponentFixtures.desktopAngular.id,
-          //eleaseComponentFixtures.desktopAngularJs.id,
+          //releaseComponentFixtures.desktopAngularJs.id,
         ],
       },
       {

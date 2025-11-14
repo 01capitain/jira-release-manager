@@ -166,14 +166,15 @@ export default function ReleasesAccordion({
               </div>
             </summary>
             <div className="p-4">
+              const calendarEvents = React.useMemo(
+                () => mapBuiltVersionsToCalendarEvents(rel, [], releaseComponentLookup),
+                [rel, releaseComponentLookup]
+              );
+
               {mode === "calendar" ? (
                 <ReleaseCalendar
                   release={rel}
-                  events={mapBuiltVersionsToCalendarEvents(
-                    rel,
-                    [],
-                    releaseComponentLookup,
-                  )}
+                  events={calendarEvents}
                 />
               ) : (
                 <div className="relative grid w-full grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
@@ -187,16 +188,15 @@ export default function ReleasesAccordion({
                     />
                   ))}
                   {hydrated && isFetching && (
-                    <div
+                    <output
                       className="pointer-events-none absolute inset-0 flex items-center justify-center bg-neutral-100/40 text-neutral-700 dark:bg-neutral-900/30 dark:text-neutral-200"
-                      role="status"
                       aria-atomic="true"
                     >
                       <span className="text-sm font-medium">
                         Refreshing
                         <span className="jrm-thinking" />
                       </span>
-                    </div>
+                    </output>
                   )}
                 </div>
               )}
