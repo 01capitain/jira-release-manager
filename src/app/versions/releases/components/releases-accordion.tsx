@@ -187,16 +187,15 @@ export default function ReleasesAccordion({
                     />
                   ))}
                   {hydrated && isFetching && (
-                    <div
+                    <output
                       className="pointer-events-none absolute inset-0 flex items-center justify-center bg-neutral-100/40 text-neutral-700 dark:bg-neutral-900/30 dark:text-neutral-200"
-                      role="status"
                       aria-atomic="true"
                     >
                       <span className="text-sm font-medium">
                         Refreshing
                         <span className="jrm-thinking" />
                       </span>
-                    </div>
+                    </output>
                   )}
                 </div>
               )}
