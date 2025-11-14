@@ -1,11 +1,18 @@
 "use client";
 
-import { ChevronDown } from "lucide-react";
+import {
+  Calendar as CalendarIcon,
+  ChevronDown,
+  List as ListIcon,
+} from "lucide-react";
 import * as React from "react";
 import type { ReleaseVersionWithBuildsDto } from "~/shared/types/release-version-with-builds";
 import { useBuiltVersionStatusQuery } from "../../builds/api";
 import BuiltVersionCard from "../../builds/components/built-version-card";
 import { useReleasesWithBuildsQuery } from "../api";
+import { Button } from "~/components/ui/button";
+import ReleaseCalendar from "./release-calendar";
+import { mapBuiltVersionsToCalendarEvents } from "../lib/calendar-events";
 
 function LatestActiveTag({
   builtVersionIds,
@@ -57,9 +64,18 @@ function LatestActiveTag({
   );
 }
 
-export default function ReleasesAccordion() {
+type ReleasesAccordionProps = {
+  releaseComponentLookup: Record<string, { color?: string }>;
+};
+
+export default function ReleasesAccordion({
+  releaseComponentLookup,
+}: ReleasesAccordionProps) {
   const [hydrated, setHydrated] = React.useState(false);
   React.useEffect(() => setHydrated(true), []);
+  const [viewModeByRelease, setViewModeByRelease] = React.useState<
+    Record<string, "list" | "calendar">
+  >({});
 
   // Cache releases-with-builds in localStorage
   const storageKey = () => `jrm:releases:accordion:releases-with-builds:v1`;
@@ -97,6 +113,7 @@ export default function ReleasesAccordion() {
       {releases.map((rel) => {
         const ids = rel.builtVersions.map((b) => b.id);
         const names = rel.builtVersions.map((b) => b.name);
+        const mode = viewModeByRelease[rel.id] ?? "list";
         return (
           <details
             key={rel.id}
@@ -113,38 +130,76 @@ export default function ReleasesAccordion() {
                   builtVersionNames={names}
                 />
               </div>
-              <span className="flex items-center gap-2 text-xs text-neutral-500 dark:text-neutral-400">
-                <span>{rel.builtVersions.length} builds</span>
+              <div className="flex items-center gap-2 text-xs text-neutral-500 dark:text-neutral-400">
+                <span className="text-xs">
+                  {rel.builtVersions.length} builds
+                </span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  aria-label={
+                    mode === "calendar"
+                      ? `View list for release ${rel.name}`
+                      : `View calendar for release ${rel.name}`
+                  }
+                  className="hidden group-open:inline-flex"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    setViewModeByRelease((prev) => ({
+                      ...prev,
+                      [rel.id]: mode === "calendar" ? "list" : "calendar",
+                    }));
+                  }}
+                >
+                  {mode === "calendar" ? (
+                    <ListIcon className="h-4 w-4" aria-hidden="true" />
+                  ) : (
+                    <CalendarIcon className="h-4 w-4" aria-hidden="true" />
+                  )}
+                </Button>
                 <ChevronDown
                   className="h-4 w-4 text-neutral-600 transition-transform group-open:rotate-180 dark:text-neutral-300"
                   aria-hidden="true"
                 />
-              </span>
+              </div>
             </summary>
             <div className="p-4">
-              <div className="relative grid w-full grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-                {rel.builtVersions.map((b) => (
-                  <BuiltVersionCard
-                    key={b.id}
-                    id={b.id}
-                    name={b.name}
-                    createdAt={b.createdAt}
-                    releaseId={rel.id}
-                  />
-                ))}
-                {hydrated && isFetching && (
-                  <div
-                    className="pointer-events-none absolute inset-0 flex items-center justify-center bg-neutral-100/40 text-neutral-700 dark:bg-neutral-900/30 dark:text-neutral-200"
-                    role="status"
-                    aria-atomic="true"
-                  >
-                    <span className="text-sm font-medium">
-                      Refreshing
-                      <span className="jrm-thinking" />
-                    </span>
-                  </div>
-                )}
-              </div>
+              {mode === "calendar" ? (
+                <ReleaseCalendar
+                  release={rel}
+                  events={mapBuiltVersionsToCalendarEvents(
+                    rel,
+                    [],
+                    releaseComponentLookup,
+                  )}
+                />
+              ) : (
+                <div className="relative grid w-full grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                  {rel.builtVersions.map((b) => (
+                    <BuiltVersionCard
+                      key={b.id}
+                      id={b.id}
+                      name={b.name}
+                      createdAt={b.createdAt}
+                      releaseId={rel.id}
+                    />
+                  ))}
+                  {hydrated && isFetching && (
+                    <div
+                      className="pointer-events-none absolute inset-0 flex items-center justify-center bg-neutral-100/40 text-neutral-700 dark:bg-neutral-900/30 dark:text-neutral-200"
+                      role="status"
+                      aria-atomic="true"
+                    >
+                      <span className="text-sm font-medium">
+                        Refreshing
+                        <span className="jrm-thinking" />
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </details>
         );

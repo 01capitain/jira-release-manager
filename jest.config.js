@@ -3,7 +3,10 @@ const config = {
   testEnvironment: "node",
   extensionsToTreatAsEsm: [".ts", ".tsx"],
   transform: {
-    "^.+\\.[tj]sx?$": ["ts-jest", { useESM: true, tsconfig: "tsconfig.json" }],
+    "^.+\\.[tj]sx?$": [
+      "ts-jest",
+      { useESM: true, tsconfig: "tsconfig.jest.json" },
+    ],
   },
   transformIgnorePatterns: [
     "/node_modules/(?!(?:@t3-oss/env-nextjs|@t3-oss/env-core)/)",
