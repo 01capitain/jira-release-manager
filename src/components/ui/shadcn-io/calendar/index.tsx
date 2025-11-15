@@ -109,11 +109,10 @@ export const daysForLocale = (
 ) => {
   const weekdays: string[] = [];
   const baseDate = new Date(2024, 0, startDay);
+  const formatter = new Intl.DateTimeFormat(locale, { weekday: "short" });
 
   for (let i = 0; i < visibleDays; i++) {
-    weekdays.push(
-      new Intl.DateTimeFormat(locale, { weekday: "short" }).format(baseDate),
-    );
+    weekdays.push(formatter.format(baseDate));
     baseDate.setDate(baseDate.getDate() + 1);
   }
 
