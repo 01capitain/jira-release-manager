@@ -2,7 +2,7 @@
  * @jest-environment jsdom
  */
 
-import { render } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import ReleaseCalendar from "~/app/versions/releases/components/release-calendar";
 import type { ReleaseVersionWithBuildsDto } from "~/shared/types/release-version-with-builds";
 import type { ReleaseCalendarEvent } from "~/shared/types/release-calendar";
@@ -12,25 +12,101 @@ import type { ISO8601 } from "~/shared/types/iso8601";
 const uuid = (value: string) => value as UuidV7;
 const iso = (value: string) => value as ISO8601;
 
-const release: ReleaseVersionWithBuildsDto = {
+const createRelease = (
+  overrides: Partial<ReleaseVersionWithBuildsDto> = {},
+): ReleaseVersionWithBuildsDto => ({
   id: uuid("00000000-0000-0000-0000-000000001000"),
   name: "2.1.0",
   createdAt: iso("2024-01-01T00:00:00.000Z"),
   builtVersions: [],
-};
+  ...overrides,
+});
 
-const events: ReleaseCalendarEvent[] = [
-  {
-    builtVersionId: uuid("00000000-0000-0000-0000-000000002000"),
-    builtVersionName: "2.1.0",
-    timestamp: iso("2024-01-05T12:00:00.000Z"),
-    components: [],
-  },
-];
+const createEvent = (
+  overrides: Partial<ReleaseCalendarEvent> = {},
+): ReleaseCalendarEvent => ({
+  builtVersionId: uuid("00000000-0000-0000-0000-000000002000"),
+  builtVersionName: "API build",
+  timestamp: iso("2024-01-05T12:00:00.000Z"),
+  statusLabel: "Created",
+  components: [
+    {
+      name: "API",
+      color: "sky",
+    },
+  ],
+  ...overrides,
+});
 
 describe("ReleaseCalendar", () => {
-  it("renders release context without crashing", () => {
-    render(<ReleaseCalendar release={release} events={events} />);
-    expect(true).toBe(true);
+  it("shows the empty-state message without rendering the calendar grid", () => {
+    render(<ReleaseCalendar release={createRelease()} events={[]} />);
+
+    const emptyState = screen.getByText(
+      /does not have any builds yet\. New builds will appear/i,
+    );
+    expect(emptyState).toBeTruthy();
+    expect(screen.queryByText(/Showing builds from/i)).toBeNull();
+  });
+
+  it("renders release context, summary, and feature chips when events exist", () => {
+    render(
+      <ReleaseCalendar
+        release={createRelease()}
+        events={[createEvent(), createEvent({ builtVersionName: "Web" })]}
+      />,
+    );
+
+    const heading = screen.getByRole("heading", {
+      name: /Release 2\.1\.0 calendar/i,
+    });
+    expect(heading).toBeTruthy();
+    expect(screen.getByText(/Showing builds from/i)).toBeTruthy();
+    expect(screen.getByText("API build")).toBeTruthy();
+    expect(screen.getByText("Web")).toBeTruthy();
+  });
+
+  it("toggles the custom range picker when the summary control is clicked", () => {
+    render(
+      <ReleaseCalendar release={createRelease()} events={[createEvent()]} />,
+    );
+
+    const toggle = screen.getByRole("button", { name: /Showing builds from/i });
+    const initialGridCount = screen.queryAllByRole("grid").length;
+    fireEvent.click(toggle);
+    const expandedGridCount = screen.queryAllByRole("grid").length;
+    expect(expandedGridCount).toBeGreaterThan(initialGridCount);
+    fireEvent.click(toggle);
+    expect(screen.queryAllByRole("grid").length).toBe(initialGridCount);
+  });
+
+  it("moves focus to the heading whenever the release changes", async () => {
+    const { rerender } = render(
+      <ReleaseCalendar release={createRelease()} events={[createEvent()]} />,
+    );
+
+    const initialHeading = screen.getByRole("heading", {
+      name: /Release 2\.1\.0 calendar/i,
+    });
+    await waitFor(() => {
+      expect(document.activeElement).toBe(initialHeading);
+    });
+
+    rerender(
+      <ReleaseCalendar
+        release={createRelease({
+          id: uuid("00000000-0000-0000-0000-000000001111"),
+          name: "3.0.0",
+        })}
+        events={[createEvent({ builtVersionName: "CLI" })]}
+      />,
+    );
+
+    const nextHeading = screen.getByRole("heading", {
+      name: /Release 3\.0\.0 calendar/i,
+    });
+    await waitFor(() => {
+      expect(document.activeElement).toBe(nextHeading);
+    });
   });
 });
