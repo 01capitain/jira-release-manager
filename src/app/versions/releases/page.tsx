@@ -9,6 +9,7 @@ import { ReleaseVersionCreateSchema } from "~/shared/schemas/release-version";
 import { useCreateReleaseMutation } from "./api";
 import { isRestApiError } from "~/lib/rest-client";
 import { useQueryClient } from "@tanstack/react-query";
+import { useReleaseComponentsQuery } from "../components/api";
 
 export default function VersionsReleasesPage() {
   const queryClient = useQueryClient();
@@ -17,6 +18,7 @@ export default function VersionsReleasesPage() {
   const [name, setName] = React.useState("");
   const [error, setError] = React.useState<string | null>(null);
   const [saving, setSaving] = React.useState(false);
+  const { data: releaseComponentsPage } = useReleaseComponentsQuery();
 
   async function createRelease(e?: React.FormEvent) {
     e?.preventDefault();
@@ -46,6 +48,17 @@ export default function VersionsReleasesPage() {
       setSaving(false);
     }
   }
+
+  const releaseComponentLookup = React.useMemo(() => {
+    const items = releaseComponentsPage?.items ?? [];
+    return items.reduce<Record<string, { color?: string }>>(
+      (acc, component) => {
+        acc[component.id] = { color: component.color };
+        return acc;
+      },
+      {},
+    );
+  }, [releaseComponentsPage]);
 
   return (
     <div className="mx-auto w-full space-y-6 px-4 sm:px-6 xl:px-8">
@@ -103,7 +116,7 @@ export default function VersionsReleasesPage() {
           </output>
         ) : null}
 
-        <ReleasesAccordion />
+        <ReleasesAccordion releaseComponentLookup={releaseComponentLookup} />
       </section>
     </div>
   );

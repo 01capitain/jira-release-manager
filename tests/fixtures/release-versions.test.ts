@@ -3,7 +3,7 @@ import { releaseVersionFixtures } from "./release-versions";
 describe("releaseVersionFixtures", () => {
   it("exports expected release version keys", () => {
     expect(Object.keys(releaseVersionFixtures).sort()).toEqual(
-      ["version177", "version26_1"].sort(),
+      ["version177", "version178", "version26_1"].sort(),
     );
   });
 
