@@ -9,6 +9,7 @@ const serverSchema = {
   AUTH_DISCORD_ID: z.string(),
   AUTH_DISCORD_SECRET: z.string(),
   DATABASE_URL: z.string().url(),
+  DB_PORT: z.coerce.number().int().optional(),
   CONTEXT7_API_KEY: z.string(),
   // Jira integration
   JIRA_BASE_URL: z.string().url().optional(),
@@ -31,11 +32,38 @@ const clientSchema = {
   NEXT_PUBLIC_OTEL_DEBUG: z.enum(["true", "false"]).optional(),
 };
 
+/**
+ * @param {string | undefined} databaseUrl
+ */
+const parseDbPort = (databaseUrl) => {
+  if (!databaseUrl) return undefined;
+  try {
+    const parsed = new URL(databaseUrl);
+    return parsed.port || "5432";
+  } catch {
+    return undefined;
+  }
+};
+
+const deriveDbPort = () => {
+  const fromUrl = parseDbPort(process.env.DATABASE_URL);
+  const explicit = process.env.DB_PORT;
+  if (explicit && fromUrl && explicit !== fromUrl) {
+    throw new Error(
+      `DB_PORT (${explicit}) does not match port parsed from DATABASE_URL (${fromUrl}). Align both to avoid pointing Postgres at the wrong port.`,
+    );
+  }
+  return explicit ?? fromUrl;
+};
+
+const resolvedDbPort = deriveDbPort();
+
 const runtimeEnv = {
   AUTH_SECRET: process.env.AUTH_SECRET,
   AUTH_DISCORD_ID: process.env.AUTH_DISCORD_ID,
   AUTH_DISCORD_SECRET: process.env.AUTH_DISCORD_SECRET,
   DATABASE_URL: process.env.DATABASE_URL,
+  DB_PORT: resolvedDbPort,
   CONTEXT7_API_KEY: process.env.CONTEXT7_API_KEY,
   JIRA_BASE_URL: process.env.JIRA_BASE_URL,
   JIRA_PROJECT_KEY: process.env.JIRA_PROJECT_KEY,
