@@ -81,6 +81,7 @@ export const fetchReleasesWithBuilds = async (options?: {
     search.set("pageSize", String(pageSize));
     search.set("sortBy", sortBy);
     search.append("relations", "builtVersions");
+    search.append("relations", "builtVersions.deployedComponents");
 
     let response: PaginatedResponse<ReleaseVersionWithRelationsDto> | undefined;
 
@@ -116,7 +117,17 @@ export const fetchReleasesWithBuilds = async (options?: {
         id: release.id,
         name: release.name,
         createdAt: release.createdAt,
-        builtVersions: release.builtVersions ?? [],
+        builtVersions:
+          release.builtVersions?.map(
+            ({
+              deployedComponents,
+              transitions: _unusedTransitions,
+              ...built
+            }) => ({
+              ...built,
+              deployedComponents: deployedComponents ?? [],
+            }),
+          ) ?? [],
       })),
     );
 
