@@ -85,6 +85,9 @@ export NEXT_PUBLIC_OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=http://localhost:4318/v1/
 ```
 
 Need Postgres too? `./start-database.sh` (or `docker compose up -d postgres observability`) still boots both services under the shared `jira-release-manager` project in Docker Desktop / Podman Desktop by reusing the same Dockerfile. These helpers automatically pass the Grafana credentials using the same `GRAFANA_ADMIN_*` environment variables.
+If port `5432` is occupied locally, set `DB_PORT` in your `.env` (and match the port in `DATABASE_URL`) before starting the containers so Postgres binds to the custom host port.
+
+Upgrading note: the Postgres 18 image expects its data directory under `/var/lib/postgresql/<major>/main`. The compose file now mounts the volume at `/var/lib/postgresql`; if you used an older mount path, remove the old volume with `docker volume rm jira-release-manager_postgres-data` (or prune volumes) before starting fresh.
 
 ## Scripts
 
