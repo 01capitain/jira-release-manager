@@ -291,17 +291,17 @@ export const useReleaseEntities = (
     });
   }, [collections.builtById]);
 
+  const pendingBuiltIds = React.useMemo(() => {
+    return collections.missingComponentBuiltIds.filter((builtId) => {
+      const state = componentState[builtId];
+      return state?.status !== "loading" && state?.status !== "success";
+    });
+  }, [collections.missingComponentBuiltIds, componentState]);
+
   React.useEffect(() => {
-    if (collections.missingComponentBuiltIds.length === 0) return;
+    if (pendingBuiltIds.length === 0) return;
     let cancelled = false;
-    collections.missingComponentBuiltIds.forEach((builtId) => {
-      const currentState = componentState[builtId];
-      if (
-        currentState?.status === "loading" ||
-        currentState?.status === "success"
-      ) {
-        return;
-      }
+    pendingBuiltIds.forEach((builtId) => {
       setComponentState((prev) => ({
         ...prev,
         [builtId]: { status: "loading" },
@@ -332,7 +332,7 @@ export const useReleaseEntities = (
     return () => {
       cancelled = true;
     };
-  }, [collections.missingComponentBuiltIds, componentState]);
+  }, [pendingBuiltIds]);
 
   const builtById = React.useMemo(() => {
     const patched = { ...collections.builtById };
