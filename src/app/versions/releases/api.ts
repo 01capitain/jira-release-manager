@@ -361,8 +361,7 @@ export const useReleaseEntities = (
           .map((builtId) => {
             const built = builtById[builtId];
             if (!built) return null;
-            const { releaseId: releaseOwner, ...rest } = built;
-            void releaseOwner;
+            const { releaseId: _releaseOwner, ...rest } = built;
             return rest;
           })
           .filter((entry): entry is ReleaseBuiltVersionDto => entry !== null);
