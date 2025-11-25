@@ -4,19 +4,28 @@ import {
   Calendar as CalendarIcon,
   ChevronDown,
   List as ListIcon,
+  Check,
 } from "lucide-react";
 import * as React from "react";
 import type { ReleaseVersionWithBuildsDto } from "~/shared/types/release-version-with-builds";
 import type { BuiltVersionStatusResponse } from "~/shared/types/built-version-status-response";
+import type { ReleaseTrack } from "~/shared/types/release-track";
+import { RELEASE_TRACK_VALUES } from "~/shared/types/release-track";
 import {
   STATUS_STALE_TIME_MS,
   useBuiltVersionStatusQuery,
 } from "../../builds/api";
 import BuiltVersionCard from "../../builds/components/built-version-card";
-import { useReleaseEntities } from "../api";
+import { useReleaseEntities, useUpdateReleaseTrackMutation } from "../api";
 import { Button } from "~/components/ui/button";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "~/components/ui/popover";
 import ReleaseCalendar from "./release-calendar";
 import { mapBuiltVersionsToCalendarEvents } from "../lib/calendar-events";
+import { isRestApiError } from "~/lib/rest-client";
 
 function LatestActiveTag({
   builtVersionIds,
@@ -71,6 +80,171 @@ function LatestActiveTag({
   );
 }
 
+const TRACK_STYLE_MAP: Record<
+  ReleaseTrack,
+  { swatch: string; border: string; optionDot: string; optionHover: string }
+> = {
+  Future: {
+    swatch: "bg-purple-400/80 dark:bg-purple-500/70",
+    border: "border-purple-400/80 dark:border-purple-400/60",
+    optionDot: "bg-purple-400",
+    optionHover: "hover:bg-purple-50/80 dark:hover:bg-purple-900/40",
+  },
+  Beta: {
+    swatch: "bg-sky-400/80 dark:bg-sky-500/70",
+    border: "border-sky-400/70 dark:border-sky-400/60",
+    optionDot: "bg-sky-400",
+    optionHover: "hover:bg-sky-50/80 dark:hover:bg-sky-900/40",
+  },
+  Rollout: {
+    swatch: "bg-yellow-300/90 dark:bg-yellow-400/70",
+    border: "border-yellow-400/70 dark:border-yellow-400/60",
+    optionDot: "bg-yellow-300",
+    optionHover: "hover:bg-yellow-50/80 dark:hover:bg-yellow-900/40",
+  },
+  Active: {
+    swatch: "bg-emerald-400/80 dark:bg-emerald-500/70",
+    border: "border-emerald-400/70 dark:border-emerald-400/60",
+    optionDot: "bg-emerald-400",
+    optionHover: "hover:bg-emerald-50/80 dark:hover:bg-emerald-900/40",
+  },
+  Archived: {
+    swatch: "bg-neutral-400/70 dark:bg-neutral-500/70",
+    border: "border-neutral-400/70 dark:border-neutral-400/60",
+    optionDot: "bg-neutral-400",
+    optionHover: "hover:bg-neutral-100/80 dark:hover:bg-neutral-800/60",
+  },
+};
+
+const ReleaseTrackSelector = ({
+  releaseId,
+  currentTrack,
+}: {
+  releaseId: string;
+  currentTrack: ReleaseTrack;
+}) => {
+  const mutation = useUpdateReleaseTrackMutation();
+  const [selectedTrack, setSelectedTrack] =
+    React.useState<ReleaseTrack>(currentTrack);
+  const [open, setOpen] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    setSelectedTrack(currentTrack);
+    setError(null);
+    setOpen(false);
+  }, [currentTrack]);
+  const handleSelect = async (nextTrack: ReleaseTrack) => {
+    if (nextTrack === selectedTrack) {
+      setOpen(false);
+      return;
+    }
+    const previousTrack = selectedTrack;
+    setSelectedTrack(nextTrack);
+    setError(null);
+    try {
+      await mutation.mutateAsync({
+        releaseId,
+        releaseTrack: nextTrack,
+      });
+      setOpen(false);
+    } catch (err) {
+      setSelectedTrack(previousTrack);
+      setError(
+        isRestApiError(err)
+          ? err.message
+          : "Failed to update release track. Please try again.",
+      );
+    }
+  };
+
+  const styles = TRACK_STYLE_MAP[selectedTrack] ?? TRACK_STYLE_MAP.Future;
+
+  const handleTriggerClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setOpen((prev) => !prev);
+  };
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          aria-label={`Release track: ${selectedTrack}. Click to change.`}
+          onClick={handleTriggerClick}
+          className={`mr-3 flex w-6 flex-shrink-0 items-stretch self-stretch overflow-hidden rounded-l-md border-y ${styles.border} min-h-[2.75rem] bg-white/40 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:outline-none dark:bg-neutral-900 dark:ring-offset-neutral-900`}
+        >
+          <span className={`flex-1 rounded-l-md ${styles.swatch}`} />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        side="bottom"
+        align="start"
+        className="w-52 space-y-2 p-3 text-sm"
+      >
+        <p className="text-xs font-medium text-neutral-500 dark:text-neutral-300">
+          Select release track
+        </p>
+        <div className="space-y-1">
+          {RELEASE_TRACK_VALUES.map((track) => {
+            const optionStyles = TRACK_STYLE_MAP[track];
+            const isSelected = track === selectedTrack;
+            return (
+              <button
+                key={track}
+                type="button"
+                onClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  void handleSelect(track);
+                }}
+                disabled={mutation.isPending}
+                aria-pressed={isSelected}
+                className={`flex w-full items-center justify-between rounded-md px-2 py-1 text-left transition ${optionStyles.optionHover} ${
+                  isSelected
+                    ? "ring-2 ring-offset-1 ring-offset-white dark:ring-offset-neutral-900"
+                    : ""
+                }`}
+              >
+                <span className="flex items-center gap-2">
+                  <span
+                    aria-hidden="true"
+                    className={`h-3 w-3 rounded-full ${optionStyles.optionDot}`}
+                  />
+                  {track}
+                </span>
+                {isSelected ? (
+                  <Check
+                    className="h-4 w-4 text-neutral-600 dark:text-neutral-300"
+                    aria-hidden="true"
+                  />
+                ) : (
+                  <span className="h-4 w-4" aria-hidden="true" />
+                )}
+              </button>
+            );
+          })}
+        </div>
+        {mutation.isPending ? (
+          <span className="text-xs text-neutral-500 dark:text-neutral-400">
+            Updating…
+          </span>
+        ) : null}
+        {error ? (
+          <output
+            role="status"
+            aria-atomic="true"
+            className="block text-xs text-red-600 dark:text-red-400"
+          >
+            {error}
+          </output>
+        ) : null}
+      </PopoverContent>
+    </Popover>
+  );
+};
+
 type ReleasesAccordionProps = {
   releaseComponentLookup: Record<string, { color?: string }>;
 };
@@ -105,54 +279,72 @@ export default function ReleasesAccordion({
             key={rel.id}
             className="group rounded-md border border-neutral-200 dark:border-neutral-800"
           >
-            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-md bg-neutral-50 px-4 py-2 text-neutral-800 dark:bg-neutral-900 dark:text-neutral-100">
-              <div className="flex items-center gap-2">
-                <span className="text-base font-medium">
-                  Release {rel.name}
-                </span>
-                {/* When collapsed, show latest active built version */}
-                <LatestActiveTag
-                  builtVersionIds={ids}
-                  builtVersionNames={names}
-                  statusSnapshots={builtStatusById}
-                />
-              </div>
-              <div className="flex items-center gap-2 text-xs text-neutral-500 dark:text-neutral-400">
-                <span className="text-xs">
-                  {rel.builtVersions.length} builds
-                </span>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  aria-label={
-                    mode === "calendar"
-                      ? `View list for release ${rel.name}`
-                      : `View calendar for release ${rel.name}`
-                  }
-                  className="hidden group-open:inline-flex"
-                  onClick={(event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    setViewModeByRelease((prev) => ({
-                      ...prev,
-                      [rel.id]: mode === "calendar" ? "list" : "calendar",
-                    }));
-                  }}
-                >
-                  {mode === "calendar" ? (
-                    <ListIcon className="h-4 w-4" aria-hidden="true" />
-                  ) : (
-                    <CalendarIcon className="h-4 w-4" aria-hidden="true" />
-                  )}
-                </Button>
-                <ChevronDown
-                  className="h-4 w-4 text-neutral-600 transition-transform group-open:rotate-180 dark:text-neutral-300"
-                  aria-hidden="true"
-                />
+            <summary className="flex cursor-pointer list-none items-stretch gap-3 rounded-md bg-neutral-50 pr-4 text-neutral-800 dark:bg-neutral-900 dark:text-neutral-100">
+              <ReleaseTrackSelector
+                releaseId={rel.id}
+                currentTrack={rel.releaseTrack}
+              />
+              <div className="flex flex-1 flex-wrap items-center justify-between gap-3 py-2 pr-4 pl-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-base font-medium">
+                    Release {rel.name}
+                  </span>
+                  {/* When collapsed, show latest active built version */}
+                  <LatestActiveTag
+                    builtVersionIds={ids}
+                    builtVersionNames={names}
+                    statusSnapshots={builtStatusById}
+                  />
+                </div>
+                <div className="flex items-center gap-2 text-xs text-neutral-500 dark:text-neutral-400">
+                  <span className="text-xs">
+                    {rel.builtVersions.length} builds
+                  </span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    aria-label={
+                      mode === "calendar"
+                        ? `View list for release ${rel.name}`
+                        : `View calendar for release ${rel.name}`
+                    }
+                    className="hidden group-open:inline-flex"
+                    onClick={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      setViewModeByRelease((prev) => ({
+                        ...prev,
+                        [rel.id]: mode === "calendar" ? "list" : "calendar",
+                      }));
+                    }}
+                  >
+                    {mode === "calendar" ? (
+                      <ListIcon className="h-4 w-4" aria-hidden="true" />
+                    ) : (
+                      <CalendarIcon className="h-4 w-4" aria-hidden="true" />
+                    )}
+                  </Button>
+                  <ChevronDown
+                    className="h-4 w-4 text-neutral-600 transition-transform group-open:rotate-180 dark:text-neutral-300"
+                    aria-hidden="true"
+                  />
+                </div>
               </div>
             </summary>
-            <div className="p-4">
+            <div className="space-y-4 p-4">
+              <div className="space-y-1 text-sm text-neutral-600 dark:text-neutral-300">
+                <div>
+                  <span className="font-semibold text-neutral-800 dark:text-neutral-100">
+                    Current track:
+                  </span>{" "}
+                  {rel.releaseTrack}
+                </div>
+                <p className="text-xs">
+                  Click the color bar in the header to change this
+                  release&apos;s track.
+                </p>
+              </div>
               {mode === "calendar" ? (
                 <ReleaseCalendar release={rel} events={calendarEvents} />
               ) : (

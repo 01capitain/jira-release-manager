@@ -45,6 +45,16 @@ enum BuiltVersionAction {
     @@schema("app")
 }
 
+enum ReleaseTrack {
+    Future
+    Beta
+    Rollout
+    Active
+    Archived
+
+    @@schema("app")
+}
+
 enum ActionExecutionStatus {
     success
     failed
@@ -61,6 +71,7 @@ model ReleaseVersion {
     /// Tracks the last used builtVersion increment for this release
     /// Starts at -1 so the first auto-created builtVersion gets increment 0
     lastUsedIncrement Int            @default(-1)
+    releaseTrack      ReleaseTrack   @default(Future)
 
     createdAt   DateTime @default(now())
     updatedAt   DateTime @updatedAt

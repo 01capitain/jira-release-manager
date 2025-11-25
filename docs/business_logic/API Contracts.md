@@ -3,6 +3,7 @@
 - API endpoints return DTOs from `src/shared/types`. This ensures the same contract is reused across clients.
 - REST GET endpoints expose optional relation data through the `relations` query parameter. Each entity maintains an allowlist (e.g., release versions permit `creater`, `builtVersions`, `builtVersions.deployedComponents`, `builtVersions.transitions`). Unknown keys or nested relations without their parent must raise `RestError(400, "INVALID_RELATION")`.
 - List endpoints return `PaginatedResponse<T>` (see `src/shared/types/pagination.ts`) so every response includes `data` alongside `pagination { page, pageSize, totalItems, hasNextPage }`. Use `createPaginatedRequestSchema` to normalize inputs and `buildPaginatedResponse` to hydrate responses.
+- `ReleaseVersionDto` exposes a `releaseTrack` field derived from the enum `ReleaseTrack = "Future" | "Beta" | "Rollout" | "Active" | "Archived"`. New releases default to `"Future"`; a dedicated endpoint `PATCH /api/v1/release-versions/{releaseId}/track` lets authenticated users move between tracks. The controller delegates to `ReleaseVersionService.updateReleaseTrack()` so future automation can reuse the same domain logic. OpenAPI documents the payload under `ReleaseVersionTrackUpdateSchema`.
 - For build and component versioning, we store a `tokenValues` JSON object alongside records. Shape is defined by `TokenValues`:
 
 ```ts
@@ -19,6 +20,7 @@ type TokenValues = {
 - Services compute names from patterns and persist the token snapshot using `Prisma.InputJsonValue` at the database boundary.
 - When transitioning built statuses, a successor built may be created with an incremented version and token snapshot. Component versions for the successor are created or moved later based on user selection.
 - Built version transitions are exposed through explicit per-action mutations (`builtVersion.startDeployment`, `builtVersion.cancelDeployment`, `builtVersion.markActive`, `builtVersion.revertToDeployment`, `builtVersion.deprecate`, `builtVersion.reactivate`) to mirror the one-action-per-endpoint REST design.
+- UI color semantics: the release accordion shows a leading color bar that doubles as the track selector (Future→purple, Beta→blue, Rollout→yellow, Active→green, Archived→gray). Clicking the bar opens the track dropdown; choosing a new value updates the backend, invalidates cached release queries, and immediately recolors the bar so the change is visually obvious.
 
 ## Action History Logging
 

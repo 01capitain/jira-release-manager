@@ -20,7 +20,10 @@ import {
   createPaginatedRequestSchema,
   createPaginatedResponseSchema,
 } from "~/shared/schemas/pagination";
-import { ReleaseVersionCreateSchema } from "~/shared/schemas/release-version";
+import {
+  ReleaseVersionCreateSchema,
+  ReleaseVersionTrackUpdateSchema,
+} from "~/shared/schemas/release-version";
 import type { ReleaseVersionRelationKey } from "~/shared/types/release-version-relations";
 import {
   RELEASE_VERSION_RELATION_ALLOW_LIST,
@@ -182,6 +185,46 @@ export const createReleaseVersion = async (
   }
 };
 
+export const updateReleaseVersionTrack = async (
+  context: RestContext,
+  releaseId: string,
+  input: z.infer<typeof ReleaseVersionTrackUpdateSchema>,
+) => {
+  const userId = ensureAuthenticated(context);
+  const svc = new ReleaseVersionService(context.db);
+  const history = new ActionHistoryService(context.db);
+  const action = await history.startAction({
+    actionType: "releaseVersion.track.update",
+    message: `Update release ${releaseId} track to ${input.releaseTrack}`,
+    userId,
+    sessionToken: context.sessionToken ?? null,
+    metadata: { releaseId, releaseTrack: input.releaseTrack },
+  });
+  try {
+    const result = await svc.updateReleaseTrack(
+      releaseId,
+      input.releaseTrack,
+      userId,
+      { logger: action },
+    );
+    await action.complete("success", {
+      message: `Release ${result.name} track updated`,
+      metadata: { releaseId, releaseTrack: result.releaseTrack },
+    });
+    return result;
+  } catch (error) {
+    await action.complete("failed", {
+      message: `Failed to update release ${releaseId} track`,
+      metadata: {
+        releaseId,
+        releaseTrack: input.releaseTrack,
+        error: error instanceof Error ? error.message : String(error),
+      },
+    });
+    throw error;
+  }
+};
+
 export const releaseVersionPaths = {
   "/release-versions": {
     get: {
@@ -248,6 +291,37 @@ export const releaseVersionPaths = {
             },
           },
         },
+        404: jsonErrorResponse("Release not found"),
+      },
+    },
+  },
+  "/release-versions/{releaseId}/track": {
+    patch: {
+      operationId: "updateReleaseVersionTrack",
+      summary: "Update release version track",
+      tags: ["Release Versions"],
+      requestParams: {
+        path: ReleaseVersionIdParamSchema,
+      },
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: ReleaseVersionTrackUpdateSchema,
+          },
+        },
+      },
+      responses: {
+        200: {
+          description: "Release version track updated",
+          content: {
+            "application/json": {
+              schema: ReleaseVersionDtoSchema,
+            },
+          },
+        },
+        400: jsonErrorResponse("Validation error"),
+        401: jsonErrorResponse("Authentication required"),
         404: jsonErrorResponse("Release not found"),
       },
     },

@@ -66,6 +66,14 @@ paths:
                           type: string
                         id:
                           $ref: "#/components/schemas/uuidv7"
+                        releaseTrack:
+                          type: string
+                          enum:
+                            - Future
+                            - Beta
+                            - Rollout
+                            - Active
+                            - Archived
                         createdAt:
                           $ref: "#/components/schemas/iso8601Timestamp"
                         creater:
@@ -100,6 +108,7 @@ paths:
                       required:
                         - name
                         - id
+                        - releaseTrack
                         - createdAt
                       additionalProperties: false
                   pagination:
@@ -194,6 +203,14 @@ paths:
                     type: string
                   id:
                     $ref: "#/components/schemas/uuidv7"
+                  releaseTrack:
+                    type: string
+                    enum:
+                      - Future
+                      - Beta
+                      - Rollout
+                      - Active
+                      - Archived
                   createdAt:
                     $ref: "#/components/schemas/iso8601Timestamp"
                   creater:
@@ -228,8 +245,65 @@ paths:
                 required:
                   - name
                   - id
+                  - releaseTrack
                   - createdAt
                 additionalProperties: false
+        "404":
+          description: Release not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestError"
+  /release-versions/{releaseId}/track:
+    patch:
+      operationId: updateReleaseVersionTrack
+      summary: Update release version track
+      tags:
+        - Release Versions
+      parameters:
+        - in: path
+          name: releaseId
+          schema:
+            type: string
+            format: uuid
+            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                releaseTrack:
+                  type: string
+                  enum:
+                    - Future
+                    - Beta
+                    - Rollout
+                    - Active
+                    - Archived
+              required:
+                - releaseTrack
+      responses:
+        "200":
+          description: Release version track updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReleaseVersion"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestError"
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestError"
         "404":
           description: Release not found
           content:
@@ -1461,11 +1535,20 @@ components:
           type: string
         id:
           $ref: "#/components/schemas/uuidv7"
+        releaseTrack:
+          type: string
+          enum:
+            - Future
+            - Beta
+            - Rollout
+            - Active
+            - Archived
         createdAt:
           $ref: "#/components/schemas/iso8601Timestamp"
       required:
         - name
         - id
+        - releaseTrack
         - createdAt
       additionalProperties: false
     ReleaseComponent:

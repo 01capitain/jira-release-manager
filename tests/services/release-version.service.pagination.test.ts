@@ -3,20 +3,28 @@ import type { PrismaClient } from "@prisma/client";
 import { ReleaseVersionService } from "~/server/services/release-version.service";
 import { ReleaseVersionListQuerySchema } from "~/server/rest/controllers/release-versions.controller";
 import type { ReleaseVersionWithRelationsDto } from "~/shared/types/release-version-relations";
+import {
+  RELEASE_TRACK_VALUES,
+  type ReleaseTrack,
+} from "~/shared/types/release-track";
 import { registerPaginationBehaviorTests } from "../shared/pagination.behavior";
 
 type MockRelease = {
   id: string;
   name: string;
+  releaseTrack: ReleaseTrack;
   createdAt: Date;
 };
 
 const makeReleases = (count: number): MockRelease[] => {
   return Array.from({ length: count }, (_, index) => {
     const idSuffix = (index + 1).toString(16).padStart(12, "0");
+    const releaseTrack =
+      RELEASE_TRACK_VALUES[index % RELEASE_TRACK_VALUES.length] ?? "Future";
     return {
       id: `00000000-0000-7000-8000-${idSuffix}`,
       name: `Version ${String(index + 1).padStart(3, "0")}`,
+      releaseTrack,
       createdAt: new Date(2024, 0, index + 1),
     };
   });
@@ -53,13 +61,12 @@ const createMockDb = (records: MockRelease[]) => {
             }
             return a.name.localeCompare(b.name) * multiplier;
           });
-          return sorted
-            .slice(skip, skip + take)
-            .map(({ id, name, createdAt }) => ({
-              id,
-              name,
-              createdAt,
-            }));
+          return sorted.slice(skip, skip + take).map((entry) => ({
+            id: entry.id,
+            name: entry.name,
+            releaseTrack: entry.releaseTrack,
+            createdAt: entry.createdAt,
+          }));
         },
       ),
     },

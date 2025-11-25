@@ -24,6 +24,8 @@ import type {
   PaginatedResponse,
 } from "~/shared/types/pagination";
 import type { ReleaseVersionDto } from "~/shared/types/release-version";
+import type { ReleaseTrack } from "~/shared/types/release-track";
+import { DEFAULT_RELEASE_TRACK } from "~/shared/types/release-track";
 import type {
   BuiltVersionWithRelationsDto,
   ReleaseVersionRelationKey,
@@ -163,7 +165,12 @@ export class ReleaseVersionService {
     if (include) {
       findManyArgs.include = include;
     } else {
-      findManyArgs.select = { id: true, name: true, createdAt: true };
+      findManyArgs.select = {
+        id: true,
+        name: true,
+        releaseTrack: true,
+        createdAt: true,
+      };
     }
     const [total, rows] = await Promise.all([
       this.db.releaseVersion.count(),
@@ -184,10 +191,11 @@ export class ReleaseVersionService {
       const release = await tx.releaseVersion.create({
         data: {
           name: name.trim(),
+          releaseTrack: DEFAULT_RELEASE_TRACK,
           createdBy: { connect: { id: userId } },
         },
         // Select only fields needed for DTO to avoid strict schema issues
-        select: { id: true, name: true, createdAt: true },
+        select: { id: true, name: true, releaseTrack: true, createdAt: true },
       });
       auditTrail.push({
         subactionType: "releaseVersion.persist",
@@ -234,7 +242,12 @@ export class ReleaseVersionService {
     if (include) {
       findUniqueArgs.include = include;
     } else {
-      findUniqueArgs.select = { id: true, name: true, createdAt: true };
+      findUniqueArgs.select = {
+        id: true,
+        name: true,
+        releaseTrack: true,
+        createdAt: true,
+      };
     }
     const row = await this.db.releaseVersion.findUnique(findUniqueArgs);
 
@@ -250,5 +263,51 @@ export class ReleaseVersionService {
     }
 
     return this.mapReleaseVersion(row, state);
+  }
+
+  async updateReleaseTrack(
+    releaseId: ReleaseVersion["id"],
+    track: ReleaseTrack,
+    userId: User["id"],
+    options?: { logger?: ActionLogger },
+  ): Promise<ReleaseVersionDto> {
+    const existing = await this.db.releaseVersion.findUnique({
+      where: { id: releaseId },
+      select: { id: true, name: true, releaseTrack: true, createdAt: true },
+    });
+    if (!existing) {
+      throw new RestError(
+        404,
+        "NOT_FOUND",
+        `Release version ${releaseId} not found`,
+        { releaseId },
+      );
+    }
+    if (existing.releaseTrack === track) {
+      return toReleaseVersionDto(existing);
+    }
+
+    const updated = await this.db.releaseVersion.update({
+      where: { id: releaseId },
+      data: {
+        releaseTrack: track,
+      },
+      select: { id: true, name: true, releaseTrack: true, createdAt: true },
+    });
+
+    if (options?.logger) {
+      await options.logger.subaction({
+        subactionType: "releaseVersion.track.update",
+        message: `Release ${updated.name} track updated`,
+        metadata: {
+          releaseId,
+          updatedBy: userId,
+          from: existing.releaseTrack,
+          to: updated.releaseTrack,
+        },
+      });
+    }
+
+    return toReleaseVersionDto(updated);
   }
 }

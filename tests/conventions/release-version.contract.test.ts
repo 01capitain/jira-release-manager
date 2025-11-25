@@ -59,6 +59,7 @@ describe("ReleaseVersion REST contract", () => {
         {
           id: SAMPLE_UUID_A,
           name: "Release A",
+          releaseTrack: "Future",
           createdAt: "2024-01-01T00:00:00.000Z",
           creater: {
             id: SAMPLE_UUID_B,
@@ -111,6 +112,7 @@ describe("ReleaseVersion REST contract", () => {
     const sample = {
       id: SAMPLE_UUID_A,
       name: "Detail",
+      releaseTrack: "Beta",
       createdAt: "2024-01-01T00:00:00.000Z",
     };
     expect(() => ReleaseVersionDetailSchema.parse(sample)).not.toThrow();
