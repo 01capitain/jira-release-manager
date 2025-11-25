@@ -3,38 +3,40 @@
 import * as React from "react";
 import { colorClasses } from "~/shared/ui/color-classes";
 import type { ReleaseComponentDto } from "~/shared/types/release-component";
+import type { ComponentVersionDto } from "~/shared/types/component-version";
 import { useReleaseComponentsQuery } from "../../components/api";
-import { useComponentVersionsByBuiltQuery } from "../api";
+
+type ComponentVersionLabelsProps = {
+  versions: ComponentVersionDto[];
+  isLoading?: boolean;
+  error?: string;
+};
 
 export function ComponentVersionLabels({
-  builtVersionId,
-}: {
-  builtVersionId: string;
-}) {
+  versions,
+  isLoading,
+  error,
+}: ComponentVersionLabelsProps) {
   const { data: releaseComponentsPage } = useReleaseComponentsQuery();
   const comps = React.useMemo<ReleaseComponentDto[]>(
     () => releaseComponentsPage?.items ?? [],
     [releaseComponentsPage],
   );
 
-  // Map componentId -> color
   const colorByComponent = React.useMemo(() => {
     const m = new Map<string, string>();
     comps.forEach((c) => m.set(c.id, c.color));
     return m;
   }, [comps]);
 
-  const { data, isLoading } = useComponentVersionsByBuiltQuery(builtVersionId);
-  const versions = data ?? [];
-
-  if (!isLoading && versions.length === 0) {
+  if (error) {
     return (
       <div
-        className="mt-2 text-sm text-amber-700 dark:text-amber-400"
+        className="mt-2 text-sm text-red-600 dark:text-red-400"
         role="status"
         aria-atomic="true"
       >
-        No components for this build yet.
+        {error}
       </div>
     );
   }
@@ -49,11 +51,21 @@ export function ComponentVersionLabels({
       </div>
     );
   }
+  if (versions.length === 0) {
+    return (
+      <div
+        className="mt-2 text-sm text-amber-700 dark:text-amber-400"
+        role="status"
+        aria-atomic="true"
+      >
+        No components for this build yet.
+      </div>
+    );
+  }
+
   return (
     <div className="mt-3">
-      <ul
-        className="flex list-none flex-wrap items-center gap-x-2 gap-y-1 p-0"
-      >
+      <ul className="flex list-none flex-wrap items-center gap-x-2 gap-y-1 p-0">
         {versions.map((v) => {
           const c = colorClasses(
             colorByComponent.get(v.releaseComponentId) ?? "neutral",

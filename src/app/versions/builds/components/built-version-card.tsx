@@ -26,24 +26,33 @@ import {
 import {
   builtVersionDefaultSelectionQueryKey,
   builtVersionStatusQueryKey,
-  componentVersionsByBuiltQueryKey,
   createSuccessorBuilt,
   transitionBuiltVersion,
   useBuiltVersionDefaultSelectionQuery,
   useBuiltVersionStatusQuery,
 } from "../api";
 import { ComponentVersionLabels } from "./component-version-labels";
+import type { ComponentVersionDto } from "~/shared/types/component-version";
+import type { BuiltVersionStatusResponse } from "~/shared/types/built-version-status-response";
 
 export default function BuiltVersionCard({
   id,
   name,
   createdAt: _createdAt,
   releaseId,
+  components,
+  componentsLoading,
+  componentsError,
+  initialStatus,
 }: {
   id: string;
   name: string;
   createdAt?: string;
   releaseId: string;
+  components: ComponentVersionDto[];
+  componentsLoading?: boolean;
+  componentsError?: string;
+  initialStatus?: BuiltVersionStatusResponse;
 }) {
   const queryClient = useQueryClient();
   const [entered, setEntered] = React.useState(false);
@@ -56,7 +65,9 @@ export default function BuiltVersionCard({
     setHydrated(true);
   }, []);
 
-  const statusQuery = useBuiltVersionStatusQuery(id);
+  const statusQuery = useBuiltVersionStatusQuery(id, {
+    initialData: initialStatus,
+  });
   const currentStatus: BuiltVersionStatus =
     statusQuery.data?.status ?? "in_development";
   const fetchingStatus = statusQuery.isFetching;
@@ -365,7 +376,11 @@ export default function BuiltVersionCard({
                   <div className="mb-2 text-xs font-medium tracking-wide text-neutral-500 uppercase dark:text-neutral-400">
                     Components
                   </div>
-                  <ComponentVersionLabels builtVersionId={id} />
+                  <ComponentVersionLabels
+                    versions={components}
+                    isLoading={componentsLoading}
+                    error={componentsError}
+                  />
                   {processing && (
                     <div
                       className="absolute inset-0 bg-white/60 dark:bg-neutral-900/60"
@@ -480,9 +495,6 @@ export default function BuiltVersionCard({
                     queryKey: builtVersionStatusQueryKey(id),
                   }),
                   queryClient.invalidateQueries({
-                    queryKey: componentVersionsByBuiltQueryKey(id),
-                  }),
-                  queryClient.invalidateQueries({
                     queryKey: builtVersionDefaultSelectionQueryKey(id),
                   }),
                   queryClient.invalidateQueries({
@@ -491,11 +503,6 @@ export default function BuiltVersionCard({
                 ]);
 
                 if (res?.summary?.successorBuiltId) {
-                  await queryClient.invalidateQueries({
-                    queryKey: componentVersionsByBuiltQueryKey(
-                      res.summary.successorBuiltId,
-                    ),
-                  });
                   await queryClient.invalidateQueries({
                     queryKey: builtVersionStatusQueryKey(
                       res.summary.successorBuiltId,

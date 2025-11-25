@@ -12,13 +12,13 @@ import { withUiSpan } from "~/lib/otel/ui-span";
 import type { BuiltVersionDto } from "~/shared/types/built-version";
 import type { BuiltVersionCreateInput } from "~/shared/schemas/built-version";
 import type { BuiltVersionDefaultSelection } from "~/shared/schemas/built-version-selection";
-import type { ComponentVersionDto } from "~/shared/types/component-version";
 import type { ReleaseVersionWithBuildsDto } from "~/shared/types/release-version-with-builds";
 import { releasesWithBuildsQueryKey } from "../releases/api";
 import type {
   BuiltVersionAction,
   BuiltVersionStatus,
 } from "~/shared/types/built-version-status";
+import type { BuiltVersionStatusResponse } from "~/shared/types/built-version-status-response";
 
 export const builtVersionsByReleaseQueryKey = (releaseId: string) =>
   ["built-versions", "by-release", releaseId] as const;
@@ -28,21 +28,6 @@ export const builtVersionStatusQueryKey = (builtVersionId: string) =>
 
 export const builtVersionDefaultSelectionQueryKey = (builtVersionId: string) =>
   ["built-versions", "default-selection", builtVersionId] as const;
-
-export const componentVersionsByBuiltQueryKey = (builtVersionId: string) =>
-  ["component-versions", "by-built", builtVersionId] as const;
-
-export type BuiltVersionStatusResponse = {
-  status: BuiltVersionStatus;
-  history: {
-    id: string;
-    fromStatus: string;
-    toStatus: string;
-    action: string;
-    createdAt: string;
-    createdById: string;
-  }[];
-};
 
 export type BuiltVersionTransitionResponse = {
   builtVersion: BuiltVersionDto;
@@ -71,14 +56,6 @@ export const fetchBuiltVersionDefaultSelection = async (
 ): Promise<BuiltVersionDefaultSelection> => {
   return getJson<BuiltVersionDefaultSelection>(
     `/api/v1/built-versions/${builtVersionId}/default-selection`,
-  );
-};
-
-export const fetchComponentVersionsByBuilt = async (
-  builtVersionId: string,
-): Promise<ComponentVersionDto[]> => {
-  return getJson<ComponentVersionDto[]>(
-    `/api/v1/built-versions/${builtVersionId}/component-versions`,
   );
 };
 
@@ -150,18 +127,22 @@ export const useBuiltVersionsByReleaseQuery = (releaseId: string) => {
   });
 };
 
+export const STATUS_STALE_TIME_MS = 5 * 60 * 1000;
+
 export const useBuiltVersionStatusQuery = (
   builtVersionId: string,
   options?: {
     enabled?: boolean;
     staleTime?: number;
+    initialData?: BuiltVersionStatusResponse;
   },
 ) => {
   return useQuery({
     queryKey: builtVersionStatusQueryKey(builtVersionId),
     queryFn: () => fetchBuiltVersionStatus(builtVersionId),
-    staleTime: options?.staleTime ?? Infinity,
+    staleTime: options?.staleTime ?? STATUS_STALE_TIME_MS,
     enabled: options?.enabled ?? true,
+    initialData: options?.initialData,
   });
 };
 
@@ -172,17 +153,6 @@ export const useBuiltVersionDefaultSelectionQuery = (
   return useQuery({
     queryKey: builtVersionDefaultSelectionQueryKey(builtVersionId),
     queryFn: () => fetchBuiltVersionDefaultSelection(builtVersionId),
-    enabled: options?.enabled ?? true,
-  });
-};
-
-export const useComponentVersionsByBuiltQuery = (
-  builtVersionId: string,
-  options?: { enabled?: boolean },
-) => {
-  return useQuery({
-    queryKey: componentVersionsByBuiltQueryKey(builtVersionId),
-    queryFn: () => fetchComponentVersionsByBuilt(builtVersionId),
     enabled: options?.enabled ?? true,
   });
 };
