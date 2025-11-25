@@ -6,6 +6,11 @@
 
 ![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/01capitain/jira-release-manager?utm_source=oss&utm_medium=github&utm_campaign=01capitain%2Fjira-release-manager&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)
 
+## Requirements
+
+- Node.js 24.x (see `.nvmrc` and `scripts/check-node.mjs` for enforcement)
+- pnpm (via Corepack; repository pins pnpm@10.20.0)
+
 ## Tech Stack
 
 ### Language
