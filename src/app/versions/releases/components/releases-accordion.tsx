@@ -333,18 +333,6 @@ export default function ReleasesAccordion({
               </div>
             </summary>
             <div className="space-y-4 p-4">
-              <div className="space-y-1 text-sm text-neutral-600 dark:text-neutral-300">
-                <div>
-                  <span className="font-semibold text-neutral-800 dark:text-neutral-100">
-                    Current track:
-                  </span>{" "}
-                  {rel.releaseTrack}
-                </div>
-                <p className="text-xs">
-                  Click the color bar in the header to change this
-                  release&apos;s track.
-                </p>
-              </div>
               {mode === "calendar" ? (
                 <ReleaseCalendar release={rel} events={calendarEvents} />
               ) : (
