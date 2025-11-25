@@ -1,6 +1,8 @@
 import { mapReleaseCollections } from "~/app/versions/releases/api";
-import type { ReleaseBuiltVersionDto } from "~/shared/types/release-version-with-builds";
-import type { ReleaseVersionWithBuildsDto } from "~/shared/types/release-version-with-builds";
+import type {
+  ReleaseBuiltVersionDto,
+  ReleaseVersionWithBuildsDto,
+} from "~/shared/types/release-version-with-builds";
 import type { UuidV7 } from "~/shared/types/uuid";
 import type { ISO8601 } from "~/shared/types/iso8601";
 import type { BuiltVersionTransitionDto } from "~/shared/types/built-version-transition";
