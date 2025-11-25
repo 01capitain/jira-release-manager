@@ -116,21 +116,6 @@ const isReleaseTrack = (value: unknown): value is ReleaseTrack => {
   );
 };
 
-const renderTrackBadge = (track: ReleaseTrack) => {
-  const styles = TRACK_BADGE_STYLES[track];
-  return (
-    <span
-      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${styles.badge}`}
-    >
-      <span
-        aria-hidden="true"
-        className={`h-2 w-2 rounded-full ${styles.dot}`}
-      />
-      {track}
-    </span>
-  );
-};
-
 const renderEntryMessage = (entry: ActionHistoryEntryDto) => {
   if (
     entry.actionType === "releaseVersion.track.update" &&
@@ -141,7 +126,11 @@ const renderEntryMessage = (entry: ActionHistoryEntryDto) => {
     return (
       <span className="inline-flex flex-wrap items-center gap-2">
         <span>{`${entry.message} to`}</span>
-        {renderTrackBadge(track)}
+        <span
+          aria-hidden="true"
+          className={`h-2 w-2 rounded-full ${TRACK_BADGE_STYLES[track].dot}`}
+        />
+        <span>{track}</span>
       </span>
     );
   }
