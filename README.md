@@ -10,6 +10,7 @@
 
 - Node.js 24.x (see `.nvmrc` and `scripts/check-node.mjs` for enforcement)
 - pnpm (via Corepack; repository pins pnpm@10.20.0)
+  - Quick setup: `corepack enable && corepack use pnpm@10.20.0`
 
 ## Tech Stack
 
