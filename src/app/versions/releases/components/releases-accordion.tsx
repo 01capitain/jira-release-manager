@@ -8,14 +8,15 @@ import {
 import * as React from "react";
 import type { ReleaseVersionWithBuildsDto } from "~/shared/types/release-version-with-builds";
 import type { BuiltVersionStatusResponse } from "~/shared/types/built-version-status-response";
-import { useBuiltVersionStatusQuery } from "../../builds/api";
+import {
+  STATUS_STALE_TIME_MS,
+  useBuiltVersionStatusQuery,
+} from "../../builds/api";
 import BuiltVersionCard from "../../builds/components/built-version-card";
 import { useReleaseEntities } from "../api";
 import { Button } from "~/components/ui/button";
 import ReleaseCalendar from "./release-calendar";
 import { mapBuiltVersionsToCalendarEvents } from "../lib/calendar-events";
-
-const STATUS_STALE_TIME_MS = 5 * 60 * 1000;
 
 function LatestActiveTag({
   builtVersionIds,

@@ -127,7 +127,7 @@ export const useBuiltVersionsByReleaseQuery = (releaseId: string) => {
   });
 };
 
-const STATUS_STALE_TIME_MS = 5 * 60 * 1000;
+export const STATUS_STALE_TIME_MS = 5 * 60 * 1000;
 
 export const useBuiltVersionStatusQuery = (
   builtVersionId: string,
