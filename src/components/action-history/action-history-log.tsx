@@ -17,6 +17,8 @@ import type {
 } from "~/shared/types/action-history";
 import type { PaginatedResponse } from "~/shared/types/pagination";
 import { getJson, isRestApiError } from "~/lib/rest-client";
+import type { ReleaseTrack } from "~/shared/types/release-track";
+import { RELEASE_TRACK_VALUES } from "~/shared/types/release-track";
 
 const PAGE_SIZE = 5;
 
@@ -70,6 +72,81 @@ const displayUser = (entry: ActionHistoryEntryDto): string => {
 
 const ACTION_HISTORY_ENDPOINT = "/api/v1/action-history";
 const DEFAULT_SORT = "-createdAt";
+
+const TRACK_BADGE_STYLES: Record<
+  ReleaseTrack,
+  { badge: string; dot: string; text: string }
+> = {
+  Future: {
+    badge:
+      "bg-purple-50 text-purple-900 border border-purple-200 dark:bg-purple-900/30 dark:text-purple-200 dark:border-purple-500/30",
+    dot: "bg-purple-500",
+    text: "text-purple-900 dark:text-purple-100",
+  },
+  Beta: {
+    badge:
+      "bg-sky-50 text-sky-900 border border-sky-200 dark:bg-sky-900/30 dark:text-sky-200 dark:border-sky-500/30",
+    dot: "bg-sky-500",
+    text: "text-sky-900 dark:text-sky-100",
+  },
+  Rollout: {
+    badge:
+      "bg-yellow-50 text-yellow-900 border border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-100 dark:border-yellow-500/30",
+    dot: "bg-yellow-400",
+    text: "text-yellow-900 dark:text-yellow-100",
+  },
+  Active: {
+    badge:
+      "bg-emerald-50 text-emerald-900 border border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-100 dark:border-emerald-500/30",
+    dot: "bg-emerald-500",
+    text: "text-emerald-900 dark:text-emerald-100",
+  },
+  Archived: {
+    badge:
+      "bg-neutral-100 text-neutral-700 border border-neutral-200 dark:bg-neutral-900/40 dark:text-neutral-100 dark:border-neutral-600",
+    dot: "bg-neutral-500",
+    text: "text-neutral-700 dark:text-neutral-200",
+  },
+};
+
+const isReleaseTrack = (value: unknown): value is ReleaseTrack => {
+  return (
+    typeof value === "string" &&
+    (RELEASE_TRACK_VALUES as ReadonlyArray<string>).includes(value)
+  );
+};
+
+const renderTrackBadge = (track: ReleaseTrack) => {
+  const styles = TRACK_BADGE_STYLES[track];
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${styles.badge}`}
+    >
+      <span
+        aria-hidden="true"
+        className={`h-2 w-2 rounded-full ${styles.dot}`}
+      />
+      {track}
+    </span>
+  );
+};
+
+const renderEntryMessage = (entry: ActionHistoryEntryDto) => {
+  if (
+    entry.actionType === "releaseVersion.track.update" &&
+    entry.metadata &&
+    isReleaseTrack(entry.metadata.releaseTrack)
+  ) {
+    const track = entry.metadata.releaseTrack;
+    return (
+      <span className="inline-flex flex-wrap items-center gap-2">
+        <span>{`${entry.message} to`}</span>
+        {renderTrackBadge(track)}
+      </span>
+    );
+  }
+  return entry.message;
+};
 
 const fetchActionHistoryPage = async (
   page: number,
@@ -329,7 +406,7 @@ export function ActionHistoryLog() {
                         <span aria-hidden="true">:</span>
                       </span>
                       <span className="min-w-0 flex-1 truncate text-neutral-700 dark:text-neutral-200">
-                        {entry.message}
+                        {renderEntryMessage(entry)}
                       </span>
                       <span
                         aria-hidden="true"
