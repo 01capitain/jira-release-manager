@@ -7,42 +7,48 @@ import {
 } from "lucide-react";
 import * as React from "react";
 import type { ReleaseVersionWithBuildsDto } from "~/shared/types/release-version-with-builds";
+import type { BuiltVersionStatusResponse } from "~/shared/types/built-version-status-response";
 import { useBuiltVersionStatusQuery } from "../../builds/api";
 import BuiltVersionCard from "../../builds/components/built-version-card";
-import { useReleasesWithBuildsQuery } from "../api";
+import { useReleaseEntities } from "../api";
 import { Button } from "~/components/ui/button";
 import ReleaseCalendar from "./release-calendar";
 import { mapBuiltVersionsToCalendarEvents } from "../lib/calendar-events";
 
+const STATUS_STALE_TIME_MS = 5 * 60 * 1000;
+
 function LatestActiveTag({
   builtVersionIds,
   builtVersionNames,
+  statusSnapshots,
 }: {
   builtVersionIds: string[];
   builtVersionNames: string[];
+  statusSnapshots: Record<string, BuiltVersionStatusResponse | undefined>;
 }) {
   // Query at most the first 5 builds for status to find the latest active,
   // but keep hook count/order stable across renders to satisfy the Rules of Hooks.
   const NIL_UUID = "00000000-0000-0000-0000-000000000000";
-  const q0 = useBuiltVersionStatusQuery(builtVersionIds[0] ?? NIL_UUID, {
-    staleTime: Infinity,
-    enabled: builtVersionIds[0] !== undefined,
+  const statusOptions = (index: number) => ({
+    staleTime: STATUS_STALE_TIME_MS,
+    enabled: builtVersionIds[index] !== undefined,
+    initialData: statusSnapshots[builtVersionIds[index] ?? ""],
   });
+  const q0 = useBuiltVersionStatusQuery(
+    builtVersionIds[0] ?? NIL_UUID,
+    statusOptions(0),
+  );
   const q1 = useBuiltVersionStatusQuery(builtVersionIds[1] ?? NIL_UUID, {
-    staleTime: Infinity,
-    enabled: builtVersionIds[1] !== undefined,
+    ...statusOptions(1),
   });
   const q2 = useBuiltVersionStatusQuery(builtVersionIds[2] ?? NIL_UUID, {
-    staleTime: Infinity,
-    enabled: builtVersionIds[2] !== undefined,
+    ...statusOptions(2),
   });
   const q3 = useBuiltVersionStatusQuery(builtVersionIds[3] ?? NIL_UUID, {
-    staleTime: Infinity,
-    enabled: builtVersionIds[3] !== undefined,
+    ...statusOptions(3),
   });
   const q4 = useBuiltVersionStatusQuery(builtVersionIds[4] ?? NIL_UUID, {
-    staleTime: Infinity,
-    enabled: builtVersionIds[4] !== undefined,
+    ...statusOptions(4),
   });
   const queries = [q0, q1, q2, q3, q4];
 
@@ -77,40 +83,14 @@ export default function ReleasesAccordion({
     Record<string, "list" | "calendar">
   >({});
 
-  // Cache releases-with-builds in localStorage
-  const storageKey = () => `jrm:releases:accordion:releases-with-builds:v1`;
-  const readCache = () => {
-    try {
-      const raw = localStorage.getItem(storageKey());
-      if (!raw) return undefined;
-      const parsed = JSON.parse(raw) as ReleaseVersionWithBuildsDto[];
-      if (Array.isArray(parsed)) return parsed;
-    } catch {}
-    return undefined;
-  };
-  const writeCache = React.useCallback(
-    (payload: ReleaseVersionWithBuildsDto[]) => {
-      try {
-        localStorage.setItem(storageKey(), JSON.stringify(payload));
-      } catch {}
-    },
-    [],
-  );
+  const { releases, isFetching, builtStatusById, componentStateByBuiltId } =
+    useReleaseEntities({ enabled: true });
 
-  const { data, isFetching } = useReleasesWithBuildsQuery({
-    enabled: true,
-    placeholderData: () => (hydrated ? readCache() : undefined),
-  });
-
-  React.useEffect(() => {
-    if (data) writeCache(data);
-  }, [data, writeCache]);
-
-  const releases: ReleaseVersionWithBuildsDto[] = data ?? [];
+  const normalizedReleases: ReleaseVersionWithBuildsDto[] = releases ?? [];
 
   return (
     <div className="space-y-5">
-      {releases.map((rel) => {
+      {normalizedReleases.map((rel) => {
         const ids = rel.builtVersions.map((b) => b.id);
         const names = rel.builtVersions.map((b) => b.name);
         const mode = viewModeByRelease[rel.id] ?? "list";
@@ -133,6 +113,7 @@ export default function ReleasesAccordion({
                 <LatestActiveTag
                   builtVersionIds={ids}
                   builtVersionNames={names}
+                  statusSnapshots={builtStatusById}
                 />
               </div>
               <div className="flex items-center gap-2 text-xs text-neutral-500 dark:text-neutral-400">
@@ -175,15 +156,28 @@ export default function ReleasesAccordion({
                 <ReleaseCalendar release={rel} events={calendarEvents} />
               ) : (
                 <div className="relative grid w-full grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-                  {rel.builtVersions.map((b) => (
-                    <BuiltVersionCard
-                      key={b.id}
-                      id={b.id}
-                      name={b.name}
-                      createdAt={b.createdAt}
-                      releaseId={rel.id}
-                    />
-                  ))}
+                  {rel.builtVersions.map((b) => {
+                    const componentState = componentStateByBuiltId[b.id];
+                    const componentsLoading =
+                      componentState?.status === "loading";
+                    const componentsError =
+                      componentState?.status === "error"
+                        ? componentState.error
+                        : undefined;
+                    return (
+                      <BuiltVersionCard
+                        key={b.id}
+                        id={b.id}
+                        name={b.name}
+                        createdAt={b.createdAt}
+                        releaseId={rel.id}
+                        components={b.deployedComponents ?? []}
+                        componentsLoading={componentsLoading}
+                        componentsError={componentsError}
+                        initialStatus={builtStatusById[b.id]}
+                      />
+                    );
+                  })}
                   {hydrated && isFetching && (
                     <output
                       className="pointer-events-none absolute inset-0 flex items-center justify-center bg-neutral-100/40 text-neutral-700 dark:bg-neutral-900/30 dark:text-neutral-200"

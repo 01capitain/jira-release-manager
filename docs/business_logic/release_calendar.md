@@ -3,7 +3,7 @@
 The releases page exposes an optional calendar visualization so operators can understand how frequently a release produces builds.
 
 - Location: `src/app/versions/releases/page.tsx` toggles between the accordion and the calendar panel without routing away from `/versions/releases`.
-- Data source: the client reuses the cached payload from `useReleasesWithBuildsQuery`. No additional REST request is fired when the calendar opens.
+- Data source: the client reuses the normalized payload from `useReleaseEntities` (which is backed by `useReleasesWithBuildsQuery`). No additional REST request is fired when the calendar opens.
 - Trigger: a “View calendar” icon button on each release row activates the calendar for that specific release and stores the selected release in local state until the user returns to the accordion.
 
 ## Event Model
