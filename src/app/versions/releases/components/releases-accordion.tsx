@@ -227,13 +227,15 @@ const ReleaseTrackSelector = ({
           })}
         </div>
         {mutation.isPending ? (
-          <span className="text-xs text-neutral-500 dark:text-neutral-400">
+          <output
+            aria-atomic="true"
+            className="text-xs text-neutral-500 dark:text-neutral-400"
+          >
             Updating…
-          </span>
+          </output>
         ) : null}
         {error ? (
           <output
-            role="status"
             aria-atomic="true"
             className="block text-xs text-red-600 dark:text-red-400"
           >
