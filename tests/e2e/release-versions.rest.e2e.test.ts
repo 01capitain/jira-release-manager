@@ -5,6 +5,10 @@ import {
   releaseComponentFixtures,
 } from "../fixtures/release-components";
 import { userFixtures } from "../fixtures/users";
+import {
+  DEFAULT_RELEASE_TRACK,
+  type ReleaseTrack,
+} from "~/shared/types/release-track";
 
 jest.mock("superjson", () => ({
   __esModule: true,
@@ -52,9 +56,14 @@ type ReleaseRecord = {
   id: string;
   name: string;
   createdAt: Date;
+  releaseTrack: ReleaseTrack;
   builtVersions?: BuiltVersionRecord[];
   createdBy?: UserRecord;
   lastUsedIncrement?: number;
+};
+
+type ReleaseRecordInput = Omit<ReleaseRecord, "releaseTrack"> & {
+  releaseTrack?: ReleaseTrack;
 };
 
 const releaseData: ReleaseRecord[] = [];
@@ -160,6 +169,7 @@ const materializeRelease = (
   const base: Record<string, unknown> = {
     id: record.id,
     name: record.name,
+    releaseTrack: record.releaseTrack,
     createdAt: record.createdAt,
   };
 
@@ -177,8 +187,17 @@ const materializeRelease = (
   return base;
 };
 
-const setReleaseRecords = (records: ReleaseRecord[]) => {
-  releaseData.splice(0, releaseData.length, ...records.map(cloneReleaseRecord));
+const setReleaseRecords = (records: ReleaseRecordInput[]) => {
+  releaseData.splice(
+    0,
+    releaseData.length,
+    ...records.map((record) =>
+      cloneReleaseRecord({
+        ...record,
+        releaseTrack: record.releaseTrack ?? DEFAULT_RELEASE_TRACK,
+      }),
+    ),
+  );
   releaseCounter = releaseData.length;
   builtCounter = releaseData.reduce(
     (total, record) => total + (record.builtVersions?.length ?? 0),
@@ -298,14 +317,22 @@ mockDb.releaseVersion = {
           );
     const name =
       (data?.name as string | undefined) ?? `Release ${releaseCounter}`;
+    const releaseTrack =
+      (data?.releaseTrack as ReleaseTrack | undefined) ?? DEFAULT_RELEASE_TRACK;
     const record: ReleaseRecord = {
       id,
       name,
+      releaseTrack,
       createdAt,
       builtVersions: [],
     };
     releaseData.push(record);
-    return { id: record.id, name: record.name, createdAt: record.createdAt };
+    return {
+      id: record.id,
+      name: record.name,
+      releaseTrack: record.releaseTrack,
+      createdAt: record.createdAt,
+    };
   }),
   update: jest.fn(
     async ({
@@ -316,8 +343,19 @@ mockDb.releaseVersion = {
       data?: Record<string, unknown>;
     } = {}) => {
       const record = releaseData.find((entry) => entry.id === where?.id);
-      if (record && typeof data?.lastUsedIncrement === "number") {
-        record.lastUsedIncrement = data.lastUsedIncrement;
+      if (record) {
+        if (typeof data?.lastUsedIncrement === "number") {
+          record.lastUsedIncrement = data.lastUsedIncrement;
+        }
+        if (typeof data?.releaseTrack === "string") {
+          record.releaseTrack = data.releaseTrack as ReleaseTrack;
+          return {
+            id: record.id,
+            name: record.name,
+            releaseTrack: record.releaseTrack,
+            createdAt: record.createdAt,
+          };
+        }
       }
       return { id: where?.id, ...data };
     },
@@ -381,6 +419,7 @@ import {
   POST as createReleaseVersion,
 } from "~/app/api/v1/release-versions/route";
 import { GET as getReleaseVersion } from "~/app/api/v1/release-versions/[releaseId]/route";
+import { PATCH as updateReleaseVersionTrack } from "~/app/api/v1/release-versions/[releaseId]/track/route";
 import { auth } from "~/server/auth";
 import {
   ReleaseVersionDetailSchema,
@@ -431,7 +470,7 @@ describe("Release Versions REST endpoints", () => {
   describe("GET /api/v1/release-versions", () => {
     it("returns a paginated list sorted by createdAt descending", async () => {
       authMock.mockResolvedValue(authenticatedSession);
-      const records: ReleaseRecord[] = [
+      const records: ReleaseRecordInput[] = [
         {
           id: "018f1a50-0000-7000-8000-000000000001",
           name: "Release 001",
@@ -490,7 +529,7 @@ describe("Release Versions REST endpoints", () => {
         orderBy: { createdAt: "desc" },
         skip: 0,
         take: 2,
-        select: { id: true, name: true, createdAt: true },
+        select: { id: true, name: true, releaseTrack: true, createdAt: true },
       });
       expect((args as { include?: unknown }).include).toBeUndefined();
     });
@@ -701,9 +740,10 @@ describe("Release Versions REST endpoints", () => {
       ).toHaveBeenCalledWith({
         data: {
           name: "Release 100",
+          releaseTrack: DEFAULT_RELEASE_TRACK,
           createdBy: { connect: { id: SESSION_USER_ID } },
         },
-        select: { id: true, name: true, createdAt: true },
+        select: { id: true, name: true, releaseTrack: true, createdAt: true },
       });
       expect(
         (mockDb.builtVersion as { create: jest.Mock }).create,
@@ -808,6 +848,210 @@ describe("Release Versions REST endpoints", () => {
       ).not.toHaveBeenCalled();
       expect(
         (mockDb.builtVersion as Record<string, unknown>).create,
+      ).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("PATCH /api/v1/release-versions/{releaseId}/track", () => {
+    it("updates the release track when authenticated", async () => {
+      authMock.mockResolvedValue(authenticatedSession);
+      const releaseId = "018f1a50-0000-7000-8000-000000002222";
+      setReleaseRecords([
+        {
+          id: releaseId,
+          name: "Release Track Update",
+          createdAt: new Date("2024-07-01T10:00:00.000Z"),
+        },
+      ]);
+
+      const request = new NextRequest(
+        `http://test/api/v1/release-versions/${releaseId}/track`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({ releaseTrack: "Rollout" }),
+          headers: {
+            "Content-Type": "application/json",
+            cookie: "next-auth.session-token=test-token",
+          },
+        },
+      );
+
+      const response = await executeHandler(
+        updateReleaseVersionTrack,
+        request,
+        { releaseId },
+      );
+      const payload = await parseJsonObject(response);
+
+      expect(response.status).toBe(200);
+      expect(payload).toMatchObject({
+        id: releaseId,
+        releaseTrack: "Rollout",
+      });
+      expect(
+        (mockDb.releaseVersion as { update: jest.Mock }).update,
+      ).toHaveBeenCalledWith({
+        where: { id: releaseId },
+        data: { releaseTrack: "Rollout" },
+        select: {
+          id: true,
+          name: true,
+          releaseTrack: true,
+          createdAt: true,
+        },
+      });
+    });
+
+    it("returns 401 when no session token is provided", async () => {
+      authMock.mockResolvedValue(null);
+      const releaseId = "018f1a50-0000-7000-8000-000000002333";
+      setReleaseRecords([
+        {
+          id: releaseId,
+          name: "Release No Auth",
+          createdAt: new Date("2024-07-02T10:00:00.000Z"),
+        },
+      ]);
+
+      const request = new NextRequest(
+        `http://test/api/v1/release-versions/${releaseId}/track`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({ releaseTrack: "Active" }),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        },
+      );
+
+      const response = await executeHandler(
+        updateReleaseVersionTrack,
+        request,
+        { releaseId },
+      );
+      const payload = await parseJsonObject(response);
+
+      expect(response.status).toBe(401);
+      expect(payload).toMatchObject({
+        code: "UNAUTHORIZED",
+        message: "Authentication required",
+      });
+      expect(
+        (mockDb.releaseVersion as { update: jest.Mock }).update,
+      ).not.toHaveBeenCalled();
+    });
+
+    it("returns 404 when the release does not exist", async () => {
+      authMock.mockResolvedValue(authenticatedSession);
+      clearReleaseRecords();
+      const releaseId = "018f1a50-0000-7000-8000-000000002444";
+      const request = new NextRequest(
+        `http://test/api/v1/release-versions/${releaseId}/track`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({ releaseTrack: "Archived" }),
+          headers: {
+            "Content-Type": "application/json",
+            cookie: "next-auth.session-token=test-token",
+          },
+        },
+      );
+
+      const response = await executeHandler(
+        updateReleaseVersionTrack,
+        request,
+        { releaseId },
+      );
+      const payload = await parseJsonObject(response);
+
+      expect(response.status).toBe(404);
+      expect(payload).toMatchObject({
+        code: "NOT_FOUND",
+        message: expect.stringContaining("not found"),
+      });
+      expect(
+        (mockDb.releaseVersion as { update: jest.Mock }).update,
+      ).not.toHaveBeenCalled();
+    });
+
+    it("rejects an unknown release track value", async () => {
+      authMock.mockResolvedValue(authenticatedSession);
+      const releaseId = "018f1a50-0000-7000-8000-000000002555";
+      setReleaseRecords([
+        {
+          id: releaseId,
+          name: "Release Invalid Track",
+          createdAt: new Date("2024-07-03T10:00:00.000Z"),
+        },
+      ]);
+
+      const request = new NextRequest(
+        `http://test/api/v1/release-versions/${releaseId}/track`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({ releaseTrack: "UnknownStatus" }),
+          headers: {
+            "Content-Type": "application/json",
+            cookie: "next-auth.session-token=test-token",
+          },
+        },
+      );
+
+      const response = await executeHandler(
+        updateReleaseVersionTrack,
+        request,
+        { releaseId },
+      );
+      const payload = await parseJsonObject(response);
+
+      expect(response.status).toBe(400);
+      expect(payload).toMatchObject({
+        code: "VALIDATION_ERROR",
+        message: "Invalid request payload",
+      });
+      expect(
+        (mockDb.releaseVersion as { update: jest.Mock }).update,
+      ).not.toHaveBeenCalled();
+    });
+
+    it("succeeds without updating when the track is unchanged", async () => {
+      authMock.mockResolvedValue(authenticatedSession);
+      const releaseId = "018f1a50-0000-7000-8000-000000002666";
+      setReleaseRecords([
+        {
+          id: releaseId,
+          name: "Release Same Track",
+          releaseTrack: "Active",
+          createdAt: new Date("2024-07-04T10:00:00.000Z"),
+        },
+      ]);
+
+      const request = new NextRequest(
+        `http://test/api/v1/release-versions/${releaseId}/track`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({ releaseTrack: "Active" }),
+          headers: {
+            "Content-Type": "application/json",
+            cookie: "next-auth.session-token=test-token",
+          },
+        },
+      );
+
+      const response = await executeHandler(
+        updateReleaseVersionTrack,
+        request,
+        { releaseId },
+      );
+      const payload = await parseJsonObject(response);
+
+      expect(response.status).toBe(200);
+      expect(payload).toMatchObject({
+        id: releaseId,
+        releaseTrack: "Active",
+      });
+      expect(
+        (mockDb.releaseVersion as { update: jest.Mock }).update,
       ).not.toHaveBeenCalled();
     });
   });

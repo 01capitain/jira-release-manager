@@ -7,6 +7,10 @@ import { userFixtures } from "../fixtures/users";
 import { BuiltVersionService } from "~/server/services/built-version.service";
 import { ReleaseVersionService } from "~/server/services/release-version.service";
 import type { ActionLogger } from "~/server/services/action-history.service";
+import {
+  DEFAULT_RELEASE_TRACK,
+  type ReleaseTrack,
+} from "~/shared/types/release-track";
 
 const COMPONENT_A_ID = releaseComponentFixtures.iosApp.id;
 const COMPONENT_B_ID = releaseComponentFixtures.phpBackend.id;
@@ -20,7 +24,7 @@ const USER_2_ID = userFixtures.melanieMayer.id;
 const TRANSITION_ID = "018f1a50-0000-7000-9000-0000000002b1";
 
 // Minimal Prisma-like client mock with only fields used in tests
-function makeMockDb() {
+function makeMockDb(initialTrack: ReleaseTrack = DEFAULT_RELEASE_TRACK) {
   const calls: Record<string, unknown[]> = {};
   const record = (key: string, payload: unknown) => {
     calls[key] = calls[key] ?? [];
@@ -34,6 +38,25 @@ function makeMockDb() {
     return `00000000-0000-7000-8000-${hex}`;
   };
 
+  let currentTrack: ReleaseTrack = initialTrack;
+  const releaseRows: Record<
+    string,
+    { id: string; name: string; releaseTrack: ReleaseTrack; createdAt: Date }
+  > = {
+    [REL_ID]: {
+      id: REL_ID,
+      name: "version 100.0",
+      releaseTrack: currentTrack,
+      createdAt: new Date(),
+    },
+    [REL_SECONDARY_ID]: {
+      id: REL_SECONDARY_ID,
+      name: "version 26.1",
+      releaseTrack: initialTrack,
+      createdAt: new Date(),
+    },
+  };
+
   const db: any = {
     $transaction: async (fn: (tx: any) => Promise<any>) => {
       return await fn(db);
@@ -42,24 +65,57 @@ function makeMockDb() {
     releaseVersion: {
       create: jest.fn(async (args: any) => {
         record("releaseVersion.create", args);
-        return { id: REL_ID, name: args.data.name, createdAt: new Date() };
+        currentTrack = DEFAULT_RELEASE_TRACK;
+        releaseRows[REL_ID] = {
+          id: REL_ID,
+          name: args.data.name,
+          releaseTrack: currentTrack,
+          createdAt: new Date(),
+        };
+        return releaseRows[REL_ID];
       }),
       update: jest.fn(async (args: any) => {
         record("releaseVersion.update", args);
+        const targetId = args.where.id ?? REL_ID;
+        if (typeof args.data.releaseTrack === "string") {
+          currentTrack = args.data.releaseTrack as ReleaseTrack;
+          const entry =
+            releaseRows[targetId] ??
+            (() => {
+              const fallback = {
+                id: targetId,
+                name: "version 100.0",
+                releaseTrack: currentTrack,
+                createdAt: new Date(),
+              };
+              releaseRows[targetId] = fallback;
+              return fallback;
+            })();
+          releaseRows[targetId] = { ...entry, releaseTrack: currentTrack };
+          return releaseRows[targetId];
+        }
         return {
-          id: args.where.id,
+          id: targetId,
           lastUsedIncrement: args.data.lastUsedIncrement,
         };
       }),
-      findUnique: jest.fn(async (args: any = {}) => ({
-        id: args?.where?.id ?? REL_ID,
-        name: "version 100.0",
-        versionId: REL_ID,
-        createdAt: new Date(),
-      })),
+      findUnique: jest.fn(async (args: any = {}) => {
+        const entry = releaseRows[args?.where?.id ?? REL_ID];
+        return entry
+          ? { ...entry, versionId: REL_ID }
+          : {
+              id: REL_ID,
+              name: "version 100.0",
+              versionId: REL_ID,
+              releaseTrack: currentTrack,
+              createdAt: new Date(),
+            };
+      }),
       findUniqueOrThrow: jest.fn(),
-      findMany: jest.fn(),
-      count: jest.fn(),
+      findMany: jest.fn(async (_args: any = {}) => {
+        return Object.values(releaseRows);
+      }),
+      count: jest.fn(async () => Object.keys(releaseRows).length),
     },
     // BuiltVersion
     builtVersion: {
@@ -271,9 +327,10 @@ describe("ReleaseVersion and BuiltVersion behavior", () => {
           ],
         })),
       };
+      const loggerSubactionMock = jest.fn(async () => undefined);
       const logger: ActionLogger = {
         id: "action-1",
-        subaction: jest.fn(async () => undefined),
+        subaction: loggerSubactionMock,
         complete: jest.fn(async () => undefined),
       };
 
@@ -284,9 +341,9 @@ describe("ReleaseVersion and BuiltVersion behavior", () => {
       await svc.create(USER_1_ID, "version 102", { logger });
 
       expect(builtService.createInitialForRelease).toHaveBeenCalledTimes(1);
-      const releaseCallEntries = (logger.subaction as jest.Mock).mock.calls.map(
-        ([entry]: [any]) => entry,
-      );
+      const releaseCallEntries = (
+        loggerSubactionMock as jest.Mock
+      ).mock.calls.map(([entry]: [any]) => entry);
       const releasePersist = releaseCallEntries.filter(
         (entry) => entry.subactionType === "releaseVersion.persist",
       );
@@ -327,7 +384,12 @@ describe("ReleaseVersion and BuiltVersion behavior", () => {
       const createdAt = new Date("2024-01-01T12:00:00Z");
       db.releaseVersion.count = jest.fn(async () => 1);
       db.releaseVersion.findMany = jest.fn(async () => [
-        { id: REL_MAIN_ID, name: "Release 100", createdAt },
+        {
+          id: REL_MAIN_ID,
+          name: "Release 100",
+          releaseTrack: DEFAULT_RELEASE_TRACK,
+          createdAt,
+        },
       ]);
 
       const svc = new ReleaseVersionService(db);
@@ -341,6 +403,7 @@ describe("ReleaseVersion and BuiltVersion behavior", () => {
       expect(page.data[0]).toEqual({
         id: REL_MAIN_ID,
         name: "Release 100",
+        releaseTrack: DEFAULT_RELEASE_TRACK,
         createdAt: createdAt.toISOString(),
       });
       const args = db.releaseVersion.findMany.mock.calls[0]?.[0] ?? {};
@@ -355,6 +418,7 @@ describe("ReleaseVersion and BuiltVersion behavior", () => {
         {
           id: REL_MAIN_ID,
           name: "Release 200",
+          releaseTrack: "Beta",
           createdAt: releaseCreatedAt,
           createdBy: {
             id: USER_1_ID,
@@ -407,6 +471,7 @@ describe("ReleaseVersion and BuiltVersion behavior", () => {
       );
 
       const [item] = page.data;
+      expect(item?.releaseTrack).toBe("Beta");
       expect(item?.creater).toEqual({
         id: USER_1_ID,
         name: "Test User",
@@ -471,6 +536,7 @@ describe("ReleaseVersion and BuiltVersion behavior", () => {
       db.releaseVersion.findUnique = jest.fn(async () => ({
         id: REL_MAIN_ID,
         name: "Release 300",
+        releaseTrack: "Rollout",
         createdAt,
         createdBy: {
           id: USER_1_ID,
@@ -494,6 +560,7 @@ describe("ReleaseVersion and BuiltVersion behavior", () => {
       expect(base).toEqual({
         id: REL_MAIN_ID,
         name: "Release 300",
+        releaseTrack: "Rollout",
         createdAt: createdAt.toISOString(),
       });
 
@@ -657,6 +724,81 @@ describe("ReleaseVersion and BuiltVersion behavior", () => {
 
       expect(res.selectedReleaseComponentIds).toEqual([COMPONENT_A_ID]);
       expect(db.releaseComponent.findMany).toHaveBeenCalled();
+    });
+  });
+
+  describe("ReleaseVersionService.updateReleaseTrack()", () => {
+    test("updates the release track and logs a subaction", async () => {
+      const { db } = makeMockDb();
+      const svc = new ReleaseVersionService(db);
+      const loggerSubactionMock = jest.fn().mockResolvedValue(undefined);
+      const logger: ActionLogger = {
+        subaction: loggerSubactionMock,
+      } as unknown as ActionLogger;
+
+      const result = await svc.updateReleaseTrack(
+        REL_MAIN_ID,
+        "Rollout",
+        USER_1_ID,
+        { logger },
+      );
+
+      expect(result.releaseTrack).toBe("Rollout");
+      expect(db.releaseVersion.update).toHaveBeenCalledWith({
+        where: { id: REL_MAIN_ID },
+        data: { releaseTrack: "Rollout" },
+        select: {
+          id: true,
+          name: true,
+          releaseTrack: true,
+          createdAt: true,
+        },
+      });
+      expect(loggerSubactionMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          subactionType: "releaseVersion.track.update",
+          metadata: expect.objectContaining({
+            from: DEFAULT_RELEASE_TRACK,
+            to: "Rollout",
+            releaseId: REL_MAIN_ID,
+            updatedBy: USER_1_ID,
+          }),
+        }),
+      );
+    });
+
+    test("throws NOT_FOUND when the release does not exist", async () => {
+      const { db } = makeMockDb();
+      db.releaseVersion.findUnique = jest.fn().mockResolvedValue(null);
+      const svc = new ReleaseVersionService(db);
+
+      await expect(
+        svc.updateReleaseTrack(REL_MAIN_ID, "Active", USER_1_ID),
+      ).rejects.toMatchObject({
+        status: 404,
+        code: "NOT_FOUND",
+      });
+      expect(db.releaseVersion.update).not.toHaveBeenCalled();
+    });
+
+    test("short-circuits when the release track is unchanged", async () => {
+      const { db } = makeMockDb("Active");
+      db.releaseVersion.findUnique = jest.fn().mockResolvedValue({
+        id: REL_MAIN_ID,
+        name: "Version 200",
+        releaseTrack: "Active",
+        createdAt: new Date(),
+      });
+      const svc = new ReleaseVersionService(db);
+
+      const result = await svc.updateReleaseTrack(
+        REL_MAIN_ID,
+        "Active",
+        USER_1_ID,
+      );
+
+      expect(result.releaseTrack).toBe("Active");
+      expect(db.releaseVersion.update).not.toHaveBeenCalled();
     });
   });
 });

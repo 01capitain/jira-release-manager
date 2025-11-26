@@ -1,9 +1,11 @@
 import { releaseComponentFixtures } from "./release-components";
 import { userFixtures } from "./users";
+import type { ReleaseTrack } from "~/shared/types/release-track";
 
 type ReleaseVersionFixtureData = {
   id: string;
   name: string;
+  releaseTrack?: ReleaseTrack;
   createdAt: string;
   createdById: string;
   builtVersions: Array<{

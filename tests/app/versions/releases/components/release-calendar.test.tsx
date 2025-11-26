@@ -17,6 +17,7 @@ const createRelease = (
 ): ReleaseVersionWithBuildsDto => ({
   id: uuid("00000000-0000-0000-0000-000000001000"),
   name: "2.1.0",
+  releaseTrack: "Future",
   createdAt: iso("2024-01-01T00:00:00.000Z"),
   builtVersions: [],
   ...overrides,

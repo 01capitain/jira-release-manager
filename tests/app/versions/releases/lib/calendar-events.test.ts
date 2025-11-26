@@ -9,6 +9,7 @@ const iso = (value: string) => value as ISO8601;
 const releaseStub: ReleaseVersionWithBuildsDto = {
   id: uuid("00000000-0000-0000-0000-000000000123"),
   name: "1.0.0",
+  releaseTrack: "Future",
   createdAt: iso("2024-03-15T00:00:00.000Z"),
   builtVersions: [
     {

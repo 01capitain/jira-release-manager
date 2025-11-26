@@ -63,6 +63,7 @@ export default function AddReleaseCard({
       const item: ReleaseVersion = {
         id: created.id,
         name: created.name,
+        releaseTrack: created.releaseTrack,
         createdAt: created.createdAt,
       };
       setPhase("success");

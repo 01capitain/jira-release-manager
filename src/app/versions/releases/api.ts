@@ -1,11 +1,14 @@
 "use client";
 
 import * as React from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { getJson, postJson } from "~/lib/rest-client";
+import { getJson, postJson, requestJson } from "~/lib/rest-client";
 import { withUiSpan } from "~/lib/otel/ui-span";
-import type { ReleaseVersionCreateInput } from "~/shared/schemas/release-version";
+import type {
+  ReleaseVersionCreateInput,
+  ReleaseVersionTrackUpdateInput,
+} from "~/shared/schemas/release-version";
 import type { PaginatedResponse } from "~/shared/types/pagination";
 import type { ReleaseVersionDto } from "~/shared/types/release-version";
 import type { ReleaseVersionWithRelationsDto } from "~/shared/types/release-version-relations";
@@ -15,6 +18,7 @@ import type {
 } from "~/shared/types/release-version-with-builds";
 import type { ComponentVersionDto } from "~/shared/types/component-version";
 import type { BuiltVersionStatusResponse } from "~/shared/types/built-version-status-response";
+import type { ReleaseTrack } from "~/shared/types/release-track";
 
 export const createReleaseVersion = async (
   input: ReleaseVersionCreateInput,
@@ -30,6 +34,37 @@ export const createReleaseVersion = async (
 export const useCreateReleaseMutation = () => {
   return useMutation({
     mutationFn: createReleaseVersion,
+  });
+};
+
+export const updateReleaseVersionTrack = async (
+  releaseId: string,
+  input: ReleaseVersionTrackUpdateInput,
+): Promise<ReleaseVersionDto> => {
+  return withUiSpan("ui.release.track.update", () =>
+    requestJson<ReleaseVersionDto>(
+      `/api/v1/release-versions/${releaseId}/track`,
+      {
+        method: "PATCH",
+        body: JSON.stringify(input),
+      },
+    ),
+  );
+};
+
+type UpdateReleaseTrackVariables = {
+  releaseId: string;
+  releaseTrack: ReleaseTrack;
+};
+
+export const useUpdateReleaseTrackMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ releaseId, releaseTrack }: UpdateReleaseTrackVariables) =>
+      updateReleaseVersionTrack(releaseId, { releaseTrack }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["release-versions"] });
+    },
   });
 };
 
@@ -123,6 +158,7 @@ export const fetchReleasesWithBuilds = async (options?: {
       ...response.data.map<ReleaseVersionWithBuildsDto>((release) => ({
         id: release.id,
         name: release.name,
+        releaseTrack: release.releaseTrack,
         createdAt: release.createdAt,
         builtVersions:
           release.builtVersions?.map(
@@ -362,6 +398,9 @@ export const useReleaseEntities = (
             const built = builtById[builtId];
             if (!built) return null;
             const { releaseId: _releaseOwner, ...rest } = built;
+            if (_releaseOwner) {
+              // noop: release ownership is only used to build lookups
+            }
             return rest;
           })
           .filter((entry): entry is ReleaseBuiltVersionDto => entry !== null);

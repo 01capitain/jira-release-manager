@@ -1,6 +1,6 @@
 # Release Calendar View
 
-The releases page exposes an optional calendar visualization so operators can understand how frequently a release produces builds.
+The releases page exposes an optional calendar visualization so operators can understand how frequently a release produces builds. Each accordion row now starts with a vertical color bar (Future→purple, Beta→blue, Rollout→yellow, Active→green, Archived→gray); clicking the bar opens the release track dropdown so planners can move a release between the lifecycle stages without navigating away.
 
 - Location: `src/app/versions/releases/page.tsx` toggles between the accordion and the calendar panel without routing away from `/versions/releases`.
 - Data source: the client reuses the normalized payload from `useReleaseEntities` (which is backed by `useReleasesWithBuildsQuery`). No additional REST request is fired when the calendar opens.
