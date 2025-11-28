@@ -130,7 +130,7 @@ const ReleaseNameEditor = ({
 
   if (!editing) {
     return (
-      <div className="flex items-center gap-2">
+      <div className="group flex items-center gap-2">
         <span className="text-base font-medium">Release {name}</span>
         <Button
           type="button"
@@ -142,6 +142,7 @@ const ReleaseNameEditor = ({
             event.stopPropagation();
             setEditing(true);
           }}
+          className="text-neutral-500 opacity-0 transition-opacity group-hover:opacity-100 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200"
         >
           <Pencil className="h-4 w-4" aria-hidden="true" />
         </Button>
