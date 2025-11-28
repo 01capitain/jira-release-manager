@@ -492,13 +492,8 @@ if (process.argv[1] === __filename) {
     }
   };
 
-  process.stdin.resume();
-  run()
-    .catch((error) => {
-      console.error(error instanceof Error ? error.message : String(error));
-      process.exit(1);
-    })
-    .finally(() => {
-      process.stdin.pause();
-    });
+  run().catch((error) => {
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exit(1);
+  });
 }
