@@ -17,6 +17,7 @@ const releaseStub: ReleaseVersionWithPatchesDto = {
       name: "1.0.0",
       versionId: uuid("00000000-0000-0000-0000-000000000123"),
       createdAt: iso("2024-03-16T10:00:00.000Z"),
+      currentStatus: "in_development",
       deployedComponents: [
         {
           id: uuid("00000000-0000-0000-0000-000000000401"),
@@ -33,6 +34,7 @@ const releaseStub: ReleaseVersionWithPatchesDto = {
       name: "1.0.1",
       versionId: uuid("00000000-0000-0000-0000-000000000123"),
       createdAt: iso("2024-03-18T09:00:00.000Z"),
+      currentStatus: "in_development",
       deployedComponents: [],
     },
   ],

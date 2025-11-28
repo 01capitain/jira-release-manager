@@ -28,6 +28,7 @@ const createPatch = (
   name: "1.0.0.0",
   versionId: uuid("00000000-0000-0000-0000-000000000001"),
   createdAt: iso("2024-01-02T00:00:00.000Z"),
+  currentStatus: "in_development",
   deployedComponents: [],
   transitions: [],
   hasComponentData: true,
@@ -95,7 +96,7 @@ describe("mapReleaseCollections", () => {
       patchId: uuid("00000000-0000-0000-0000-000000000410"),
       fromStatus: "in_deployment",
       toStatus: "active",
-      action: "mark_active",
+      action: "markActive",
       createdAt: iso("2024-01-04T00:00:00.000Z"),
       createdById: uuid("00000000-0000-0000-0000-000000000611"),
     };
@@ -104,7 +105,7 @@ describe("mapReleaseCollections", () => {
       patchId: uuid("00000000-0000-0000-0000-000000000410"),
       fromStatus: "in_development",
       toStatus: "in_deployment",
-      action: "start_deployment",
+      action: "startDeployment",
       createdAt: iso("2024-01-03T00:00:00.000Z"),
       createdById: uuid("00000000-0000-0000-0000-000000000610"),
     };
@@ -113,9 +114,7 @@ describe("mapReleaseCollections", () => {
       transitions: [latestTransition, earlierTransition],
     });
 
-    const result = mapReleaseCollections([
-      createRelease({ patches: [patch] }),
-    ]);
+    const result = mapReleaseCollections([createRelease({ patches: [patch] })]);
 
     const snapshot = result.patchStatusById[patch.id];
     expect(snapshot?.status).toEqual("active");
@@ -135,17 +134,17 @@ describe("mapReleaseCollections", () => {
     ]);
   });
 
-  it("defaults status snapshots to in_development when no transitions exist", () => {
+  it("falls back to denormalized status when no transitions exist", () => {
     const patch = createPatch({
       id: uuid("00000000-0000-0000-0000-000000000710"),
+      currentStatus: "active",
+      hasStatusData: false,
       transitions: [],
     });
-    const result = mapReleaseCollections([
-      createRelease({ patches: [patch] }),
-    ]);
+    const result = mapReleaseCollections([createRelease({ patches: [patch] })]);
 
     expect(result.patchStatusById[patch.id]).toEqual({
-      status: "in_development",
+      status: "active",
       history: [],
     });
   });

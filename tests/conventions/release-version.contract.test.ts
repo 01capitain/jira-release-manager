@@ -72,6 +72,7 @@ describe("ReleaseVersion REST contract", () => {
               name: "Release A.0",
               versionId: SAMPLE_UUID_A,
               createdAt: "2024-01-02T00:00:00.000Z",
+              currentStatus: "in_development",
               deployedComponents: [
                 {
                   id: SAMPLE_UUID_C,
@@ -88,7 +89,7 @@ describe("ReleaseVersion REST contract", () => {
                   patchId: SAMPLE_UUID_B,
                   fromStatus: "in_development",
                   toStatus: "in_deployment",
-                  action: "start_deployment",
+                  action: "startDeployment",
                   createdAt: "2024-01-02T01:00:00.000Z",
                   createdById: SAMPLE_UUID_B,
                 },

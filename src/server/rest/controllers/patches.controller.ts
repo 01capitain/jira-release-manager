@@ -13,6 +13,11 @@ import { PatchDefaultSelectionSchema } from "~/shared/schemas/patch-selection";
 import { PatchCreateSchema } from "~/shared/schemas/patch";
 import { PatchCreateSuccessorInputSchema } from "~/server/api/schemas";
 import { jsonErrorResponse } from "~/server/rest/openapi";
+import {
+  PatchActionSchema,
+  PatchStatusSchema,
+} from "~/shared/types/patch-status";
+import { mapToPatchTransitionDtos } from "~/server/zod/dto/patch-transition.dto";
 
 export const ReleasePatchesParamsSchema = z.object({
   releaseId: z.uuidv7(),
@@ -26,22 +31,19 @@ export const PatchListResponseSchema = z.array(PatchDtoSchema);
 
 export const PatchStatusHistoryEntrySchema = z.object({
   id: z.uuidv7(),
-  fromStatus: z.string(),
-  toStatus: z.string(),
-  action: z.string(),
+  fromStatus: PatchStatusSchema,
+  toStatus: PatchStatusSchema,
+  action: PatchActionSchema,
   createdAt: z.string(),
   createdById: z.uuidv7(),
 });
 
 export const PatchStatusResponseSchema = z.object({
-  status: z.string(),
+  status: PatchStatusSchema,
   history: z.array(PatchStatusHistoryEntrySchema),
 });
 
-export const listPatches = async (
-  context: RestContext,
-  releaseId: string,
-) => {
+export const listPatches = async (context: RestContext, releaseId: string) => {
   const svc = new PatchService(context.db);
   const rows = await svc.listByRelease(releaseId);
   return PatchListResponseSchema.parse(rows);
@@ -96,25 +98,18 @@ export const createPatch = async (
   }
 };
 
-export const getPatchStatus = async (
-  context: RestContext,
-  patchId: string,
-) => {
+export const getPatchStatus = async (context: RestContext, patchId: string) => {
   const svc = new PatchStatusService(context.db);
   const [status, history] = await Promise.all([
     svc.getCurrentStatus(patchId),
     svc.getHistory(patchId),
   ]);
+  const mappedHistory = mapToPatchTransitionDtos(history).map(
+    ({ patchId: _omit, ...entry }) => entry,
+  );
   return PatchStatusResponseSchema.parse({
     status,
-    history: history.map((entry) => ({
-      id: entry.id,
-      fromStatus: entry.fromStatus,
-      toStatus: entry.toStatus,
-      action: entry.action,
-      createdAt: entry.createdAt.toISOString(),
-      createdById: entry.createdById,
-    })),
+    history: mappedHistory,
   });
 };
 
@@ -158,17 +153,13 @@ export const createSuccessor = async (
       message: `Successor prepared for ${input.patchId}`,
       metadata: summary,
     });
+    const mappedHistory = mapToPatchTransitionDtos(history).map(
+      ({ patchId: _omit, ...entry }) => entry,
+    );
     return {
       summary,
       status,
-      history: history.map((entry) => ({
-        id: entry.id,
-        fromStatus: entry.fromStatus,
-        toStatus: entry.toStatus,
-        action: entry.action,
-        createdAt: entry.createdAt.toISOString(),
-        createdById: entry.createdById,
-      })),
+      history: mappedHistory,
     };
   } catch (error) {
     await actionLog.complete("failed", {
@@ -189,7 +180,7 @@ export const PatchSuccessorResponseSchema = z.object({
     updated: z.number().int(),
     successorPatchId: z.string(),
   }),
-  status: z.string(),
+  status: PatchStatusSchema,
   history: PatchStatusResponseSchema.shape.history,
 });
 

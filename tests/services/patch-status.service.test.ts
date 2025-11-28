@@ -58,7 +58,13 @@ function makeMockDb() {
         record("patch.create", args);
         const id = makeUuid(++patchAutoInc);
         const versionId = args.data.version?.connect?.id ?? REL_ID;
-        return { id, name: args.data.name, versionId, createdAt: new Date() };
+        return {
+          id,
+          name: args.data.name,
+          versionId,
+          currentStatus: "in_development",
+          createdAt: new Date(),
+        };
       }),
       update: jest.fn(async (args: any) => {
         record("patch.update", args);
@@ -69,6 +75,7 @@ function makeMockDb() {
         id: args.where.id,
         name: "version 100.0",
         versionId: REL_ID,
+        currentStatus: "in_development",
         createdAt: new Date(),
       })),
       findFirst: jest.fn(),
@@ -132,12 +139,15 @@ describe("PatchStatusService", () => {
     test("transition to in_deployment creates a successor with higher increment", async () => {
       const { db, calls } = makeMockDb();
       const createdAt = new Date("2024-01-01T00:00:00Z");
-      db.patch.findUnique = jest.fn(async () => ({
+      const currentPatch = {
         id: PATCH_LIST_ID,
         name: "version 300.0",
         versionId: REL_MAIN_ID,
+        currentStatus: "in_development",
         createdAt,
-      }));
+      };
+      db.patch.findUniqueOrThrow = jest.fn(async () => currentPatch);
+      db.patch.findUnique = jest.fn(async () => currentPatch);
       db.releaseVersion.findUnique = jest.fn(async () => ({
         id: REL_MAIN_ID,
         name: "version 300",
@@ -158,6 +168,10 @@ describe("PatchStatusService", () => {
         versionId: REL_MAIN_ID,
         createdAt,
       });
+      expect(db.patch.update).toHaveBeenCalledWith({
+        where: { id: PATCH_LIST_ID },
+        data: { currentStatus: "in_deployment" },
+      });
 
       // Successor created with next increment (1)
       const successorCalls = calls["patch.create"] ?? [];
@@ -169,12 +183,15 @@ describe("PatchStatusService", () => {
     test("no successor is created if a newer patch already exists", async () => {
       const { db } = makeMockDb();
       const createdAt = new Date("2024-01-01T00:00:00Z");
-      db.patch.findUnique = jest.fn(async () => ({
+      const currentPatch = {
         id: ACTIVE_PATCH_ID,
         name: "version 400.0",
         versionId: REL_MAIN_ID,
+        currentStatus: "in_development",
         createdAt,
-      }));
+      };
+      db.patch.findUniqueOrThrow = jest.fn(async () => currentPatch);
+      db.patch.findUnique = jest.fn(async () => currentPatch);
       db.releaseVersion.findUnique = jest.fn(async () => ({
         id: REL_MAIN_ID,
         name: "version 400",

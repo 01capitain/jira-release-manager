@@ -41,12 +41,12 @@ Behavior:
 - Retries of `createSuccessorPatch` must be idempotent (no duplicate successor rows, no name regressions) and should handle existing placeholders gracefully.
 - Terminology: a “placeholder” ComponentVersion is a pre-created, non-materialized row that can be safely replaced/removed during selection.
 
-## Lifecycle & Status Derivation (History-Driven)
+## Lifecycle & Status Derivation
 
-- There is no `status` column on `Patch`.
-- Current status is computed from the latest `PatchTransition` entry.
-  - No history → `in_development`.
-  - Transitions are append-only and validated by `PatchStatusService`.
+- `Patch.currentStatus` stores the denormalized lifecycle state for fast reads. `PatchStatusService` writes to this column inside the same transaction that persists a `PatchTransition`, so reads never aggregate history.
+- `PatchTransition` remains the append-only audit log and source for history/analytics.
+  - No transition history ⇒ `currentStatus` falls back to `in_development`.
+  - `PatchStatusService` still validates every requested change against the transition rules.
 - Reversible actions: `cancelDeployment`, `revertToDeployment`, `reactivate`.
 
 ### Allowed Transitions

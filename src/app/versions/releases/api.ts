@@ -123,7 +123,6 @@ export const fetchReleasesWithPatches = async (options?: {
     search.set("sortBy", sortBy);
     search.append("relations", "patches");
     search.append("relations", "patches.deployedComponents");
-    search.append("relations", "patches.transitions");
 
     let response: PaginatedResponse<ReleaseVersionWithRelationsDto> | undefined;
 
@@ -238,10 +237,7 @@ export const mapReleaseCollections = (
   const releaseIds: string[] = [];
   const releasesById: Record<string, ReleaseVersionWithPatchesDto> = {};
   const patchIdsByReleaseId: Record<string, string[]> = {};
-  const patchById: Record<
-    string,
-    ReleasePatchDto & { releaseId: string }
-  > = {};
+  const patchById: Record<string, ReleasePatchDto & { releaseId: string }> = {};
   const patchStatusById: Record<string, PatchStatusResponse> = {};
   const missingComponentPatchIds: string[] = [];
 
@@ -255,21 +251,25 @@ export const mapReleaseCollections = (
       if (!patch.hasComponentData) {
         missingComponentPatchIds.push(patch.id);
       }
-      if (patch.hasStatusData) {
-        const sortedHistory = sortTransitionsAsc(patch.transitions);
-        const status = sortedHistory.at(-1)?.toStatus ?? "in_development";
-        patchStatusById[patch.id] = {
-          status,
-          history: sortedHistory.map((transition) => ({
-            id: transition.id,
-            fromStatus: transition.fromStatus,
-            toStatus: transition.toStatus,
-            action: transition.action,
-            createdAt: transition.createdAt,
-            createdById: transition.createdById,
-          })),
-        };
-      }
+      const hasHistory = Boolean(patch.hasStatusData);
+      const sortedHistory = hasHistory
+        ? sortTransitionsAsc(patch.transitions)
+        : [];
+      const status =
+        sortedHistory.at(-1)?.toStatus ??
+        patch.currentStatus ??
+        "in_development";
+      patchStatusById[patch.id] = {
+        status,
+        history: sortedHistory.map((transition) => ({
+          id: transition.id,
+          fromStatus: transition.fromStatus,
+          toStatus: transition.toStatus,
+          action: transition.action,
+          createdAt: transition.createdAt,
+          createdById: transition.createdById,
+        })),
+      };
     });
     patchIdsByReleaseId[release.id] = patchIds;
   });

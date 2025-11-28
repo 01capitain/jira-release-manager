@@ -43,16 +43,17 @@ export class SuccessorPatchService {
       async (tx): Promise<string> => {
         const currentPatch = await tx.patch.findUniqueOrThrow({
           where: { id: patchId },
-          select: { id: true, name: true, versionId: true, createdAt: true },
+          select: {
+            id: true,
+            name: true,
+            versionId: true,
+            createdAt: true,
+            currentStatus: true,
+          },
         });
 
         // Must be in_deployment
-        const latestTransition = await tx.patchTransition.findFirst({
-          where: { patchId },
-          orderBy: { createdAt: "desc" },
-          select: { toStatus: true },
-        });
-        const status = latestTransition?.toStatus ?? "in_development";
+        const status = currentPatch.currentStatus ?? "in_development";
         if (status !== "in_deployment") {
           throw Object.assign(
             new Error("Operation only allowed from in_deployment"),

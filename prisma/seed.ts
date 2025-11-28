@@ -1,10 +1,15 @@
-import { PrismaClient, type Prisma } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
+import type {
+  Prisma,
+  ReleaseTrack as PrismaReleaseTrack,
+} from "@prisma/client";
 
 import {
   releaseComponentFixtureList,
   releaseComponentFixtures,
 } from "../tests/fixtures/release-components";
 import { releaseVersionFixtureList } from "../tests/fixtures/release-versions";
+import type { ReleaseVersionFixtureStub } from "../tests/fixtures/release-versions";
 import { userFixtureList } from "../tests/fixtures/users";
 import { expandPattern } from "~/server/services/component-version-naming.service";
 import { SEED_PLACEHOLDER_USER } from "~/server/seed/constants";
@@ -18,6 +23,7 @@ type DbPatchStatus =
   | "in_deployment"
   | "active"
   | "deprecated";
+type DbReleaseTrack = PrismaReleaseTrack;
 type DbPatchAction =
   | "start_deployment"
   | "mark_active"
@@ -74,6 +80,23 @@ function assertDevelopmentEnv() {
     throw new Error(
       `Seeds can only run in development. NODE_ENV=${env || "(unset)"}`,
     );
+  }
+}
+
+function toDbReleaseTrack(track: unknown): DbReleaseTrack {
+  switch (track) {
+    case "Future":
+      return "Future";
+    case "Beta":
+      return "Beta";
+    case "Rollout":
+      return "Rollout";
+    case "Active":
+      return "Active";
+    case "Archived":
+      return "Archived";
+    default:
+      return "Future";
   }
 }
 
@@ -145,8 +168,19 @@ async function seedReleaseVersions(tx: SeedClient) {
       fixture,
     ]),
   );
+  const releaseFixtures: readonly ReleaseVersionFixtureStub[] =
+    releaseVersionFixtureList;
+  const releaseTrackOverrides = new Map<string, DbReleaseTrack>();
+  for (const fixture of releaseFixtures) {
+    if (fixture.releaseTrack !== undefined) {
+      releaseTrackOverrides.set(
+        fixture.id,
+        toDbReleaseTrack(fixture.releaseTrack),
+      );
+    }
+  }
 
-  for (const version of releaseVersionFixtureList) {
+  for (const version of releaseFixtures) {
     const lastUsedIncrement = version.patches.reduce(
       (max, patch) => Math.max(max, patch.increment),
       -1,
@@ -156,6 +190,9 @@ async function seedReleaseVersions(tx: SeedClient) {
         id: version.id,
         name: version.name,
         lastUsedIncrement,
+        // Fixture metadata already validated when populating releaseTrackOverrides.
+
+        releaseTrack: releaseTrackOverrides.get(version.id) ?? "Future",
         createdAt: new Date(version.createdAt),
         createdById: SEED_PLACEHOLDER_USER.id,
       },
@@ -174,6 +211,7 @@ async function seedReleaseVersions(tx: SeedClient) {
           versionId: release.id,
           createdAt: new Date(patch.createdAt),
           createdById: SEED_PLACEHOLDER_USER.id,
+          currentStatus: patch.status as DbPatchStatus,
           tokenValues: {
             release_version: version.name,
             increment: patch.increment,

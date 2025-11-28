@@ -21,6 +21,15 @@ export type PatchAction =
   | "deprecate"
   | "reactivate";
 
+export const PatchActionSchema = z.enum([
+  "startDeployment",
+  "cancelDeployment",
+  "markActive",
+  "revertToDeployment",
+  "deprecate",
+  "reactivate",
+] as const);
+
 export const StatusBadgeColor: Record<
   PatchStatus,
   { light: string; dark: string; text: string }
@@ -83,9 +92,7 @@ export const StatusTint: Record<
   },
 };
 
-export function nextActionsForStatus(
-  status: PatchStatus,
-): PatchAction[] {
+export function nextActionsForStatus(status: PatchStatus): PatchAction[] {
   switch (status) {
     case "in_development":
       return ["startDeployment"];
@@ -135,9 +142,7 @@ export function labelForStatus(s: PatchStatus): string {
   return _exhaustive;
 }
 
-export function targetStatusForAction(
-  a: PatchAction,
-): PatchStatus {
+export function targetStatusForAction(a: PatchAction): PatchStatus {
   switch (a) {
     case "startDeployment":
       return "in_deployment";

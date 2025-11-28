@@ -89,6 +89,13 @@ paths:
                                 $ref: "#/components/schemas/uuidv7"
                               versionId:
                                 $ref: "#/components/schemas/uuidv7"
+                              currentStatus:
+                                type: string
+                                enum:
+                                  - in_development
+                                  - in_deployment
+                                  - active
+                                  - deprecated
                               createdAt:
                                 $ref: "#/components/schemas/iso8601Timestamp"
                               deployedComponents:
@@ -103,6 +110,7 @@ paths:
                               - name
                               - id
                               - versionId
+                              - currentStatus
                               - createdAt
                             additionalProperties: false
                       required:
@@ -226,6 +234,13 @@ paths:
                           $ref: "#/components/schemas/uuidv7"
                         versionId:
                           $ref: "#/components/schemas/uuidv7"
+                        currentStatus:
+                          type: string
+                          enum:
+                            - in_development
+                            - in_deployment
+                            - active
+                            - deprecated
                         createdAt:
                           $ref: "#/components/schemas/iso8601Timestamp"
                         deployedComponents:
@@ -240,6 +255,7 @@ paths:
                         - name
                         - id
                         - versionId
+                        - currentStatus
                         - createdAt
                       additionalProperties: false
                 required:
@@ -892,6 +908,11 @@ paths:
                 properties:
                   status:
                     type: string
+                    enum:
+                      - in_development
+                      - in_deployment
+                      - active
+                      - deprecated
                   history:
                     type: array
                     items:
@@ -903,10 +924,27 @@ paths:
                           pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$
                         fromStatus:
                           type: string
+                          enum:
+                            - in_development
+                            - in_deployment
+                            - active
+                            - deprecated
                         toStatus:
                           type: string
+                          enum:
+                            - in_development
+                            - in_deployment
+                            - active
+                            - deprecated
                         action:
                           type: string
+                          enum:
+                            - startDeployment
+                            - cancelDeployment
+                            - markActive
+                            - revertToDeployment
+                            - deprecate
+                            - reactivate
                         createdAt:
                           type: string
                         createdById:
@@ -1065,6 +1103,11 @@ paths:
                     additionalProperties: false
                   status:
                     type: string
+                    enum:
+                      - in_development
+                      - in_deployment
+                      - active
+                      - deprecated
                   history:
                     type: array
                     items:
@@ -1076,10 +1119,27 @@ paths:
                           pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$
                         fromStatus:
                           type: string
+                          enum:
+                            - in_development
+                            - in_deployment
+                            - active
+                            - deprecated
                         toStatus:
                           type: string
+                          enum:
+                            - in_development
+                            - in_deployment
+                            - active
+                            - deprecated
                         action:
                           type: string
+                          enum:
+                            - startDeployment
+                            - cancelDeployment
+                            - markActive
+                            - revertToDeployment
+                            - deprecate
+                            - reactivate
                         createdAt:
                           type: string
                         createdById:
@@ -1462,10 +1522,27 @@ components:
           $ref: "#/components/schemas/uuidv7"
         fromStatus:
           type: string
+          enum:
+            - in_development
+            - in_deployment
+            - active
+            - deprecated
         toStatus:
           type: string
+          enum:
+            - in_development
+            - in_deployment
+            - active
+            - deprecated
         action:
           type: string
+          enum:
+            - startDeployment
+            - cancelDeployment
+            - markActive
+            - revertToDeployment
+            - deprecate
+            - reactivate
         createdAt:
           $ref: "#/components/schemas/iso8601Timestamp"
         createdById:
@@ -1613,12 +1690,20 @@ components:
           $ref: "#/components/schemas/uuidv7"
         versionId:
           $ref: "#/components/schemas/uuidv7"
+        currentStatus:
+          type: string
+          enum:
+            - in_development
+            - in_deployment
+            - active
+            - deprecated
         createdAt:
           $ref: "#/components/schemas/iso8601Timestamp"
       required:
         - name
         - id
         - versionId
+        - currentStatus
         - createdAt
       additionalProperties: false
     ActionHistoryListResponse:

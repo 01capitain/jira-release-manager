@@ -23,6 +23,7 @@ const RELEASE_VERSIONS = {
   version177: {
     id: "018f1a50-0000-7000-9000-000000000301",
     name: "177",
+    releaseTrack: "Active",
     createdAt: "2025-01-05T09:00:00.000Z",
     createdById: userFixtures.adamScott.id,
     patches: [
@@ -70,6 +71,7 @@ const RELEASE_VERSIONS = {
   version178: {
     id: "018f1a50-0000-7000-9000-000000000178",
     name: "178",
+    releaseTrack: "Rollout",
     createdAt: "2025-09-11T09:00:00.000Z",
     createdById: userFixtures.adamScott.id,
     patches: [
@@ -521,7 +523,7 @@ const RELEASE_VERSIONS = {
         versionId: "018f1a50-0000-7000-9000-000000000178",
         createdAt: "2025-11-13T09:15:00.000Z",
         increment: 26,
-        status: "deprecated",
+        status: "active",
         releaseComponentIds: [
           //releaseComponentFixtures.iosApp.id,
           //releaseComponentFixtures.androidApp.id,
@@ -538,7 +540,7 @@ const RELEASE_VERSIONS = {
         versionId: "018f1a50-0000-7000-9000-000000000178",
         createdAt: "2025-11-14T09:15:00.000Z",
         increment: 27,
-        status: "active",
+        status: "in_development",
         releaseComponentIds: [
           //releaseComponentFixtures.iosApp.id,
           //releaseComponentFixtures.androidApp.id,
@@ -554,7 +556,8 @@ const RELEASE_VERSIONS = {
   version26_1: {
     id: "018f1a50-0000-7000-9000-000000000302",
     name: "26.1",
-    createdAt: "2025-02-12T11:45:00.000Z",
+    releaseTrack: "Future",
+    createdAt: "2025-12-01T11:45:00.000Z",
     createdById: userFixtures.melanieMayer.id,
     patches: [
       {

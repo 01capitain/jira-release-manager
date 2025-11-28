@@ -455,42 +455,50 @@ const parseFlags = (argv) => {
 };
 
 if (process.argv[1] === __filename) {
-  try {
-    const [, , ...rest] = process.argv;
-    const { flags, names } = parseFlags(rest);
-    const [entityName] = names;
-    if (!entityName) {
-      throw new Error(
-        "Usage: pnpm entity:expose <entity-name> [--dry-run] [--force] [--json]",
-      );
-    }
-    generateEntity(entityName, flags).then((result) => {
-      if (flags.json) {
-        console.log(JSON.stringify(result, null, 2));
-        return;
-      }
-      console.log(`Scaffolded entity: ${result.pascal}`);
-      for (const action of result.actions) {
-        if (action.skipped) {
-          const reason =
-            action.reason === "exists"
-              ? "already exists"
-              : action.reason === "dry-run"
-                ? "dry-run"
-                : "skipped";
-          console.log(`  - SKIP ${action.relativePath} (${reason})`);
-        } else {
-          console.log(`  - WRITE ${action.relativePath}`);
-        }
-      }
-      if (!flags.dryRun) {
-        console.log(
-          "\nNext steps:\n  • Update field selections in the generated files.\n  • Register controller paths in scripts/generate-openapi.ts.\n  • Flesh out service logic and tests.",
-        );
-      }
-    });
-  } catch (error) {
-    console.error(error instanceof Error ? error.message : String(error));
+  const [, , ...rest] = process.argv;
+  const { flags, names } = parseFlags(rest);
+  const [entityName] = names;
+  if (!entityName) {
+    console.error(
+      "Usage: pnpm entity:expose <entity-name> [--dry-run] [--force] [--json]",
+    );
     process.exit(1);
   }
+
+  const run = async () => {
+    const result = await generateEntity(entityName, flags);
+    if (flags.json) {
+      console.log(JSON.stringify(result, null, 2));
+      return;
+    }
+    console.log(`Scaffolded entity: ${result.pascal}`);
+    for (const action of result.actions) {
+      if (action.skipped) {
+        const reason =
+          action.reason === "exists"
+            ? "already exists"
+            : action.reason === "dry-run"
+              ? "dry-run"
+              : "skipped";
+        console.log(`  - SKIP ${action.relativePath} (${reason})`);
+      } else {
+        console.log(`  - WRITE ${action.relativePath}`);
+      }
+    }
+    if (!flags.dryRun) {
+      console.log(
+        "\nNext steps:\n  • Update field selections in the generated files.\n  • Register controller paths in scripts/generate-openapi.ts.\n  • Flesh out service logic and tests.",
+      );
+    }
+  };
+
+  process.stdin.resume();
+  run()
+    .catch((error) => {
+      console.error(error instanceof Error ? error.message : String(error));
+      process.exit(1);
+    })
+    .finally(() => {
+      process.stdin.pause();
+    });
 }

@@ -52,6 +52,7 @@ type PatchSummary = {
   name: string;
   versionId: string;
   createdAt: Date;
+  currentStatus: DbPatchStatus;
 };
 
 export class PatchStatusService {
@@ -73,12 +74,11 @@ export class PatchStatusService {
   }
 
   async getCurrentStatus(patchId: string): Promise<PatchStatus> {
-    const latest = await this.db.patchTransition.findFirst({
-      where: { patchId },
-      orderBy: { createdAt: "desc" },
-      select: { toStatus: true },
+    const patch = await this.db.patch.findUnique({
+      where: { id: patchId },
+      select: { currentStatus: true },
     });
-    return (latest?.toStatus ?? "in_development") as PatchStatus;
+    return (patch?.currentStatus ?? "in_development") as PatchStatus;
   }
 
   async transition(
@@ -107,6 +107,7 @@ export class PatchStatusService {
           name: true,
           versionId: true,
           createdAt: true,
+          currentStatus: true,
         },
       });
       auditTrail.push({
@@ -115,13 +116,7 @@ export class PatchStatusService {
         metadata: { patchId, action: prismaAction },
       });
 
-      const current = await tx.patchTransition.findFirst({
-        where: { patchId },
-        orderBy: { createdAt: "desc" },
-        select: { toStatus: true },
-      });
-      const currentStatus = (current?.toStatus ??
-        "in_development") as DbPatchStatus;
+      const currentStatus = patchRecord.currentStatus ?? "in_development";
 
       if (currentStatus !== rule.from) {
         // Provide a precise error for clients
@@ -216,20 +211,21 @@ export class PatchStatusService {
       };
       await onEnter(rule.to);
 
-      const patch = await tx.patch.findUnique({
+      await tx.patch.update({
+        where: { id: patchId },
+        data: { currentStatus: rule.to },
+      });
+
+      const patch = await tx.patch.findUniqueOrThrow({
         where: { id: patchId },
         select: {
           id: true,
           name: true,
           versionId: true,
           createdAt: true,
+          currentStatus: true,
         },
       });
-      if (!patch) {
-        throw new Error(
-          `Patch ${patchId} missing after transition persistence`,
-        );
-      }
 
       return {
         status: rule.to as PatchStatus,

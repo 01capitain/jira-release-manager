@@ -36,9 +36,7 @@ import { PatchService } from "~/server/services/patch.service";
 export class ReleaseVersionService {
   constructor(
     private readonly db: PrismaClient,
-    private readonly patchService: PatchService = new PatchService(
-      db,
-    ),
+    private readonly patchService: PatchService = new PatchService(db),
   ) {}
 
   private buildRelationsInclude(
@@ -55,6 +53,7 @@ export class ReleaseVersionService {
         id: true,
         name: true,
         versionId: true,
+        currentStatus: true,
         createdAt: true,
       };
       if (state.includePatchComponents) {
@@ -110,13 +109,8 @@ export class ReleaseVersionService {
         typed.componentVersions,
       );
     }
-    if (
-      state.includePatchTransitions &&
-      Array.isArray(typed.PatchTransition)
-    ) {
-      result.transitions = mapToPatchTransitionDtos(
-        typed.PatchTransition,
-      );
+    if (state.includePatchTransitions && Array.isArray(typed.PatchTransition)) {
+      result.transitions = mapToPatchTransitionDtos(typed.PatchTransition);
     }
     return result;
   }
