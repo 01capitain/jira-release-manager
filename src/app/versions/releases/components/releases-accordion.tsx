@@ -11,10 +11,6 @@ import type { ReleaseVersionWithPatchesDto } from "~/shared/types/release-versio
 import type { PatchStatusResponse } from "~/shared/types/patch-status-response";
 import type { ReleaseTrack } from "~/shared/types/release-track";
 import { RELEASE_TRACK_VALUES } from "~/shared/types/release-track";
-import {
-  STATUS_STALE_TIME_MS,
-  usePatchStatusQuery,
-} from "../../builds/api";
 import PatchCard from "../../builds/components/patch-card";
 import { useReleaseEntities, useUpdateReleaseTrackMutation } from "../api";
 import { Button } from "~/components/ui/button";
@@ -36,40 +32,9 @@ function LatestActiveTag({
   patchNames: string[];
   statusSnapshots: Record<string, PatchStatusResponse | undefined>;
 }) {
-  // Query at most the first 5 builds for status to find the latest active,
-  // but keep hook count/order stable across renders to satisfy the Rules of Hooks.
-  const NIL_UUID = "00000000-0000-0000-0000-000000000000";
-  const statusOptions = (index: number) => ({
-    staleTime: STATUS_STALE_TIME_MS,
-    enabled: patchIds[index] !== undefined,
-    initialData: statusSnapshots[patchIds[index] ?? ""],
-  });
-  const q0 = usePatchStatusQuery(
-    patchIds[0] ?? NIL_UUID,
-    statusOptions(0),
-  );
-  const q1 = usePatchStatusQuery(patchIds[1] ?? NIL_UUID, {
-    ...statusOptions(1),
-  });
-  const q2 = usePatchStatusQuery(patchIds[2] ?? NIL_UUID, {
-    ...statusOptions(2),
-  });
-  const q3 = usePatchStatusQuery(patchIds[3] ?? NIL_UUID, {
-    ...statusOptions(3),
-  });
-  const q4 = usePatchStatusQuery(patchIds[4] ?? NIL_UUID, {
-    ...statusOptions(4),
-  });
-  const queries = [q0, q1, q2, q3, q4];
-
-  const activeIdx = (() => {
-    for (let i = 0; i < queries.length; i++) {
-      if (queries[i]?.data?.status === "active") {
-        return i;
-      }
-    }
-    return -1;
-  })();
+  const activeIdx = React.useMemo(() => {
+    return patchIds.findIndex((id) => statusSnapshots[id]?.status === "active");
+  }, [patchIds, statusSnapshots]);
 
   if (activeIdx < 0) return null;
   const name = patchNames[activeIdx]!;
@@ -299,9 +264,7 @@ export default function ReleasesAccordion({
                   />
                 </div>
                 <div className="flex items-center gap-2 text-xs text-neutral-500 dark:text-neutral-400">
-                  <span className="text-xs">
-                    {rel.patches.length} builds
-                  </span>
+                  <span className="text-xs">{rel.patches.length} builds</span>
                   <Button
                     type="button"
                     variant="ghost"

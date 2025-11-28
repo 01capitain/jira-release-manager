@@ -5,7 +5,6 @@ import type {
 } from "~/shared/types/release-version-with-patches";
 import type { UuidV7 } from "~/shared/types/uuid";
 import type { ISO8601 } from "~/shared/types/iso8601";
-import type { PatchTransitionDto } from "~/shared/types/patch-transition";
 
 const uuid = (value: string) => value as UuidV7;
 const iso = (value: string) => value as ISO8601;
@@ -30,9 +29,7 @@ const createPatch = (
   createdAt: iso("2024-01-02T00:00:00.000Z"),
   currentStatus: "in_development",
   deployedComponents: [],
-  transitions: [],
   hasComponentData: true,
-  hasStatusData: true,
   ...overrides,
 });
 
@@ -90,56 +87,10 @@ describe("mapReleaseCollections", () => {
     ]);
   });
 
-  it("derives status snapshots from transitions", () => {
-    const latestTransition: PatchTransitionDto = {
-      id: uuid("00000000-0000-0000-0000-000000000511"),
-      patchId: uuid("00000000-0000-0000-0000-000000000410"),
-      fromStatus: "in_deployment",
-      toStatus: "active",
-      action: "markActive",
-      createdAt: iso("2024-01-04T00:00:00.000Z"),
-      createdById: uuid("00000000-0000-0000-0000-000000000611"),
-    };
-    const earlierTransition: PatchTransitionDto = {
-      id: uuid("00000000-0000-0000-0000-000000000510"),
-      patchId: uuid("00000000-0000-0000-0000-000000000410"),
-      fromStatus: "in_development",
-      toStatus: "in_deployment",
-      action: "startDeployment",
-      createdAt: iso("2024-01-03T00:00:00.000Z"),
-      createdById: uuid("00000000-0000-0000-0000-000000000610"),
-    };
-    const patch = createPatch({
-      id: uuid("00000000-0000-0000-0000-000000000410"),
-      transitions: [latestTransition, earlierTransition],
-    });
-
-    const result = mapReleaseCollections([createRelease({ patches: [patch] })]);
-
-    const snapshot = result.patchStatusById[patch.id];
-    expect(snapshot?.status).toEqual("active");
-    expect(snapshot?.history).toEqual([
-      expect.objectContaining({
-        id: earlierTransition.id,
-        fromStatus: earlierTransition.fromStatus,
-        toStatus: earlierTransition.toStatus,
-        action: earlierTransition.action,
-      }),
-      expect.objectContaining({
-        id: latestTransition.id,
-        fromStatus: latestTransition.fromStatus,
-        toStatus: latestTransition.toStatus,
-        action: latestTransition.action,
-      }),
-    ]);
-  });
-
-  it("falls back to denormalized status when no transitions exist", () => {
+  it("uses currentStatus for status snapshots", () => {
     const patch = createPatch({
       id: uuid("00000000-0000-0000-0000-000000000710"),
       currentStatus: "active",
-      hasStatusData: false,
-      transitions: [],
     });
     const result = mapReleaseCollections([createRelease({ patches: [patch] })]);
 
