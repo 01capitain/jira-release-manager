@@ -7,11 +7,6 @@ This page summarises the REST endpoints used by the release management UI. Refer
 - `POST /release-versions` — create a release version. Body: `ReleaseVersionCreateInput`. Response: `ReleaseVersionDto`.
 
 ## Patches
-- `GET /release-versions/{releaseId}/patches` — patches for a given release.
-- `POST /release-versions/{releaseId}/patches` — create a patch. Body: `PatchCreateInput` (must include matching `versionId`).
-- `GET /patches/{patchId}/default-selection` — component selection defaults when preparing a successor patch.
-- `GET /patches/{patchId}/component-versions` — component versions associated with a patch.
-- `POST /patches/{patchId}/successor` — arrange successor patch components. Body: `{ patchId, selectedReleaseComponentIds[] }`. Returns summary plus updated status/history.
 - Transition endpoints remain under `/release-versions/{releaseId}/patches/{patchId}/<action>` (`start-deployment`, `cancel-deployment`, `mark-active`, `revert-to-deployment`, `deprecate`, `reactivate`).
 - Patch status is supplied via `currentStatus` on each patch returned by `GET /release-versions` (with `relations=patches`); no standalone status endpoint is required.
 

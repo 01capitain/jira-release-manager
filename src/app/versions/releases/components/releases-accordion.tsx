@@ -225,8 +225,9 @@ export default function ReleasesAccordion({
     Record<string, "list" | "calendar">
   >({});
 
-  const { releases, isFetching, patchStatusById, componentStateByPatchId } =
-    useReleaseEntities({ enabled: true });
+  const { releases, isFetching, patchStatusById } = useReleaseEntities({
+    enabled: true,
+  });
 
   const normalizedReleases: ReleaseVersionWithPatchesDto[] = releases ?? [];
 
@@ -303,13 +304,6 @@ export default function ReleasesAccordion({
               ) : (
                 <div className="relative grid w-full grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
                   {rel.patches.map((b) => {
-                    const componentState = componentStateByPatchId[b.id];
-                    const componentsLoading =
-                      componentState?.status === "loading";
-                    const componentsError =
-                      componentState?.status === "error"
-                        ? componentState.error
-                        : undefined;
                     return (
                       <PatchCard
                         key={b.id}
@@ -318,8 +312,8 @@ export default function ReleasesAccordion({
                         createdAt={b.createdAt}
                         releaseId={rel.id}
                         components={b.deployedComponents ?? []}
-                        componentsLoading={componentsLoading}
-                        componentsError={componentsError}
+                        componentsLoading={false}
+                        componentsError={undefined}
                         initialStatus={patchStatusById[b.id]}
                       />
                     );

@@ -1,6 +1,4 @@
-import type { PrismaClient, Prisma, Patch } from "@prisma/client";
-import type { ComponentVersionDto } from "~/shared/types/component-version";
-import { mapToComponentVersionDtos } from "~/server/zod/dto/component-version.dto";
+import type { PrismaClient, Prisma } from "@prisma/client";
 import {
   validatePattern,
   expandPattern,
@@ -39,22 +37,6 @@ export class ComponentVersionService {
         } as Prisma.InputJsonValue,
       },
     });
-  }
-
-  async listByPatch(patchId: Patch["id"]): Promise<ComponentVersionDto[]> {
-    const rows = await this.db.componentVersion.findMany({
-      where: { patchId },
-      orderBy: [{ releaseComponentId: "asc" }, { increment: "asc" }],
-      select: {
-        id: true,
-        releaseComponentId: true,
-        patchId: true,
-        name: true,
-        increment: true,
-        createdAt: true,
-      },
-    });
-    return mapToComponentVersionDtos(rows);
   }
 }
 

@@ -85,4 +85,4 @@ stateDiagram
 
 - Prisma models: `prisma/schema.prisma` (`ReleaseVersion.lastUsedIncrement`, `Patch.tokenValues`, `ComponentVersion.tokenValues`, `PatchTransition` + enums)
 - Services: `src/server/services/release-version.service.ts`, `src/server/services/patch-status.service.ts`, `src/server/services/deployment.service.ts`
-- API: `src/server/api/routers/patch.ts` (`getStatus`, per-action transitions, `createSuccessorPatch` selection)
+- REST exposure for `createSuccessorPatch` has been removed; the service remains available for internal orchestration if needed.

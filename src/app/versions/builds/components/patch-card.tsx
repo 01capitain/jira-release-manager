@@ -1,13 +1,11 @@
 "use client";
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import * as React from "react";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent } from "~/components/ui/card";
-import { Modal } from "~/components/ui/modal";
 import { ScrollArea } from "~/components/ui/scroll-area";
-import { Separator } from "~/components/ui/separator";
 import type { PatchAction, PatchStatus } from "~/shared/types/patch-status";
 import {
   labelForAction,
@@ -15,18 +13,7 @@ import {
   StatusTint,
   targetStatusForAction,
 } from "~/shared/types/patch-status";
-import { colorClasses } from "~/shared/ui/color-classes";
-import {
-  prefetchReleaseComponents,
-  useReleaseComponentsQuery,
-} from "../../components/api";
-import {
-  patchDefaultSelectionQueryKey,
-  createSuccessorPatch,
-  transitionPatch,
-  usePatchDefaultSelectionQuery,
-  useReleasesWithPatchesRefetch,
-} from "../api";
+import { transitionPatch, useReleasesWithPatchesRefetch } from "../api";
 import type { PatchTransitionResponse } from "../api";
 import { ComponentVersionLabels } from "./component-version-labels";
 import type { ComponentVersionDto } from "~/shared/types/component-version";
@@ -51,7 +38,6 @@ export default function PatchCard({
   componentsError?: string;
   initialStatus?: PatchStatusResponse;
 }) {
-  const queryClient = useQueryClient();
   const { setData: setReleasesWithPatches } = useReleasesWithPatchesRefetch();
   const [entered, setEntered] = React.useState(false);
   const [hydrated, setHydrated] = React.useState(false);
@@ -189,7 +175,7 @@ export default function PatchCard({
     onError: handleMutationError("Failed to reactivate"),
   });
 
-  const startDeploymentRaw = useMutation({
+  const startDeployment = useMutation({
     mutationFn: () =>
       transitionPatch({
         releaseId,
@@ -202,64 +188,15 @@ export default function PatchCard({
     onError: handleMutationError("Failed to start deployment"),
   });
 
-  const createSuccessorPatchMutation = useMutation({
-    mutationFn: createSuccessorPatch,
-    onSuccess: (result) => {
-      updateStatusSnapshot({
-        status: result.status,
-        history: result.history,
-      });
-    },
-  });
-
-  const [selecting, setSelecting] = React.useState(false);
-  const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
-  const [submitting, setSubmitting] = React.useState(false);
   const statusMutationPending =
     cancelDeployment.isPending ||
     markActive.isPending ||
     revertToDeployment.isPending ||
     deprecate.isPending ||
-    reactivate.isPending;
-  const fetchingStatus =
-    statusMutationPending ||
-    startDeploymentRaw.isPending ||
-    createSuccessorPatchMutation.isPending;
-  const processing =
-    submitting ||
-    startDeploymentRaw.isPending ||
-    createSuccessorPatchMutation.isPending;
-  const { data: releaseComponentsPage } = useReleaseComponentsQuery({
-    enabled: false,
-  });
-  const defaultSel = usePatchDefaultSelectionQuery(id, {
-    enabled: selecting,
-  });
-  const releaseComponents = React.useMemo(
-    () => releaseComponentsPage?.items ?? [],
-    [releaseComponentsPage],
-  );
-
-  // Color classes imported from shared util to ensure visual parity
-  React.useEffect(() => {
-    if (!selecting) return;
-    void prefetchReleaseComponents(queryClient);
-  }, [selecting, queryClient]);
-  React.useEffect(() => {
-    if (!selecting) return;
-    const ids = defaultSel.data?.selectedReleaseComponentIds;
-    if (ids?.length) {
-      setSelectedIds(ids);
-    }
-  }, [selecting, defaultSel.data]);
-  // Fallback: if no prior active selection, select all available components by default
-  React.useEffect(() => {
-    if (!selecting) return;
-    if ((selectedIds?.length ?? 0) > 0) return;
-    if (releaseComponents.length > 0) {
-      setSelectedIds(releaseComponents.map((c) => c.id));
-    }
-  }, [selecting, releaseComponents, selectedIds]);
+    reactivate.isPending ||
+    startDeployment.isPending;
+  const fetchingStatus = statusMutationPending;
+  const processing = startDeployment.isPending;
 
   const mutationByAction = {
     cancelDeployment: cancelDeployment.mutateAsync,
@@ -267,15 +204,12 @@ export default function PatchCard({
     revertToDeployment: revertToDeployment.mutateAsync,
     deprecate: deprecate.mutateAsync,
     reactivate: reactivate.mutateAsync,
+    startDeployment: startDeployment.mutateAsync,
   } as const;
 
   const [lastMessage, setLastMessage] = React.useState<string>("");
   const clearTimerRef = React.useRef<number | null>(null);
   const act = async (action: PatchAction) => {
-    if (action === "startDeployment") {
-      setSelecting(true);
-      return;
-    }
     const mutate = mutationByAction[action];
     await mutate();
     setLastMessage(`${labelForAction(action)} done`);
@@ -419,165 +353,27 @@ export default function PatchCard({
                   {lastMessage}
                 </span>
               )}
-              {/* Pending state UI suppressed per UX request */}
 
-              <Separator className="my-4" />
-              {!selecting && (
-                <div aria-busy={processing} className="relative">
-                  <div className="mb-2 text-xs font-medium tracking-wide text-neutral-500 uppercase dark:text-neutral-400">
-                    Components
-                  </div>
-                  <ComponentVersionLabels
-                    versions={components}
-                    isLoading={componentsLoading}
-                    error={componentsError}
-                  />
-                  {processing && (
-                    <div
-                      className="absolute inset-0 bg-white/60 dark:bg-neutral-900/60"
-                      aria-hidden
-                    />
-                  )}
+              <div aria-busy={processing} className="relative">
+                <div className="mb-2 text-xs font-medium tracking-wide text-neutral-500 uppercase dark:text-neutral-400">
+                  Components
                 </div>
-              )}
+                <ComponentVersionLabels
+                  versions={components}
+                  isLoading={componentsLoading}
+                  error={componentsError}
+                />
+                {processing && (
+                  <div
+                    className="absolute inset-0 bg-white/60 dark:bg-neutral-900/60"
+                    aria-hidden
+                  />
+                )}
+              </div>
             </div>
           </ScrollArea>
         </CardContent>
       </Card>
-      <Modal
-        open={selecting}
-        onOpenChange={(o) => setSelecting(o)}
-        title={`Start deployment of version ${name}`}
-        description={
-          <span>
-            Close the version for new developments and select the components
-            that will be released with this version.
-          </span>
-        }
-      >
-        <div className="space-y-4">
-          <div className="text-sm font-medium">Components</div>
-          <ScrollArea className="relative h-60 rounded border border-neutral-200 p-2 dark:border-neutral-800">
-            {releaseComponents.length === 0 ? (
-              <div className="p-2 text-sm text-amber-700 dark:text-amber-400">
-                No components available. Create release components first.
-              </div>
-            ) : (
-              <div className="flex flex-col items-start gap-2 p-1">
-                {releaseComponents.map((c) => {
-                  const isSelected = selectedIds.includes(c.id);
-                  const palette = colorClasses(c.color ?? "neutral");
-                  const cls = [
-                    "inline-flex cursor-pointer items-center rounded-full px-2 py-1 text-xs font-medium ring-1",
-                    isSelected
-                      ? `${palette.light} ${palette.dark} ${palette.text} ring-transparent`
-                      : "bg-transparent text-neutral-900 dark:text-neutral-100 ring-neutral-300 dark:ring-neutral-700",
-                  ].join(" ");
-                  return (
-                    <button
-                      key={c.id}
-                      type="button"
-                      className={cls}
-                      aria-pressed={isSelected}
-                      onClick={() => {
-                        setSelectedIds((prev) =>
-                          isSelected
-                            ? prev.filter((id0) => id0 !== c.id)
-                            : [...prev, c.id],
-                        );
-                      }}
-                      title={c.name}
-                    >
-                      <span className="truncate">{c.name}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-            {(createSuccessorPatchMutation.isPending || submitting) && (
-              <div className="absolute inset-0 flex items-center justify-center bg-white/50 text-sm dark:bg-neutral-900/50">
-                preparing Deployments...
-              </div>
-            )}
-          </ScrollArea>
-        </div>
-        {(createSuccessorPatchMutation.isPending || submitting) && (
-          <div
-            role="status"
-            aria-atomic="true"
-            className="mt-2 text-xs opacity-80"
-          >
-            preparing Deployments...
-          </div>
-        )}
-        <div className="mt-4 flex justify-end gap-2">
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => setSelecting(false)}
-            disabled={createSuccessorPatchMutation.isPending || submitting}
-          >
-            Cancel
-          </Button>
-          <Button
-            type="button"
-            onClick={async () => {
-              if (selectedIds.length === 0) {
-                setLastMessage("Select at least one component");
-                if (clearTimerRef.current) clearTimeout(clearTimerRef.current);
-                clearTimerRef.current = window.setTimeout(
-                  () => setLastMessage(""),
-                  1500,
-                );
-                return;
-              }
-              setSubmitting(true);
-              try {
-                if (currentStatus === "in_development") {
-                  await startDeploymentRaw.mutateAsync();
-                }
-                await createSuccessorPatchMutation.mutateAsync({
-                  patchId: id,
-                  selectedReleaseComponentIds: selectedIds,
-                });
-
-                await Promise.all([
-                  queryClient.invalidateQueries({
-                    queryKey: patchDefaultSelectionQueryKey(id),
-                  }),
-                  queryClient.invalidateQueries({
-                    queryKey: ["release-versions", "with-patches"],
-                  }),
-                ]);
-
-                setSelecting(false);
-                setLastMessage("Deployment finalized");
-                if (clearTimerRef.current) clearTimeout(clearTimerRef.current);
-                clearTimerRef.current = window.setTimeout(
-                  () => setLastMessage(""),
-                  1500,
-                );
-              } catch (error) {
-                const message =
-                  error instanceof Error ? error.message : String(error);
-                setLastMessage(`Failed to finalize deployment: ${message}`);
-                if (clearTimerRef.current) clearTimeout(clearTimerRef.current);
-                clearTimerRef.current = window.setTimeout(
-                  () => setLastMessage(""),
-                  3000,
-                );
-              } finally {
-                setSubmitting(false);
-              }
-            }}
-            disabled={createSuccessorPatchMutation.isPending || submitting}
-          >
-            {createSuccessorPatchMutation.isPending || submitting
-              ? "preparing Deployments..."
-              : `Close Version ${name}`}
-          </Button>
-        </div>
-      </Modal>
     </>
   );
 }
