@@ -19,7 +19,6 @@ import type {
   ReleasePatchDto,
   ReleaseVersionWithPatchesDto,
 } from "~/shared/types/release-version-with-patches";
-import type { ComponentVersionDto } from "~/shared/types/component-version";
 import type { PatchStatusResponse } from "~/shared/types/patch-status-response";
 import type { ReleaseTrack } from "~/shared/types/release-track";
 
@@ -288,20 +287,6 @@ export const mapReleaseCollections = (
   };
 };
 
-type ComponentBackfillState = {
-  status: "idle" | "loading" | "success" | "error";
-  components?: ComponentVersionDto[];
-  error?: string;
-};
-
-const fetchPatchComponentVersions = async (
-  patchId: string,
-): Promise<ComponentVersionDto[]> => {
-  return getJson<ComponentVersionDto[]>(
-    `/api/v1/patches/${patchId}/component-versions`,
-  );
-};
-
 export const useReleaseEntities = (
   options?: Parameters<typeof useReleasesWithPatchesQuery>[0],
 ) => {
@@ -310,83 +295,7 @@ export const useReleaseEntities = (
     () => mapReleaseCollections(query.data),
     [query.data],
   );
-  const [componentState, setComponentState] = React.useState<
-    Record<string, ComponentBackfillState>
-  >({});
-
-  React.useEffect(() => {
-    setComponentState((prev) => {
-      const nextEntries = Object.entries(prev).filter(([patchId]) =>
-        Boolean(collections.patchById[patchId]),
-      );
-      if (nextEntries.length === Object.keys(prev).length) {
-        return prev;
-      }
-      const next: Record<string, ComponentBackfillState> = {};
-      nextEntries.forEach(([patchId, state]) => {
-        next[patchId] = state;
-      });
-      return next;
-    });
-  }, [collections.patchById]);
-
-  const pendingPatchIds = React.useMemo(() => {
-    return collections.missingComponentPatchIds.filter((patchId) => {
-      const state = componentState[patchId];
-      return state?.status !== "loading" && state?.status !== "success";
-    });
-  }, [collections.missingComponentPatchIds, componentState]);
-
-  React.useEffect(() => {
-    if (pendingPatchIds.length === 0) return;
-    let cancelled = false;
-    pendingPatchIds.forEach((patchId) => {
-      setComponentState((prev) => ({
-        ...prev,
-        [patchId]: { status: "loading" },
-      }));
-      void fetchPatchComponentVersions(patchId)
-        .then((components) => {
-          if (cancelled) return;
-          setComponentState((prev) => ({
-            ...prev,
-            [patchId]: { status: "success", components },
-          }));
-        })
-        .catch((error) => {
-          if (cancelled) return;
-          setComponentState((prev) => ({
-            ...prev,
-            [patchId]: {
-              status: "error",
-              components: [],
-              error:
-                error instanceof Error
-                  ? error.message
-                  : "Failed to load components",
-            },
-          }));
-        });
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [pendingPatchIds]);
-
-  const patchById = React.useMemo(() => {
-    const patched = { ...collections.patchById };
-    Object.entries(componentState).forEach(([patchId, state]) => {
-      const entry = patched[patchId];
-      if (state.status === "success" && state.components && entry) {
-        patched[patchId] = {
-          ...entry,
-          deployedComponents: state.components,
-          hasComponentData: true,
-        };
-      }
-    });
-    return patched;
-  }, [collections.patchById, componentState]);
+  const patchById = collections.patchById;
 
   const releases = React.useMemo(() => {
     return collections.releaseIds
@@ -438,6 +347,5 @@ export const useReleaseEntities = (
     patchIdsByReleaseId: collections.patchIdsByReleaseId,
     patchById,
     patchStatusById: collections.patchStatusById,
-    componentStateByPatchId: componentState,
   };
 };

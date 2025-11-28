@@ -2,34 +2,34 @@
 
 import {
   Calendar as CalendarIcon,
+  Check,
   ChevronDown,
   List as ListIcon,
-  Check,
   Pencil,
   X as XIcon,
 } from "lucide-react";
 import * as React from "react";
-import type { ReleaseVersionWithPatchesDto } from "~/shared/types/release-version-with-patches";
+import { Button } from "~/components/ui/button";
+import { Input } from "~/components/ui/input";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "~/components/ui/popover";
+import { isRestApiError } from "~/lib/rest-client";
+import { ReleaseVersionUpdateSchema } from "~/shared/schemas/release-version";
 import type { PatchStatusResponse } from "~/shared/types/patch-status-response";
 import type { ReleaseTrack } from "~/shared/types/release-track";
 import { RELEASE_TRACK_VALUES } from "~/shared/types/release-track";
+import type { ReleaseVersionWithPatchesDto } from "~/shared/types/release-version-with-patches";
 import PatchCard from "../../builds/components/patch-card";
 import {
   useReleaseEntities,
   useUpdateReleaseMutation,
   useUpdateReleaseTrackMutation,
 } from "../api";
-import { Button } from "~/components/ui/button";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "~/components/ui/popover";
-import { Input } from "~/components/ui/input";
-import ReleaseCalendar from "./release-calendar";
 import { mapPatchesToCalendarEvents } from "../lib/calendar-events";
-import { isRestApiError } from "~/lib/rest-client";
-import { ReleaseVersionUpdateSchema } from "~/shared/schemas/release-version";
+import ReleaseCalendar from "./release-calendar";
 
 function LatestActiveTag({
   patchIds,
@@ -357,8 +357,9 @@ export default function ReleasesAccordion({
   >({});
   const anyOpen = Object.values(openReleaseIds).some(Boolean);
 
-  const { releases, isFetching, patchStatusById, componentStateByPatchId } =
-    useReleaseEntities({ enabled: true });
+  const { releases, isFetching, patchStatusById } = useReleaseEntities({
+    enabled: true,
+  });
   const [editingReleaseId, setEditingReleaseId] = React.useState<string | null>(
     null,
   );
@@ -450,13 +451,6 @@ export default function ReleasesAccordion({
               ) : (
                 <div className="relative grid w-full grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
                   {rel.patches.map((b) => {
-                    const componentState = componentStateByPatchId[b.id];
-                    const componentsLoading =
-                      componentState?.status === "loading";
-                    const componentsError =
-                      componentState?.status === "error"
-                        ? componentState.error
-                        : undefined;
                     return (
                       <PatchCard
                         key={b.id}
@@ -465,8 +459,8 @@ export default function ReleasesAccordion({
                         createdAt={b.createdAt}
                         releaseId={rel.id}
                         components={b.deployedComponents ?? []}
-                        componentsLoading={componentsLoading}
-                        componentsError={componentsError}
+                        componentsLoading={false}
+                        componentsError={undefined}
                         initialStatus={patchStatusById[b.id]}
                       />
                     );
