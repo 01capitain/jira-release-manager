@@ -30,6 +30,11 @@ Never commit or push without explicit user consent.
 
 Don't run `pnpm prisma generate` autonomously - it willl not work. Instead ask the user to run the command.
 
+### OpenAPI YAML
+
+Do not change docs/api/openapi.yaml
+It is covered by scripts.
+
 ### Code Review
 
 Code Review is done via code rabbit cli.
@@ -47,7 +52,7 @@ Use aria-live="polite" only for short, ephemeral status messages (e.g., form sub
 
 # Development process
 
-Your tasks and tone can be defined based of the github issue you work on:
+Your tasks and tone can be defined based of the github issue you work on.
 
 ## to-refine github label
 

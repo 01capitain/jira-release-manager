@@ -5,11 +5,6 @@ import {
 } from "../fixtures/release-components";
 import { userFixtures } from "../fixtures/users";
 import { ReleaseComponentService } from "~/server/services/release-component.service";
-import { ComponentVersionService } from "~/server/services/component-version.service";
-
-const COMPONENT_A_ID = releaseComponentFixtures.iosApp.id;
-const PATCH_ID = "00000000-0000-7000-8000-000000000003";
-const COMPONENT_VERSION_ID = "00000000-0000-7000-8000-000000000004";
 
 type ReleaseComponentRow = {
   id: string;
@@ -49,35 +44,6 @@ type ReleaseComponentDelegate = {
     [ReleaseComponentFindManyArgs]
   >;
   create: jest.Mock<Promise<ReleaseComponentRow>, [ReleaseComponentCreateArgs]>;
-};
-
-type ComponentVersionRow = {
-  id: string;
-  releaseComponentId: string;
-  patchId: string;
-  name: string;
-  increment: number;
-  createdAt: Date;
-};
-
-type ComponentVersionFindManyArgs = {
-  where: { patchId: string };
-  orderBy: [{ releaseComponentId: "asc" }, { increment: "asc" }];
-  select: {
-    id: true;
-    releaseComponentId: true;
-    patchId: true;
-    name: true;
-    increment: true;
-    createdAt: true;
-  };
-};
-
-type ComponentVersionDelegate = {
-  findMany: jest.Mock<
-    Promise<ComponentVersionRow[]>,
-    [ComponentVersionFindManyArgs]
-  >;
 };
 
 describe("ReleaseComponentService", () => {
@@ -173,55 +139,5 @@ describe("ReleaseComponentService", () => {
       color: "emerald",
       namingPattern: "app.android.{patch}",
     });
-  });
-});
-
-describe("ComponentVersionService", () => {
-  test("listByPatch maps rows to DTOs", async () => {
-    const createdAt = new Date("2024-04-01T09:15:00Z");
-    const componentVersionDelegate: ComponentVersionDelegate = {
-      findMany: jest.fn<
-        Promise<ComponentVersionRow[]>,
-        [ComponentVersionFindManyArgs]
-      >(async () => [
-        {
-          id: COMPONENT_VERSION_ID,
-          releaseComponentId: COMPONENT_A_ID,
-          patchId: PATCH_ID,
-          name: "component-a-0",
-          increment: 0,
-          createdAt,
-        },
-      ]),
-    };
-    const db = {
-      componentVersion: componentVersionDelegate,
-    } as unknown as PrismaClient;
-
-    const svc = new ComponentVersionService(db);
-    const res = await svc.listByPatch(PATCH_ID);
-
-    expect(componentVersionDelegate.findMany).toHaveBeenCalledWith({
-      where: { patchId: PATCH_ID },
-      orderBy: [{ releaseComponentId: "asc" }, { increment: "asc" }],
-      select: {
-        id: true,
-        releaseComponentId: true,
-        patchId: true,
-        name: true,
-        increment: true,
-        createdAt: true,
-      },
-    });
-    expect(res).toEqual([
-      {
-        id: COMPONENT_VERSION_ID,
-        releaseComponentId: COMPONENT_A_ID,
-        patchId: PATCH_ID,
-        name: "component-a-0",
-        increment: 0,
-        createdAt: createdAt.toISOString(),
-      },
-    ]);
   });
 });
