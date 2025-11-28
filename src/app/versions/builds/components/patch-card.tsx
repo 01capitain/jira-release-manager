@@ -8,10 +8,7 @@ import { Card, CardContent } from "~/components/ui/card";
 import { Modal } from "~/components/ui/modal";
 import { ScrollArea } from "~/components/ui/scroll-area";
 import { Separator } from "~/components/ui/separator";
-import type {
-  PatchAction,
-  PatchStatus,
-} from "~/shared/types/patch-status";
+import type { PatchAction, PatchStatus } from "~/shared/types/patch-status";
 import {
   labelForAction,
   labelForStatus,
@@ -25,12 +22,12 @@ import {
 } from "../../components/api";
 import {
   patchDefaultSelectionQueryKey,
-  patchStatusQueryKey,
   createSuccessorPatch,
   transitionPatch,
   usePatchDefaultSelectionQuery,
-  usePatchStatusQuery,
+  useReleasesWithPatchesRefetch,
 } from "../api";
+import type { PatchTransitionResponse } from "../api";
 import { ComponentVersionLabels } from "./component-version-labels";
 import type { ComponentVersionDto } from "~/shared/types/component-version";
 import type { PatchStatusResponse } from "~/shared/types/patch-status-response";
@@ -55,6 +52,7 @@ export default function PatchCard({
   initialStatus?: PatchStatusResponse;
 }) {
   const queryClient = useQueryClient();
+  const { setData: setReleasesWithPatches } = useReleasesWithPatchesRefetch();
   const [entered, setEntered] = React.useState(false);
   const [hydrated, setHydrated] = React.useState(false);
   React.useEffect(() => {
@@ -65,17 +63,60 @@ export default function PatchCard({
     setHydrated(true);
   }, []);
 
-  const statusQuery = usePatchStatusQuery(id, {
-    initialData: initialStatus,
-  });
-  const currentStatus: PatchStatus =
-    statusQuery.data?.status ?? "in_development";
-  const fetchingStatus = statusQuery.isFetching;
-  const handleTransitionSuccess = async () => {
-    await queryClient.invalidateQueries({
-      queryKey: patchStatusQueryKey(id),
-    });
-  };
+  const [statusSnapshot, setStatusSnapshot] =
+    React.useState<PatchStatusResponse>(() => ({
+      status: initialStatus?.status ?? "in_development",
+      history: initialStatus?.history ?? [],
+    }));
+
+  React.useEffect(() => {
+    if (!initialStatus) return;
+    setStatusSnapshot(initialStatus);
+  }, [initialStatus]);
+
+  const updateStatusSnapshot = React.useCallback(
+    (next: PatchStatusResponse) => {
+      setStatusSnapshot(next);
+      setReleasesWithPatches((current) => {
+        if (!current) return current;
+        let changed = false;
+        const nextReleases = current.map((release) => {
+          const patchIndex = release.patches.findIndex(
+            (patch) => patch.id === id,
+          );
+          if (patchIndex === -1) return release;
+          changed = true;
+          const nextPatches = release.patches.map((patch) =>
+            patch.id === id
+              ? {
+                  ...patch,
+                  currentStatus: next.status,
+                  transitions: next.history.map((entry) => ({
+                    ...entry,
+                    patchId: patch.id,
+                  })),
+                  hasStatusData: true,
+                }
+              : patch,
+          );
+          return { ...release, patches: nextPatches };
+        });
+        return changed ? nextReleases : current;
+      });
+    },
+    [id, setReleasesWithPatches],
+  );
+
+  const currentStatus: PatchStatus = statusSnapshot.status;
+  const applyTransitionResult = React.useCallback(
+    (result: PatchTransitionResponse) => {
+      updateStatusSnapshot({
+        status: result.status,
+        history: result.history,
+      });
+    },
+    [updateStatusSnapshot],
+  );
   const handleMutationError = (prefix: string) => (error: unknown) => {
     const message = error instanceof Error ? error.message : "Unknown error";
     setLastMessage(`${prefix}: ${message}`);
@@ -90,8 +131,8 @@ export default function PatchCard({
         patchId: id,
         action: "cancelDeployment",
       }),
-    onSuccess: async () => {
-      await handleTransitionSuccess();
+    onSuccess: (result) => {
+      applyTransitionResult(result);
     },
     onError: handleMutationError("Failed to cancel deployment"),
   });
@@ -103,8 +144,8 @@ export default function PatchCard({
         patchId: id,
         action: "markActive",
       }),
-    onSuccess: async () => {
-      await handleTransitionSuccess();
+    onSuccess: (result) => {
+      applyTransitionResult(result);
     },
     onError: handleMutationError("Failed to mark active"),
   });
@@ -116,8 +157,8 @@ export default function PatchCard({
         patchId: id,
         action: "revertToDeployment",
       }),
-    onSuccess: async () => {
-      await handleTransitionSuccess();
+    onSuccess: (result) => {
+      applyTransitionResult(result);
     },
     onError: handleMutationError("Failed to revert to deployment"),
   });
@@ -129,8 +170,8 @@ export default function PatchCard({
         patchId: id,
         action: "deprecate",
       }),
-    onSuccess: async () => {
-      await handleTransitionSuccess();
+    onSuccess: (result) => {
+      applyTransitionResult(result);
     },
     onError: handleMutationError("Failed to deprecate"),
   });
@@ -142,8 +183,8 @@ export default function PatchCard({
         patchId: id,
         action: "reactivate",
       }),
-    onSuccess: async () => {
-      await handleTransitionSuccess();
+    onSuccess: (result) => {
+      applyTransitionResult(result);
     },
     onError: handleMutationError("Failed to reactivate"),
   });
@@ -155,14 +196,20 @@ export default function PatchCard({
         patchId: id,
         action: "startDeployment",
       }),
-    onSuccess: async () => {
-      await handleTransitionSuccess();
+    onSuccess: (result) => {
+      applyTransitionResult(result);
     },
     onError: handleMutationError("Failed to start deployment"),
   });
 
   const createSuccessorPatchMutation = useMutation({
     mutationFn: createSuccessorPatch,
+    onSuccess: (result) => {
+      updateStatusSnapshot({
+        status: result.status,
+        history: result.history,
+      });
+    },
   });
 
   const [selecting, setSelecting] = React.useState(false);
@@ -174,6 +221,10 @@ export default function PatchCard({
     revertToDeployment.isPending ||
     deprecate.isPending ||
     reactivate.isPending;
+  const fetchingStatus =
+    statusMutationPending ||
+    startDeploymentRaw.isPending ||
+    createSuccessorPatchMutation.isPending;
   const processing =
     submitting ||
     startDeploymentRaw.isPending ||
@@ -485,15 +536,12 @@ export default function PatchCard({
                 if (currentStatus === "in_development") {
                   await startDeploymentRaw.mutateAsync();
                 }
-                const res = await createSuccessorPatchMutation.mutateAsync({
+                await createSuccessorPatchMutation.mutateAsync({
                   patchId: id,
                   selectedReleaseComponentIds: selectedIds,
                 });
 
                 await Promise.all([
-                  queryClient.invalidateQueries({
-                    queryKey: patchStatusQueryKey(id),
-                  }),
                   queryClient.invalidateQueries({
                     queryKey: patchDefaultSelectionQueryKey(id),
                   }),
@@ -501,14 +549,6 @@ export default function PatchCard({
                     queryKey: ["release-versions", "with-patches"],
                   }),
                 ]);
-
-                if (res?.summary?.successorPatchId) {
-                  await queryClient.invalidateQueries({
-                    queryKey: patchStatusQueryKey(
-                      res.summary.successorPatchId,
-                    ),
-                  });
-                }
 
                 setSelecting(false);
                 setLastMessage("Deployment finalized");

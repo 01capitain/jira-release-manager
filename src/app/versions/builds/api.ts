@@ -14,17 +14,11 @@ import type { PatchCreateInput } from "~/shared/schemas/patch";
 import type { PatchDefaultSelection } from "~/shared/schemas/patch-selection";
 import type { ReleaseVersionWithPatchesDto } from "~/shared/types/release-version-with-patches";
 import { releasesWithPatchesQueryKey } from "../releases/api";
-import type {
-  PatchAction,
-  PatchStatus,
-} from "~/shared/types/patch-status";
+import type { PatchAction, PatchStatus } from "~/shared/types/patch-status";
 import type { PatchStatusResponse } from "~/shared/types/patch-status-response";
 
 export const patchesByReleaseQueryKey = (releaseId: string) =>
   ["patches", "by-release", releaseId] as const;
-
-export const patchStatusQueryKey = (patchId: string) =>
-  ["patches", "status", patchId] as const;
 
 export const patchDefaultSelectionQueryKey = (patchId: string) =>
   ["patches", "default-selection", patchId] as const;
@@ -38,17 +32,7 @@ export type PatchTransitionResponse = {
 export const fetchPatchesByRelease = async (
   releaseId: string,
 ): Promise<PatchDto[]> => {
-  return getJson<PatchDto[]>(
-    `/api/v1/release-versions/${releaseId}/patches`,
-  );
-};
-
-export const fetchPatchStatus = async (
-  patchId: string,
-): Promise<PatchStatusResponse> => {
-  return getJson<PatchStatusResponse>(
-    `/api/v1/patches/${patchId}/status`,
-  );
+  return getJson<PatchDto[]>(`/api/v1/release-versions/${releaseId}/patches`);
 };
 
 export const fetchPatchDefaultSelection = async (
@@ -104,7 +88,7 @@ export type PatchSuccessorResponse = {
     updated: number;
     successorPatchId: string;
   };
-  status: string;
+  status: PatchStatus;
   history: PatchStatusResponse["history"];
 };
 
@@ -124,25 +108,6 @@ export const usePatchesByReleaseQuery = (releaseId: string) => {
   return useQuery({
     queryKey: patchesByReleaseQueryKey(releaseId),
     queryFn: () => fetchPatchesByRelease(releaseId),
-  });
-};
-
-export const STATUS_STALE_TIME_MS = 5 * 60 * 1000;
-
-export const usePatchStatusQuery = (
-  patchId: string,
-  options?: {
-    enabled?: boolean;
-    staleTime?: number;
-    initialData?: PatchStatusResponse;
-  },
-) => {
-  return useQuery({
-    queryKey: patchStatusQueryKey(patchId),
-    queryFn: () => fetchPatchStatus(patchId),
-    staleTime: options?.staleTime ?? STATUS_STALE_TIME_MS,
-    enabled: options?.enabled ?? true,
-    initialData: options?.initialData,
   });
 };
 

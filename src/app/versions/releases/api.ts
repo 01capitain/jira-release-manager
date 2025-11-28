@@ -160,21 +160,14 @@ export const fetchReleasesWithPatches = async (options?: {
         releaseTrack: release.releaseTrack,
         createdAt: release.createdAt,
         patches:
-          release.patches?.map(
-            ({ deployedComponents, transitions, ...patch }) => {
-              const hasComponentData = Array.isArray(deployedComponents);
-              const hasStatusData = Array.isArray(transitions);
-              return {
-                ...patch,
-                deployedComponents: hasComponentData
-                  ? (deployedComponents ?? [])
-                  : [],
-                transitions: hasStatusData ? (transitions ?? []) : [],
-                hasComponentData,
-                hasStatusData,
-              };
-            },
-          ) ?? [],
+          release.patches?.map(({ deployedComponents, ...patch }) => {
+            const hasComponentData = Array.isArray(deployedComponents);
+            return {
+              ...patch,
+              deployedComponents: hasComponentData ? deployedComponents : [],
+              hasComponentData,
+            };
+          }) ?? [],
       })),
     );
 
@@ -222,14 +215,6 @@ type ReleaseCollections = {
   missingComponentPatchIds: string[];
 };
 
-const sortTransitionsAsc = (
-  transitions: ReleasePatchDto["transitions"] = [],
-) => {
-  return [...transitions].sort(
-    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
-  );
-};
-
 export const mapReleaseCollections = (
   releases: ReleaseVersionWithPatchesDto[] | undefined,
 ): ReleaseCollections => {
@@ -251,24 +236,10 @@ export const mapReleaseCollections = (
       if (!patch.hasComponentData) {
         missingComponentPatchIds.push(patch.id);
       }
-      const hasHistory = Boolean(patch.hasStatusData);
-      const sortedHistory = hasHistory
-        ? sortTransitionsAsc(patch.transitions)
-        : [];
-      const status =
-        sortedHistory.at(-1)?.toStatus ??
-        patch.currentStatus ??
-        "in_development";
+      const status = patch.currentStatus ?? "in_development";
       patchStatusById[patch.id] = {
         status,
-        history: sortedHistory.map((transition) => ({
-          id: transition.id,
-          fromStatus: transition.fromStatus,
-          toStatus: transition.toStatus,
-          action: transition.action,
-          createdAt: transition.createdAt,
-          createdById: transition.createdById,
-        })),
+        history: [],
       };
     });
     patchIdsByReleaseId[release.id] = patchIds;
