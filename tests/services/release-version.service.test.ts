@@ -65,7 +65,9 @@ function makeMockDb(initialTrack: ReleaseTrack = DEFAULT_RELEASE_TRACK) {
     releaseVersion: {
       create: jest.fn(async (args: any) => {
         record("releaseVersion.create", args);
-        currentTrack = DEFAULT_RELEASE_TRACK;
+        currentTrack =
+          (args?.data?.releaseTrack as ReleaseTrack | undefined) ??
+          DEFAULT_RELEASE_TRACK;
         releaseRows[REL_ID] = {
           id: REL_ID,
           name: args.data.name,
@@ -77,27 +79,35 @@ function makeMockDb(initialTrack: ReleaseTrack = DEFAULT_RELEASE_TRACK) {
       update: jest.fn(async (args: any) => {
         record("releaseVersion.update", args);
         const targetId = args.where.id ?? REL_ID;
+        const existing =
+          releaseRows[targetId] ??
+          (() => {
+            const fallback = {
+              id: targetId,
+              name: "version 100.0",
+              releaseTrack: currentTrack,
+              createdAt: new Date(),
+            };
+            releaseRows[targetId] = fallback;
+            return fallback;
+          })();
+        if (typeof args.data.name === "string") {
+          releaseRows[targetId] = { ...existing, name: args.data.name };
+        }
         if (typeof args.data.releaseTrack === "string") {
           currentTrack = args.data.releaseTrack as ReleaseTrack;
-          const entry =
-            releaseRows[targetId] ??
-            (() => {
-              const fallback = {
-                id: targetId,
-                name: "version 100.0",
-                releaseTrack: currentTrack,
-                createdAt: new Date(),
-              };
-              releaseRows[targetId] = fallback;
-              return fallback;
-            })();
-          releaseRows[targetId] = { ...entry, releaseTrack: currentTrack };
-          return releaseRows[targetId];
+          releaseRows[targetId] = {
+            ...releaseRows[targetId],
+            releaseTrack: currentTrack,
+          };
         }
-        return {
-          id: targetId,
-          lastUsedIncrement: args.data.lastUsedIncrement,
-        };
+        if (typeof args.data.lastUsedIncrement === "number") {
+          return {
+            id: targetId,
+            lastUsedIncrement: args.data.lastUsedIncrement,
+          };
+        }
+        return releaseRows[targetId];
       }),
       findUnique: jest.fn(async (args: any = {}) => {
         const entry = releaseRows[args?.where?.id ?? REL_ID];
@@ -368,6 +378,27 @@ describe("ReleaseVersion and Patch behavior", () => {
       for (const entry of componentSubactions) {
         expect(entry.message).toMatch(/Seeded (iOS App|PHP Backend)/);
       }
+    });
+    test("allows overriding the initial release track", async () => {
+      const { db } = makeMockDb();
+      db.releaseVersion.findUniqueOrThrow = jest.fn(async () => ({
+        id: REL_MAIN_ID,
+        name: "version 105",
+      }));
+
+      const svc = new ReleaseVersionService(db);
+      await svc.create(USER_1_ID, {
+        name: "version 105",
+        releaseTrack: "Active",
+      });
+
+      expect(db.releaseVersion.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            releaseTrack: "Active",
+          }),
+        }),
+      );
     });
     test("creating a patch creates component versions for each release component", async () => {
       const { db } = makeMockDb();

@@ -7,10 +7,14 @@ import { getJson, postJson, requestJson } from "~/lib/rest-client";
 import { withUiSpan } from "~/lib/otel/ui-span";
 import type {
   ReleaseVersionCreateInput,
+  ReleaseVersionUpdateInput,
   ReleaseVersionTrackUpdateInput,
 } from "~/shared/schemas/release-version";
 import type { PaginatedResponse } from "~/shared/types/pagination";
-import type { ReleaseVersionDto } from "~/shared/types/release-version";
+import type {
+  ReleaseVersionDefaultsDto,
+  ReleaseVersionDto,
+} from "~/shared/types/release-version";
 import type { ReleaseVersionWithRelationsDto } from "~/shared/types/release-version-relations";
 import type {
   ReleasePatchDto,
@@ -37,18 +41,30 @@ export const useCreateReleaseMutation = () => {
   });
 };
 
-export const updateReleaseVersionTrack = async (
+export const fetchReleaseVersionDefaults =
+  async (): Promise<ReleaseVersionDefaultsDto> => {
+    return withUiSpan("ui.release.defaults", () =>
+      getJson<ReleaseVersionDefaultsDto>("/api/v1/release-versions/new-values"),
+    );
+  };
+
+export const useReleaseDefaultsQuery = (options?: { enabled?: boolean }) => {
+  return useQuery({
+    queryKey: ["release-versions", "defaults"],
+    queryFn: fetchReleaseVersionDefaults,
+    enabled: options?.enabled ?? true,
+  });
+};
+
+export const updateReleaseVersion = async (
   releaseId: string,
-  input: ReleaseVersionTrackUpdateInput,
+  input: ReleaseVersionUpdateInput,
 ): Promise<ReleaseVersionDto> => {
-  return withUiSpan("ui.release.track.update", () =>
-    requestJson<ReleaseVersionDto>(
-      `/api/v1/release-versions/${releaseId}/track`,
-      {
-        method: "PATCH",
-        body: JSON.stringify(input),
-      },
-    ),
+  return withUiSpan("ui.release.update", () =>
+    requestJson<ReleaseVersionDto>(`/api/v1/release-versions/${releaseId}`, {
+      method: "PATCH",
+      body: JSON.stringify(input),
+    }),
   );
 };
 
@@ -61,7 +77,24 @@ export const useUpdateReleaseTrackMutation = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ releaseId, releaseTrack }: UpdateReleaseTrackVariables) =>
-      updateReleaseVersionTrack(releaseId, { releaseTrack }),
+      updateReleaseVersion(releaseId, { releaseTrack }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["release-versions"] });
+    },
+  });
+};
+
+type UpdateReleaseVariables = {
+  releaseId: string;
+  name?: string;
+  releaseTrack?: ReleaseTrack;
+};
+
+export const useUpdateReleaseMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ releaseId, ...input }: UpdateReleaseVariables) =>
+      updateReleaseVersion(releaseId, input),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["release-versions"] });
     },

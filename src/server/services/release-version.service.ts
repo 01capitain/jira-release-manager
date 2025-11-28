@@ -1,8 +1,8 @@
-import type {
+import {
   Prisma,
-  PrismaClient,
-  ReleaseVersion,
-  User,
+  type PrismaClient,
+  type ReleaseVersion,
+  type User,
 } from "@prisma/client";
 import { RestError } from "~/server/rest/errors";
 import { buildPaginatedResponse } from "~/server/rest/pagination";
@@ -23,7 +23,10 @@ import type {
   NormalizedPaginatedRequest,
   PaginatedResponse,
 } from "~/shared/types/pagination";
-import type { ReleaseVersionDto } from "~/shared/types/release-version";
+import type {
+  ReleaseVersionDefaultsDto,
+  ReleaseVersionDto,
+} from "~/shared/types/release-version";
 import type { ReleaseTrack } from "~/shared/types/release-track";
 import { DEFAULT_RELEASE_TRACK } from "~/shared/types/release-track";
 import type {
@@ -38,6 +41,47 @@ export class ReleaseVersionService {
     private readonly db: PrismaClient,
     private readonly patchService: PatchService = new PatchService(db),
   ) {}
+
+  private buildDefaultName(existingNames: string[]): string {
+    const taken = new Set(existingNames);
+    let maxNumeric = -1;
+    for (const name of existingNames) {
+      if (/^\d+$/.test(name)) {
+        const value = Number.parseInt(name, 10);
+        if (Number.isFinite(value) && value > maxNumeric) {
+          maxNumeric = value;
+        }
+      }
+    }
+    let candidate = maxNumeric >= 0 ? maxNumeric + 1 : 1;
+    for (let attempts = 0; attempts < 1000; attempts += 1) {
+      const next = String(candidate);
+      if (!taken.has(next)) {
+        return next;
+      }
+      candidate += 1;
+    }
+    throw new RestError(
+      500,
+      "DEFAULT_NAME_UNAVAILABLE",
+      "Unable to generate a unique default release name",
+    );
+  }
+
+  async proposeDefaults(): Promise<ReleaseVersionDefaultsDto> {
+    const names = await this.db.releaseVersion.findMany({
+      select: { name: true },
+      orderBy: { createdAt: "desc" },
+      take: 200,
+    });
+    const proposedName = this.buildDefaultName(
+      names.map((entry) => entry.name),
+    );
+    return {
+      name: proposedName,
+      releaseTrack: DEFAULT_RELEASE_TRACK,
+    };
+  }
 
   private buildRelationsInclude(
     state: ReleaseVersionRelationState,
@@ -176,52 +220,82 @@ export class ReleaseVersionService {
 
   async create(
     userId: User["id"],
-    name: string,
+    nameOrInput: string | { name?: string; releaseTrack?: ReleaseTrack },
     options?: { logger?: ActionLogger },
   ): Promise<ReleaseVersionDto> {
-    const auditTrail: SubactionInput[] = [];
-    const release = await this.db.$transaction(async (tx) => {
-      // Create the release version first
-      const release = await tx.releaseVersion.create({
-        data: {
-          name: name.trim(),
-          releaseTrack: DEFAULT_RELEASE_TRACK,
-          createdBy: { connect: { id: userId } },
-        },
-        // Select only fields needed for DTO to avoid strict schema issues
-        select: { id: true, name: true, releaseTrack: true, createdAt: true },
-      });
-      auditTrail.push({
-        subactionType: "releaseVersion.persist",
-        message: `Release ${release.name} stored`,
-        metadata: { id: release.id },
-      });
-      // Auto-create initial patch with increment 0
-      const patchIncrement = 0;
-      const patchName = `${release.name}.${patchIncrement}`;
-      const { auditTrail: patchTrail } =
-        await this.patchService.createInitialForRelease(tx, {
-          userId,
-          releaseId: release.id,
-          releaseName: release.name,
-          patchName,
-        });
-      auditTrail.push(...patchTrail);
-
-      // Update release's lastUsedIncrement to 0
-      await tx.releaseVersion.update({
-        where: { id: release.id },
-        data: { lastUsedIncrement: patchIncrement },
-      });
-
-      return release;
-    });
-    if (options?.logger) {
-      for (const entry of auditTrail) {
-        await options.logger.subaction(entry);
-      }
+    const input =
+      typeof nameOrInput === "string"
+        ? { name: nameOrInput }
+        : (nameOrInput ?? {});
+    const providedName = input.name?.trim();
+    if (input.name !== undefined && !providedName) {
+      throw new RestError(400, "VALIDATION_ERROR", "Name is required");
     }
-    return toReleaseVersionDto(release);
+    const needsDefaults =
+      input.name === undefined || input.releaseTrack === undefined;
+    const defaults = needsDefaults ? await this.proposeDefaults() : undefined;
+    const releaseName = providedName ?? defaults?.name;
+    const releaseTrack =
+      input.releaseTrack ?? defaults?.releaseTrack ?? DEFAULT_RELEASE_TRACK;
+    if (!releaseName) {
+      throw new RestError(
+        500,
+        "DEFAULT_NAME_UNAVAILABLE",
+        "Unable to determine a release name",
+      );
+    }
+
+    const auditTrail: SubactionInput[] = [];
+    try {
+      const release = await this.db.$transaction(async (tx) => {
+        const release = await tx.releaseVersion.create({
+          data: {
+            name: releaseName,
+            releaseTrack,
+            createdBy: { connect: { id: userId } },
+          },
+          select: { id: true, name: true, releaseTrack: true, createdAt: true },
+        });
+        auditTrail.push({
+          subactionType: "releaseVersion.persist",
+          message: `Release ${release.name} stored`,
+          metadata: { id: release.id },
+        });
+        const patchIncrement = 0;
+        const patchName = `${release.name}.${patchIncrement}`;
+        const { auditTrail: patchTrail } =
+          await this.patchService.createInitialForRelease(tx, {
+            userId,
+            releaseId: release.id,
+            releaseName: release.name,
+            patchName,
+          });
+        auditTrail.push(...patchTrail);
+
+        await tx.releaseVersion.update({
+          where: { id: release.id },
+          data: { lastUsedIncrement: patchIncrement },
+        });
+
+        return release;
+      });
+      if (options?.logger) {
+        for (const entry of auditTrail) {
+          await options.logger.subaction(entry);
+        }
+      }
+      return toReleaseVersionDto(release);
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2002"
+      ) {
+        throw new RestError(409, "RELEASE_EXISTS", "Release already exists", {
+          name: releaseName,
+        });
+      }
+      throw error;
+    }
   }
 
   async getById(
@@ -265,6 +339,20 @@ export class ReleaseVersionService {
     userId: User["id"],
     options?: { logger?: ActionLogger },
   ): Promise<ReleaseVersionDto> {
+    return this.updateRelease(
+      releaseId,
+      { releaseTrack: track },
+      userId,
+      options,
+    );
+  }
+
+  async updateRelease(
+    releaseId: ReleaseVersion["id"],
+    input: { name?: string; releaseTrack?: ReleaseTrack },
+    userId: User["id"],
+    options?: { logger?: ActionLogger },
+  ): Promise<ReleaseVersionDto> {
     const existing = await this.db.releaseVersion.findUnique({
       where: { id: releaseId },
       select: { id: true, name: true, releaseTrack: true, createdAt: true },
@@ -277,31 +365,70 @@ export class ReleaseVersionService {
         { releaseId },
       );
     }
-    if (existing.releaseTrack === track) {
+    const trimmedName = input.name?.trim();
+    if (input.name !== undefined && !trimmedName) {
+      throw new RestError(400, "VALIDATION_ERROR", "Name is required");
+    }
+
+    const updates: Prisma.ReleaseVersionUpdateInput = {};
+    if (trimmedName && trimmedName !== existing.name) {
+      updates.name = trimmedName;
+    }
+    const desiredTrack = input.releaseTrack ?? existing.releaseTrack;
+    if (desiredTrack !== existing.releaseTrack) {
+      updates.releaseTrack = desiredTrack;
+    }
+
+    if (Object.keys(updates).length === 0) {
       return toReleaseVersionDto(existing);
     }
 
-    const updated = await this.db.releaseVersion.update({
-      where: { id: releaseId },
-      data: {
-        releaseTrack: track,
-      },
-      select: { id: true, name: true, releaseTrack: true, createdAt: true },
-    });
-
-    if (options?.logger) {
-      await options.logger.subaction({
-        subactionType: "releaseVersion.track.update",
-        message: `Release ${updated.name} track updated`,
-        metadata: {
-          releaseId,
-          updatedBy: userId,
-          from: existing.releaseTrack,
-          to: updated.releaseTrack,
-        },
+    try {
+      const updated = await this.db.releaseVersion.update({
+        where: { id: releaseId },
+        data: updates,
+        select: { id: true, name: true, releaseTrack: true, createdAt: true },
       });
-    }
 
-    return toReleaseVersionDto(updated);
+      if (options?.logger) {
+        if (updates.name) {
+          await options.logger.subaction({
+            subactionType: "releaseVersion.rename",
+            message: `Release ${existing.name} renamed to ${updated.name}`,
+            metadata: {
+              releaseId,
+              updatedBy: userId,
+              from: existing.name,
+              to: updated.name,
+            },
+          });
+        }
+        if (updates.releaseTrack) {
+          await options.logger.subaction({
+            subactionType: "releaseVersion.track.update",
+            message: `Release ${updated.name} track updated`,
+            metadata: {
+              releaseId,
+              updatedBy: userId,
+              from: existing.releaseTrack,
+              to: updated.releaseTrack,
+            },
+          });
+        }
+      }
+
+      return toReleaseVersionDto(updated);
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2002"
+      ) {
+        throw new RestError(409, "RELEASE_EXISTS", "Release already exists", {
+          releaseId,
+          name: trimmedName,
+        });
+      }
+      throw error;
+    }
   }
 }

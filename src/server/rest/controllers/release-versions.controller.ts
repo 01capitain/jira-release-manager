@@ -22,6 +22,7 @@ import {
 } from "~/shared/schemas/pagination";
 import {
   ReleaseVersionCreateSchema,
+  ReleaseVersionUpdateSchema,
   ReleaseVersionTrackUpdateSchema,
 } from "~/shared/schemas/release-version";
 import type { ReleaseVersionRelationKey } from "~/shared/types/release-version-relations";
@@ -30,7 +31,11 @@ import {
   validateReleaseVersionRelations,
 } from "~/server/services/release-version.relations";
 
-export { ReleaseVersionCreateSchema } from "~/shared/schemas/release-version";
+export {
+  ReleaseVersionCreateSchema,
+  ReleaseVersionUpdateSchema,
+  ReleaseVersionTrackUpdateSchema,
+} from "~/shared/schemas/release-version";
 
 export const ReleaseVersionListQuerySchema = createPaginatedRequestSchema(
   RELEASE_VERSION_SORT_FIELDS,
@@ -72,18 +77,15 @@ export const ReleaseVersionListQueryDocSchema = createPaginatedQueryDocSchema(
   z.enum(RELEASE_VERSION_SORT_DOC_VALUES),
 ).merge(ReleaseVersionRelationsDocSchema);
 
-const ReleaseVersionPatchWithRelationsSchema =
-  PatchDtoSchema.extend({
-    deployedComponents: z.array(ComponentVersionDtoSchema).optional(),
-    transitions: z.array(PatchTransitionDtoSchema).optional(),
-  });
+const ReleaseVersionPatchWithRelationsSchema = PatchDtoSchema.extend({
+  deployedComponents: z.array(ComponentVersionDtoSchema).optional(),
+  transitions: z.array(PatchTransitionDtoSchema).optional(),
+});
 
 export const ReleaseVersionWithRelationsSchema = ReleaseVersionDtoSchema.extend(
   {
     creater: UserSummaryDtoSchema.optional(),
-    patches: z
-      .array(ReleaseVersionPatchWithRelationsSchema)
-      .optional(),
+    patches: z.array(ReleaseVersionPatchWithRelationsSchema).optional(),
   },
 );
 
@@ -99,6 +101,10 @@ export const ReleaseVersionIdParamSchema = z.object({
 
 export const ReleaseVersionCreateResponseSchema = ReleaseVersionDtoSchema;
 
+export const ReleaseVersionDefaultsResponseSchema = z.object({
+  name: z.string(),
+  releaseTrack: ReleaseVersionDtoSchema.shape.releaseTrack,
+});
 export const parseReleaseVersionRelations = (
   searchParams: URLSearchParams,
 ): ReleaseVersionRelationKey[] => {
@@ -154,21 +160,17 @@ export const createReleaseVersion = async (
   context: RestContext,
   input: z.infer<typeof ReleaseVersionCreateSchema>,
 ) => {
-  const svc = new ReleaseVersionService(context.db);
   const userId = ensureAuthenticated(context);
+  const svc = new ReleaseVersionService(context.db);
   const history = new ActionHistoryService(context.db);
-  const trimmed = input.name.trim();
-  if (!trimmed) {
-    throw new RestError(400, "VALIDATION_ERROR", "Name is required");
-  }
   const action = await history.startAction({
     actionType: "releaseVersion.create",
-    message: `Create release ${trimmed}`,
+    message: `Create release ${input.name?.trim() ?? "(auto)"}`,
     userId,
     sessionToken: context.sessionToken ?? null,
   });
   try {
-    const result = await svc.create(userId, trimmed, { logger: action });
+    const result = await svc.create(userId, input, { logger: action });
     await action.complete("success", {
       message: `Release ${result.name} created`,
       metadata: { id: result.id },
@@ -176,8 +178,54 @@ export const createReleaseVersion = async (
     return result;
   } catch (error: unknown) {
     await action.complete("failed", {
-      message: `Failed to create release ${trimmed}`,
+      message: `Failed to create release ${input.name ?? "(auto)"}`,
       metadata: {
+        error: error instanceof Error ? error.message : String(error),
+      },
+    });
+    throw error;
+  }
+};
+
+export const getReleaseVersionDefaults = async (context: RestContext) => {
+  ensureAuthenticated(context);
+  const svc = new ReleaseVersionService(context.db);
+  return svc.proposeDefaults();
+};
+
+export const updateReleaseVersion = async (
+  context: RestContext,
+  releaseId: string,
+  input: z.infer<typeof ReleaseVersionUpdateSchema>,
+) => {
+  const userId = ensureAuthenticated(context);
+  const svc = new ReleaseVersionService(context.db);
+  const history = new ActionHistoryService(context.db);
+  const action = await history.startAction({
+    actionType: "releaseVersion.update",
+    message: `Update release ${releaseId}`,
+    userId,
+    sessionToken: context.sessionToken ?? null,
+    metadata: { releaseId },
+  });
+  try {
+    const result = await svc.updateRelease(releaseId, input, userId, {
+      logger: action,
+    });
+    await action.complete("success", {
+      message: `Release ${result.name} updated`,
+      metadata: {
+        releaseId,
+        name: result.name,
+        releaseTrack: result.releaseTrack,
+      },
+    });
+    return result;
+  } catch (error) {
+    await action.complete("failed", {
+      message: `Failed to update release ${releaseId}`,
+      metadata: {
+        releaseId,
         error: error instanceof Error ? error.message : String(error),
       },
     });
@@ -190,6 +238,9 @@ export const updateReleaseVersionTrack = async (
   releaseId: string,
   input: z.infer<typeof ReleaseVersionTrackUpdateSchema>,
 ) => {
+  if (!input.releaseTrack) {
+    throw new RestError(400, "VALIDATION_ERROR", "releaseTrack is required");
+  }
   const userId = ensureAuthenticated(context);
   const svc = new ReleaseVersionService(context.db);
   const history = new ActionHistoryService(context.db);
@@ -226,6 +277,24 @@ export const updateReleaseVersionTrack = async (
 };
 
 export const releaseVersionPaths = {
+  "/release-versions/new-values": {
+    get: {
+      operationId: "getReleaseVersionDefaults",
+      summary: "Get default release version values",
+      tags: ["Release Versions"],
+      responses: {
+        200: {
+          description: "Default values for new release version",
+          content: {
+            "application/json": {
+              schema: ReleaseVersionDefaultsResponseSchema,
+            },
+          },
+        },
+        401: jsonErrorResponse("Authentication required"),
+      },
+    },
+  },
   "/release-versions": {
     get: {
       operationId: "listReleaseVersions",
@@ -292,6 +361,36 @@ export const releaseVersionPaths = {
           },
         },
         404: jsonErrorResponse("Release not found"),
+      },
+    },
+    patch: {
+      operationId: "updateReleaseVersion",
+      summary: "Update release version",
+      tags: ["Release Versions"],
+      requestParams: {
+        path: ReleaseVersionIdParamSchema,
+      },
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: ReleaseVersionUpdateSchema,
+          },
+        },
+      },
+      responses: {
+        200: {
+          description: "Release version updated",
+          content: {
+            "application/json": {
+              schema: ReleaseVersionDtoSchema,
+            },
+          },
+        },
+        400: jsonErrorResponse("Validation error"),
+        401: jsonErrorResponse("Authentication required"),
+        404: jsonErrorResponse("Release not found"),
+        409: jsonErrorResponse("Release already exists"),
       },
     },
   },

@@ -5,6 +5,8 @@ import {
   ChevronDown,
   List as ListIcon,
   Check,
+  Pencil,
+  X as XIcon,
 } from "lucide-react";
 import * as React from "react";
 import type { ReleaseVersionWithPatchesDto } from "~/shared/types/release-version-with-patches";
@@ -12,16 +14,22 @@ import type { PatchStatusResponse } from "~/shared/types/patch-status-response";
 import type { ReleaseTrack } from "~/shared/types/release-track";
 import { RELEASE_TRACK_VALUES } from "~/shared/types/release-track";
 import PatchCard from "../../builds/components/patch-card";
-import { useReleaseEntities, useUpdateReleaseTrackMutation } from "../api";
+import {
+  useReleaseEntities,
+  useUpdateReleaseMutation,
+  useUpdateReleaseTrackMutation,
+} from "../api";
 import { Button } from "~/components/ui/button";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "~/components/ui/popover";
+import { Input } from "~/components/ui/input";
 import ReleaseCalendar from "./release-calendar";
 import { mapPatchesToCalendarEvents } from "../lib/calendar-events";
 import { isRestApiError } from "~/lib/rest-client";
+import { ReleaseVersionUpdateSchema } from "~/shared/schemas/release-version";
 
 function LatestActiveTag({
   patchIds,
@@ -79,6 +87,125 @@ const TRACK_STYLE_MAP: Record<
     optionDot: "bg-neutral-400",
     optionHover: "hover:bg-neutral-100/80 dark:hover:bg-neutral-800/60",
   },
+};
+
+const ReleaseNameEditor = ({
+  releaseId,
+  name,
+}: {
+  releaseId: string;
+  name: string;
+}) => {
+  const mutation = useUpdateReleaseMutation();
+  const [editing, setEditing] = React.useState(false);
+  const [value, setValue] = React.useState(name);
+  const [error, setError] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    setValue(name);
+    setError(null);
+    setEditing(false);
+  }, [name]);
+
+  const onSave = async (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setError(null);
+    const parsed = ReleaseVersionUpdateSchema.safeParse({ name: value });
+    if (!parsed.success) {
+      setError(parsed.error.issues[0]?.message ?? "Invalid name");
+      return;
+    }
+    try {
+      await mutation.mutateAsync({ releaseId, name: parsed.data.name });
+      setEditing(false);
+    } catch (err) {
+      setError(
+        isRestApiError(err)
+          ? err.message
+          : "Failed to rename release. Please try again.",
+      );
+    }
+  };
+
+  if (!editing) {
+    return (
+      <div className="flex items-center gap-2">
+        <span className="text-base font-medium">Release {name}</span>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          aria-label={`Rename release ${name}`}
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            setEditing(true);
+          }}
+        >
+          <Pencil className="h-4 w-4" aria-hidden="true" />
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center gap-2">
+        <Input
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+          }}
+          aria-label="Release name"
+          className="w-48"
+          disabled={mutation.isPending}
+        />
+        <Button
+          type="button"
+          size="sm"
+          onClick={onSave}
+          disabled={mutation.isPending}
+        >
+          Save
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          aria-label="Cancel rename"
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            setEditing(false);
+            setValue(name);
+            setError(null);
+          }}
+          disabled={mutation.isPending}
+        >
+          <XIcon className="h-4 w-4" aria-hidden="true" />
+        </Button>
+      </div>
+      {mutation.isPending ? (
+        <output
+          aria-atomic="true"
+          className="text-xs text-neutral-500 dark:text-neutral-400"
+        >
+          Saving…
+        </output>
+      ) : null}
+      {error ? (
+        <output
+          aria-atomic="true"
+          className="text-xs text-red-600 dark:text-red-400"
+        >
+          {error}
+        </output>
+      ) : null}
+    </div>
+  );
 };
 
 const ReleaseTrackSelector = ({
@@ -253,9 +380,7 @@ export default function ReleasesAccordion({
               />
               <div className="flex flex-1 flex-wrap items-center justify-between gap-3 py-2 pr-4 pl-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-base font-medium">
-                    Release {rel.name}
-                  </span>
+                  <ReleaseNameEditor releaseId={rel.id} name={rel.name} />
                   {/* When collapsed, show latest active patch */}
                   <LatestActiveTag
                     patchIds={ids}

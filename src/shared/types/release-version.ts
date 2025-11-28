@@ -8,3 +8,8 @@ export type ReleaseVersionDto = {
   releaseTrack: ReleaseTrack;
   createdAt: ISO8601;
 };
+
+export type ReleaseVersionDefaultsDto = {
+  name: string;
+  releaseTrack: ReleaseTrack;
+};

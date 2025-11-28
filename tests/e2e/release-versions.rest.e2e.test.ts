@@ -342,18 +342,21 @@ mockDb.releaseVersion = {
     } = {}) => {
       const record = releaseData.find((entry) => entry.id === where?.id);
       if (record) {
+        if (typeof data?.name === "string") {
+          record.name = data.name as string;
+        }
         if (typeof data?.lastUsedIncrement === "number") {
           record.lastUsedIncrement = data.lastUsedIncrement;
         }
         if (typeof data?.releaseTrack === "string") {
           record.releaseTrack = data.releaseTrack as ReleaseTrack;
-          return {
-            id: record.id,
-            name: record.name,
-            releaseTrack: record.releaseTrack,
-            createdAt: record.createdAt,
-          };
         }
+        return {
+          id: record.id,
+          name: record.name,
+          releaseTrack: record.releaseTrack,
+          createdAt: record.createdAt,
+        };
       }
       return { id: where?.id, ...data };
     },
@@ -417,7 +420,9 @@ import {
   POST as createReleaseVersion,
 } from "~/app/api/v1/release-versions/route";
 import { GET as getReleaseVersion } from "~/app/api/v1/release-versions/[releaseId]/route";
+import { PATCH as updateReleaseVersion } from "~/app/api/v1/release-versions/[releaseId]/route";
 import { PATCH as updateReleaseVersionTrack } from "~/app/api/v1/release-versions/[releaseId]/track/route";
+import { GET as getReleaseDefaults } from "~/app/api/v1/release-versions/new-values/route";
 import { auth } from "~/server/auth";
 import {
   ReleaseVersionDetailSchema,
@@ -463,6 +468,42 @@ describe("Release Versions REST endpoints", () => {
 
   afterEach(() => {
     globalThis.__createRestContextMock = undefined;
+  });
+
+  describe("GET /api/v1/release-versions/new-values", () => {
+    it("returns default name and track", async () => {
+      authMock.mockResolvedValue(authenticatedSession);
+      setReleaseRecords([
+        {
+          id: "018f1a50-0000-7000-8000-000000000050",
+          name: "10",
+          createdAt: new Date("2024-05-01T12:00:00.000Z"),
+        },
+      ]);
+
+      const request = new NextRequest(
+        "http://test/api/v1/release-versions/new-values",
+        { method: "GET" },
+      );
+      const response = await executeHandler(getReleaseDefaults, request);
+      const payload = await parseJsonObject(response);
+
+      expect(response.status).toBe(200);
+      expect(payload).toMatchObject({
+        name: "11",
+        releaseTrack: DEFAULT_RELEASE_TRACK,
+      });
+    });
+
+    it("requires authentication", async () => {
+      authMock.mockResolvedValue(null);
+      const request = new NextRequest(
+        "http://test/api/v1/release-versions/new-values",
+        { method: "GET" },
+      );
+      const response = await executeHandler(getReleaseDefaults, request);
+      expect(response.status).toBe(401);
+    });
   });
 
   describe("GET /api/v1/release-versions", () => {
@@ -848,6 +889,68 @@ describe("Release Versions REST endpoints", () => {
       expect(
         (mockDb.patch as Record<string, unknown>).create,
       ).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("PATCH /api/v1/release-versions/{releaseId}", () => {
+    it("updates the name of a release", async () => {
+      authMock.mockResolvedValue(authenticatedSession);
+      const existing: ReleaseRecordInput = {
+        id: "018f1a50-0000-7000-8000-000000000888",
+        name: "100",
+        createdAt: new Date("2024-05-10T12:00:00.000Z"),
+      };
+      setReleaseRecords([existing]);
+
+      const request = new NextRequest(
+        `http://test/api/v1/release-versions/${existing.id}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({ name: "101" }),
+        },
+      );
+
+      const response = await executeHandler(updateReleaseVersion, request, {
+        releaseId: existing.id,
+      });
+      const payload = await parseJsonObject(response);
+
+      expect(response.status).toBe(200);
+      expect(payload).toMatchObject({
+        id: existing.id,
+        name: "101",
+        releaseTrack: DEFAULT_RELEASE_TRACK,
+      });
+    });
+
+    it("updates the release track via the unified endpoint", async () => {
+      authMock.mockResolvedValue(authenticatedSession);
+      const existing: ReleaseRecordInput = {
+        id: "018f1a50-0000-7000-8000-000000000999",
+        name: "110",
+        releaseTrack: "Future",
+        createdAt: new Date("2024-05-12T12:00:00.000Z"),
+      };
+      setReleaseRecords([existing]);
+
+      const request = new NextRequest(
+        `http://test/api/v1/release-versions/${existing.id}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({ releaseTrack: "Active" }),
+        },
+      );
+
+      const response = await executeHandler(updateReleaseVersion, request, {
+        releaseId: existing.id,
+      });
+      const payload = await parseJsonObject(response);
+
+      expect(response.status).toBe(200);
+      expect(payload).toMatchObject({
+        id: existing.id,
+        releaseTrack: "Active",
+      });
     });
   });
 
