@@ -841,4 +841,92 @@ describe("ReleaseVersion and Patch behavior", () => {
       expect(db.releaseVersion.update).not.toHaveBeenCalled();
     });
   });
+
+  describe("ReleaseVersionService.updateRelease()", () => {
+    test("logs distinct subactions when name and track change", async () => {
+      const { db } = makeMockDb();
+      db.releaseVersion.findUnique = jest.fn(async () => ({
+        id: REL_MAIN_ID,
+        name: "version 100.0",
+        releaseTrack: DEFAULT_RELEASE_TRACK,
+        createdAt: new Date(),
+      }));
+      const loggerSubactionMock = jest.fn().mockResolvedValue(undefined);
+      const logger: ActionLogger = {
+        subaction: loggerSubactionMock,
+      } as unknown as ActionLogger;
+      const svc = new ReleaseVersionService(db);
+
+      const result = await svc.updateRelease(
+        REL_MAIN_ID,
+        { name: "version 101.0", releaseTrack: "Active" },
+        USER_1_ID,
+        { logger },
+      );
+
+      expect(result).toMatchObject({
+        id: REL_MAIN_ID,
+        name: "version 101.0",
+        releaseTrack: "Active",
+      });
+      expect(loggerSubactionMock).toHaveBeenCalledTimes(2);
+      expect(loggerSubactionMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          subactionType: "releaseVersion.rename",
+          metadata: expect.objectContaining({
+            releaseId: REL_MAIN_ID,
+            from: "version 100.0",
+            to: "version 101.0",
+            updatedBy: USER_1_ID,
+          }),
+        }),
+      );
+      expect(loggerSubactionMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          subactionType: "releaseVersion.track.update",
+          metadata: expect.objectContaining({
+            releaseId: REL_MAIN_ID,
+            from: DEFAULT_RELEASE_TRACK,
+            to: "Active",
+            updatedBy: USER_1_ID,
+          }),
+        }),
+      );
+    });
+
+    test("logs only the track subaction when only track changes", async () => {
+      const { db } = makeMockDb();
+      db.releaseVersion.findUnique = jest.fn(async () => ({
+        id: REL_MAIN_ID,
+        name: "version 100.0",
+        releaseTrack: DEFAULT_RELEASE_TRACK,
+        createdAt: new Date(),
+      }));
+      const loggerSubactionMock = jest.fn().mockResolvedValue(undefined);
+      const logger: ActionLogger = {
+        subaction: loggerSubactionMock,
+      } as unknown as ActionLogger;
+      const svc = new ReleaseVersionService(db);
+
+      await svc.updateRelease(
+        REL_MAIN_ID,
+        { releaseTrack: "Rollout" },
+        USER_1_ID,
+        { logger },
+      );
+
+      expect(loggerSubactionMock).toHaveBeenCalledTimes(1);
+      expect(loggerSubactionMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          subactionType: "releaseVersion.track.update",
+          metadata: expect.objectContaining({
+            from: DEFAULT_RELEASE_TRACK,
+            to: "Rollout",
+            releaseId: REL_MAIN_ID,
+            updatedBy: USER_1_ID,
+          }),
+        }),
+      );
+    });
+  });
 });

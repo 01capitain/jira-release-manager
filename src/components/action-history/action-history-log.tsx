@@ -117,24 +117,34 @@ const isReleaseTrack = (value: unknown): value is ReleaseTrack => {
 };
 
 const renderEntryMessage = (entry: ActionHistoryEntryDto) => {
+  return entry.message;
+};
+
+const renderSubactionMessage = (
+  sub: ActionHistoryEntryDto["subactions"][number],
+) => {
   if (
-    entry.actionType === "releaseVersion.track.update" &&
-    entry.metadata &&
-    isReleaseTrack(entry.metadata.releaseTrack)
+    sub.subactionType === "releaseVersion.track.update" &&
+    isReleaseTrack(sub.metadata?.to)
   ) {
-    const track = entry.metadata.releaseTrack;
+    const to = (sub.metadata as { to: ReleaseTrack }).to;
+    const from = (sub.metadata as { from?: unknown }).from;
     return (
       <span className="inline-flex flex-wrap items-center gap-2">
-        <span>{`${entry.message} to`}</span>
+        <span>
+          {from && isReleaseTrack(from)
+            ? `Track updated from ${from} to`
+            : "Track updated to"}
+        </span>
         <span
           aria-hidden="true"
-          className={`h-2 w-2 rounded-full ${TRACK_BADGE_STYLES[track].dot}`}
+          className={`h-2 w-2 rounded-full ${TRACK_BADGE_STYLES[to].dot}`}
         />
-        <span>{track}</span>
+        <span>{to}</span>
       </span>
     );
   }
-  return entry.message;
+  return sub.message;
 };
 
 const fetchActionHistoryPage = async (
@@ -427,7 +437,7 @@ export function ActionHistoryLog() {
                             <span className="flex shrink-0 items-center gap-2 text-neutral-700 dark:text-neutral-500">
                               <span aria-hidden="true">↳</span>
                               <span className="text-neutral-600 dark:text-neutral-300">
-                                {sub.message}
+                                {renderSubactionMessage(sub)}
                               </span>
                             </span>
                             <span

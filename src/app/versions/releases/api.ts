@@ -8,7 +8,6 @@ import { withUiSpan } from "~/lib/otel/ui-span";
 import type {
   ReleaseVersionCreateInput,
   ReleaseVersionUpdateInput,
-  ReleaseVersionTrackUpdateInput,
 } from "~/shared/schemas/release-version";
 import type { PaginatedResponse } from "~/shared/types/pagination";
 import type {

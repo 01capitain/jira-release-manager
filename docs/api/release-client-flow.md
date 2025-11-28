@@ -6,7 +6,7 @@ This page summarises the REST endpoints used by the release management UI. Refer
 - `GET /release-versions/new-values` — fetch default name and release track for new releases (authenticated). Response: `{ name: string; releaseTrack: ReleaseTrack }`.
 - `GET /release-versions` — paginated list of release versions (`PaginatedResponse<ReleaseVersionDto>`). Supports `page`, `pageSize`, `sortBy` (`createdAt` | `name`, prefix with `-` for descending), and repeatable `relations` (e.g. `relations=patches` to include patches).
 - `POST /release-versions` — create a release version. Body: `ReleaseVersionCreateInput` (name optional; releaseTrack optional). Response: `ReleaseVersionDto`.
-- `PATCH /release-versions/{releaseId}` — update release name and/or track. Body: `ReleaseVersionUpdateInput` (at least one field). Response: `ReleaseVersionDto`. Legacy track-only alias remains at `/release-versions/{releaseId}/track`.
+- `PATCH /release-versions/{releaseId}` — update release name and/or track. Body: `ReleaseVersionUpdateInput` (at least one field). Response: `ReleaseVersionDto`.
 
 ## Patches
 - `GET /release-versions/{releaseId}/patches` — patches for a given release.
