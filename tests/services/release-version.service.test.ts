@@ -123,7 +123,13 @@ function makeMockDb(initialTrack: ReleaseTrack = DEFAULT_RELEASE_TRACK) {
         record("patch.create", args);
         const id = makeUuid(++patchAutoInc);
         const versionId = args.data.version?.connect?.id ?? REL_ID;
-        return { id, name: args.data.name, versionId, createdAt: new Date() };
+        return {
+          id,
+          name: args.data.name,
+          versionId,
+          currentStatus: "in_development",
+          createdAt: new Date(),
+        };
       }),
       update: jest.fn(async (args: any) => {
         record("patch.update", args);
@@ -134,6 +140,7 @@ function makeMockDb(initialTrack: ReleaseTrack = DEFAULT_RELEASE_TRACK) {
         id: args.where.id,
         name: "version 100.0",
         versionId: REL_ID,
+        currentStatus: "in_development",
         createdAt: new Date(),
       })),
       findFirst: jest.fn(),
@@ -431,6 +438,7 @@ describe("ReleaseVersion and Patch behavior", () => {
               name: "Release 200.0",
               versionId: REL_MAIN_ID,
               createdAt: patchCreatedAt,
+              currentStatus: "in_development",
               componentVersions: [
                 {
                   id: COMPONENT_VERSION_ID,
@@ -483,6 +491,7 @@ describe("ReleaseVersion and Patch behavior", () => {
           name: "Release 200.0",
           versionId: REL_MAIN_ID,
           createdAt: patchCreatedAt.toISOString(),
+          currentStatus: "in_development",
           deployedComponents: [
             {
               id: COMPONENT_VERSION_ID,
@@ -499,7 +508,7 @@ describe("ReleaseVersion and Patch behavior", () => {
               patchId: PATCH_LIST_ID,
               fromStatus: "in_development",
               toStatus: "in_deployment",
-              action: "start_deployment",
+              action: "startDeployment",
               createdAt: patchCreatedAt.toISOString(),
               createdById: USER_2_ID,
             },
@@ -523,9 +532,7 @@ describe("ReleaseVersion and Patch behavior", () => {
         email: true,
       });
       expect(include?.patches?.select?.componentVersions).toBeDefined();
-      expect(
-        include?.patches?.select?.PatchTransition,
-      ).toBeDefined();
+      expect(include?.patches?.select?.PatchTransition).toBeDefined();
     });
   });
   describe("ReleaseVersionService.getById()", () => {
@@ -549,6 +556,7 @@ describe("ReleaseVersion and Patch behavior", () => {
             name: "Release 300.0",
             versionId: REL_MAIN_ID,
             createdAt: patchCreatedAt,
+            currentStatus: "in_development",
             componentVersions: [],
             PatchTransition: [],
           },
@@ -583,6 +591,7 @@ describe("ReleaseVersion and Patch behavior", () => {
           name: "Release 300.0",
           versionId: REL_MAIN_ID,
           createdAt: patchCreatedAt.toISOString(),
+          currentStatus: "in_development",
           deployedComponents: [],
           transitions: [],
         },
@@ -638,7 +647,13 @@ describe("ReleaseVersion and Patch behavior", () => {
       const versionId = "00000000-0000-7000-8000-000000000024";
       const createdAt = new Date("2024-02-01T00:00:00Z");
       db.patch.findMany = jest.fn(async () => [
-        { id: PATCH_LIST_ID, name: "v100.1", versionId, createdAt },
+        {
+          id: PATCH_LIST_ID,
+          name: "v100.1",
+          versionId,
+          currentStatus: "in_development",
+          createdAt,
+        },
       ]);
 
       const svc = new PatchService(db);
@@ -654,6 +669,7 @@ describe("ReleaseVersion and Patch behavior", () => {
         versionId,
       });
       expect(rows[0]?.createdAt).toBe(createdAt.toISOString());
+      expect(rows[0]?.currentStatus).toBe("in_development");
     });
     //TODO: move to PatchService Test Suite
     test("default selection returns components from latest active patch", async () => {
@@ -667,16 +683,8 @@ describe("ReleaseVersion and Patch behavior", () => {
         versionId,
       }));
       db.patch.findMany = jest.fn(async () => [
-        { id: activePatchId },
-        { id: patchId },
-      ]);
-      db.patchTransition.findMany = jest.fn(async () => [
-        {
-          patchId: activePatchId,
-          toStatus: "active",
-          createdAt: new Date(),
-        },
-        { patchId, toStatus: "in_development", createdAt: new Date() },
+        { id: activePatchId, currentStatus: "active" },
+        { id: patchId, currentStatus: "in_development" },
       ]);
       db.releaseComponent.findMany = jest.fn(async (args: any) => {
         expect(args).toMatchObject({
@@ -709,8 +717,9 @@ describe("ReleaseVersion and Patch behavior", () => {
         id: patchId,
         versionId,
       }));
-      db.patch.findMany = jest.fn(async () => [{ id: patchId }]);
-      db.patchTransition.findMany = jest.fn(async () => []);
+      db.patch.findMany = jest.fn(async () => [
+        { id: patchId, currentStatus: "in_development" },
+      ]);
       db.releaseComponent.findMany = jest.fn(async (args: any) => {
         expect(args).toMatchObject({
           where: { releaseScope: "global" },

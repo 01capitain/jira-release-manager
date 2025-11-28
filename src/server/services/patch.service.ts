@@ -8,10 +8,7 @@ import type {
 import { PatchDefaultSelectionSchema } from "~/shared/schemas/patch-selection";
 import type { PatchDto } from "~/shared/types/patch";
 import type { PatchDefaultSelectionDto } from "~/shared/types/patch-selection";
-import {
-  mapToPatchDtos,
-  toPatchDto,
-} from "~/server/zod/dto/patch.dto";
+import { mapToPatchDtos, toPatchDto } from "~/server/zod/dto/patch.dto";
 import {
   validatePattern,
   expandPattern,
@@ -47,6 +44,7 @@ type InternalCreateResult = {
     id: string;
     name: string;
     versionId: string;
+    currentStatus: string;
     createdAt: Date;
   };
   auditTrail: SubactionInput[];
@@ -94,7 +92,13 @@ export class PatchService {
           increment: parsedIncrement,
         } as Prisma.InputJsonValue,
       },
-      select: { id: true, name: true, versionId: true, createdAt: true },
+      select: {
+        id: true,
+        name: true,
+        versionId: true,
+        createdAt: true,
+        currentStatus: true,
+      },
     });
     auditTrail.push({
       subactionType: patchSubactionType,
@@ -266,6 +270,7 @@ export class PatchService {
       id: string;
       name: string;
       versionId: string;
+      currentStatus: string;
       createdAt: Date;
     };
     auditTrail: SubactionInput[];
@@ -283,13 +288,17 @@ export class PatchService {
     return { patch: result.patch, auditTrail: result.auditTrail };
   }
 
-  async listByRelease(
-    versionId: ReleaseVersion["id"],
-  ): Promise<PatchDto[]> {
+  async listByRelease(versionId: ReleaseVersion["id"]): Promise<PatchDto[]> {
     const rows = await this.db.patch.findMany({
       where: { versionId },
       orderBy: { createdAt: "desc" },
-      select: { id: true, name: true, versionId: true, createdAt: true },
+      select: {
+        id: true,
+        name: true,
+        versionId: true,
+        currentStatus: true,
+        createdAt: true,
+      },
     });
     return mapToPatchDtos(rows);
   }
@@ -316,26 +325,11 @@ export class PatchService {
     const patches = await this.db.patch.findMany({
       where: { versionId: patch.versionId },
       orderBy: { createdAt: "desc" },
-      select: { id: true },
+      select: { id: true, currentStatus: true },
     });
-    const patchIds = patches.map((entry) => entry.id);
-
-    const transitions = await this.db.patchTransition.findMany({
-      where: { patchId: { in: patchIds } },
-      orderBy: { createdAt: "desc" },
-      select: { patchId: true, toStatus: true, createdAt: true },
-    });
-
-    const latestByPatch = new Map<string, string>();
-    for (const transition of transitions) {
-      if (!latestByPatch.has(transition.patchId)) {
-        latestByPatch.set(transition.patchId, transition.toStatus);
-      }
-    }
 
     const activePatchId =
-      patches.find((entry) => latestByPatch.get(entry.id) === "active")?.id ??
-      null;
+      patches.find((entry) => entry.currentStatus === "active")?.id ?? null;
 
     if (!activePatchId) {
       return PatchDefaultSelectionSchema.parse({

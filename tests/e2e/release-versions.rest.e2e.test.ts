@@ -48,6 +48,7 @@ type PatchRecord = {
   name: string;
   versionId: string;
   createdAt: Date;
+  currentStatus?: string;
   componentVersions?: ComponentVersionRecord[];
   transitions?: PatchTransitionRecord[];
 };
@@ -87,9 +88,7 @@ const cloneTransition = (
   record: PatchTransitionRecord,
 ): PatchTransitionRecord => ({ ...record });
 
-const clonePatchRecord = (
-  record: PatchRecord,
-): PatchRecord => ({
+const clonePatchRecord = (record: PatchRecord): PatchRecord => ({
   ...record,
   componentVersions: record.componentVersions
     ? record.componentVersions.map(cloneComponentVersion)
@@ -101,9 +100,7 @@ const clonePatchRecord = (
 
 const cloneReleaseRecord = (record: ReleaseRecord): ReleaseRecord => ({
   ...record,
-  patches: record.patches
-    ? record.patches.map(clonePatchRecord)
-    : [],
+  patches: record.patches ? record.patches.map(clonePatchRecord) : [],
   createdBy: record.createdBy ? { ...record.createdBy } : undefined,
   lastUsedIncrement: record.lastUsedIncrement,
 });
@@ -132,6 +129,7 @@ const materializePatch = (
     name: record.name,
     versionId: record.versionId,
     createdAt: record.createdAt,
+    currentStatus: record.currentStatus,
   } as Record<string, unknown>;
 
   if (args?.select?.componentVersions) {
@@ -583,6 +581,7 @@ describe("Release Versions REST endpoints", () => {
         {
           id: releaseId,
           name: "Release With Relations",
+          releaseTrack: "Rollout",
           createdAt: new Date("2024-06-01T09:00:00.000Z"),
           createdBy: {
             id: USER_1_ID,
@@ -595,6 +594,7 @@ describe("Release Versions REST endpoints", () => {
               name: "Release With Relations.0",
               versionId: releaseId,
               createdAt: new Date("2024-06-02T09:00:00.000Z"),
+              currentStatus: "in_deployment",
               componentVersions: [
                 {
                   id: COMPONENT_VERSION_ID,
@@ -643,7 +643,7 @@ describe("Release Versions REST endpoints", () => {
             increment: 0,
           }),
         ],
-        transitions: [expect.objectContaining({ action: "start_deployment" })],
+        transitions: [expect.objectContaining({ action: "startDeployment" })],
       });
 
       const findManyCalls = (mockDb.releaseVersion as { findMany: jest.Mock })
@@ -665,9 +665,7 @@ describe("Release Versions REST endpoints", () => {
         email: true,
       });
       expect(include?.patches?.select?.componentVersions).toBeDefined();
-      expect(
-        include?.patches?.select?.PatchTransition,
-      ).toBeDefined();
+      expect(include?.patches?.select?.PatchTransition).toBeDefined();
     });
 
     it("returns 400 when an unknown relation is requested", async () => {
@@ -763,6 +761,7 @@ describe("Release Versions REST endpoints", () => {
           select: {
             id: true,
             name: true,
+            currentStatus: true,
             versionId: true,
             createdAt: true,
           },
@@ -820,9 +819,9 @@ describe("Release Versions REST endpoints", () => {
       );
       upsertCalls.forEach(([args]) => {
         expect(args.create.increment).toBe(0);
-        expect(
-          args.where.patchId_releaseComponentId.releaseComponentId,
-        ).toBe(args.create.releaseComponent.connect.id);
+        expect(args.where.patchId_releaseComponentId.releaseComponentId).toBe(
+          args.create.releaseComponent.connect.id,
+        );
       });
     });
 
@@ -1105,6 +1104,7 @@ describe("Release Versions REST endpoints", () => {
         {
           id: releaseId,
           name: "Release Detail Relations",
+          releaseTrack: "Active",
           createdAt: new Date("2024-05-12T08:00:00.000Z"),
           createdBy: {
             id: USER_3_ID,
@@ -1117,6 +1117,7 @@ describe("Release Versions REST endpoints", () => {
               name: "Release Detail Relations.0",
               versionId: releaseId,
               createdAt: new Date("2024-05-13T08:00:00.000Z"),
+              currentStatus: "active",
               componentVersions: [
                 {
                   id: COMPONENT_VERSION_ID_2,
@@ -1162,7 +1163,7 @@ describe("Release Versions REST endpoints", () => {
       expect(parsed.patches?.[0]).toMatchObject({
         id: patchId,
         deployedComponents: [expect.objectContaining({ increment: 1 })],
-        transitions: [expect.objectContaining({ action: "mark_active" })],
+        transitions: [expect.objectContaining({ action: "markActive" })],
       });
       const findUniqueCalls = (
         mockDb.releaseVersion as { findUnique: jest.Mock }

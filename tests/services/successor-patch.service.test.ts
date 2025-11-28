@@ -14,6 +14,7 @@ function setupMockDb({
   components,
   currentPatchName,
   successorPatchName,
+  currentPatchStatus = "in_deployment",
   seedOnCurrent = true,
 }: {
   components: {
@@ -23,6 +24,11 @@ function setupMockDb({
   }[];
   currentPatchName: string;
   successorPatchName: string;
+  currentPatchStatus?:
+    | "in_development"
+    | "in_deployment"
+    | "active"
+    | "deprecated";
   seedOnCurrent?: boolean;
 }) {
   const REL_ID = "00000000-0000-7000-8000-000000000021";
@@ -35,12 +41,14 @@ function setupMockDb({
       name: currentPatchName,
       versionId: REL_ID,
       createdAt: new Date("2024-01-01T00:00:00Z"),
+      currentStatus: currentPatchStatus,
     },
     {
       id: PATCH_Y,
       name: successorPatchName,
       versionId: REL_ID,
       createdAt: new Date("2024-01-02T00:00:00Z"),
+      currentStatus: "in_development",
     },
   ];
   const componentVersions: CV[] = [];
@@ -69,9 +77,11 @@ function setupMockDb({
     },
     // patch
     patch: {
-      findUniqueOrThrow: jest.fn(
-        async (args: any) => patches.find((b) => b.id === args.where.id)!,
-      ),
+      findUniqueOrThrow: jest.fn(async (args: any) => {
+        const row = patches.find((b) => b.id === args.where.id);
+        if (!row) throw new Error("not found");
+        return row;
+      }),
       findFirst: jest.fn(async (args: any) => {
         const { versionId, createdAt } = args.where;
         const gt = createdAt.gt as Date;
@@ -100,9 +110,7 @@ function setupMockDb({
       upsert: jest.fn(async (args: any) => {
         const where = args.where?.patchId_releaseComponentId;
         if (!where)
-          throw new Error(
-            "mock upsert expects patchId_releaseComponentId",
-          );
+          throw new Error("mock upsert expects patchId_releaseComponentId");
         const idx = componentVersions.findIndex(
           (cv) =>
             cv.patchId === where.patchId &&
@@ -170,9 +178,6 @@ function setupMockDb({
         throw new Error("not found");
       }),
     },
-    patchTransition: {
-      findFirst: jest.fn(async () => ({ toStatus: "in_deployment" })),
-    },
   };
 
   return { db, ids: { REL_ID, PATCH_X, PATCH_Y }, componentVersions } as const;
@@ -206,12 +211,8 @@ describe("SuccessorPatchService.createSuccessorPatch", () => {
       comps.map((c) => c.id),
       "user-1" as any,
     );
-    const onX = componentVersions.filter(
-      (cv) => cv.patchId === ids.PATCH_X,
-    );
-    const onY = componentVersions.filter(
-      (cv) => cv.patchId === ids.PATCH_Y,
-    );
+    const onX = componentVersions.filter((cv) => cv.patchId === ids.PATCH_X);
+    const onY = componentVersions.filter((cv) => cv.patchId === ids.PATCH_Y);
     const expectedIds = comps.map((c) => c.id).sort();
     expect(onX.map((r) => r.releaseComponentId).sort()).toEqual(expectedIds);
     expect(onY.map((r) => r.releaseComponentId).sort()).toEqual(expectedIds);
@@ -235,12 +236,8 @@ describe("SuccessorPatchService.createSuccessorPatch", () => {
       comps.filter((c) => c.releaseScope === "global").map((c) => c.id),
       "user-1" as any,
     );
-    const onX = componentVersions.filter(
-      (cv) => cv.patchId === ids.PATCH_X,
-    );
-    const onY = componentVersions.filter(
-      (cv) => cv.patchId === ids.PATCH_Y,
-    );
+    const onX = componentVersions.filter((cv) => cv.patchId === ids.PATCH_X);
+    const onY = componentVersions.filter((cv) => cv.patchId === ids.PATCH_Y);
     // current (closed): only A and C
     const globalIds = comps
       .filter((c) => c.releaseScope === "global")

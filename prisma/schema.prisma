@@ -152,6 +152,7 @@ model Patch {
     versionId         String             @db.Uuid
     /// Snapshot of tokens used to generate this patch's name
     tokenValues       Json
+    currentStatus     PatchStatus        @default(in_development)
     componentVersions ComponentVersion[]
 
     createdAt              DateTime                 @default(now())
