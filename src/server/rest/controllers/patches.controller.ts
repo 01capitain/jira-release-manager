@@ -98,21 +98,6 @@ export const createPatch = async (
   }
 };
 
-export const getPatchStatus = async (context: RestContext, patchId: string) => {
-  const svc = new PatchStatusService(context.db);
-  const [status, history] = await Promise.all([
-    svc.getCurrentStatus(patchId),
-    svc.getHistory(patchId),
-  ]);
-  const mappedHistory = mapToPatchTransitionDtos(history).map(
-    ({ patchId: _omit, ...entry }) => entry,
-  );
-  return PatchStatusResponseSchema.parse({
-    status,
-    history: mappedHistory,
-  });
-};
-
 export const getPatchDefaultSelection = async (
   context: RestContext,
   patchId: string,
@@ -231,27 +216,6 @@ export const patchManagementPaths = {
         },
         400: jsonErrorResponse("Validation error"),
         401: jsonErrorResponse("Authentication required"),
-      },
-    },
-  },
-  "/patches/{patchId}/status": {
-    get: {
-      operationId: "getPatchStatus",
-      summary: "Get patch status",
-      tags: ["Release Versions"],
-      requestParams: {
-        path: PatchIdParamSchema,
-      },
-      responses: {
-        200: {
-          description: "Patch status",
-          content: {
-            "application/json": {
-              schema: PatchStatusResponseSchema,
-            },
-          },
-        },
-        404: jsonErrorResponse("Patch not found"),
       },
     },
   },
