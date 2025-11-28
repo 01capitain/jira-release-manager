@@ -159,8 +159,8 @@ export default function ReleaseCalendar({
           Release {release.name} calendar
         </CardTitle>
         <CardDescription>
-          Patches for release {release.name} plotted on their creation
-          dates. Use the calendar controls to review previous months.
+          Patches for release {release.name} plotted on their creation dates.
+          Use the calendar controls to review previous months.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -172,7 +172,7 @@ export default function ReleaseCalendar({
                 onClick={toggleRangePicker}
                 className="inline-flex items-center gap-2 font-medium underline-offset-4 hover:underline"
               >
-                <span>Showing builds from {rangeSummary}</span>
+                <span>Showing patches from {rangeSummary}</span>
                 <svg
                   aria-hidden="true"
                   className="h-4 w-4 text-neutral-500 transition-transform"
@@ -197,7 +197,7 @@ export default function ReleaseCalendar({
                 onClick={() => setSelectedRange(defaultRange)}
                 disabled={resetButtonDisabled}
               >
-                Reset to builds
+                Reset to patches
               </Button>
             </div>
             {rangePickerOpen ? (
@@ -220,8 +220,8 @@ export default function ReleaseCalendar({
         ) : null}
         {events.length === 0 ? (
           <p className="text-sm text-neutral-500 dark:text-neutral-400">
-            This release does not have any builds yet. New builds will appear on
-            the calendar as they are created.
+            This release does not have any patches yet. New patches will appear
+            on the calendar as they are created.
           </p>
         ) : (
           <CalendarProvider
