@@ -1,4 +1,7 @@
-import { releaseComponentFixtures } from "./release-components";
+import {
+  releaseComponentFixtures,
+  type ReleaseComponentFixture,
+} from "./release-components";
 import { userFixtures } from "./users";
 import type { ReleaseTrack } from "~/shared/types/release-track";
 
@@ -15,7 +18,7 @@ type ReleaseVersionFixtureData = {
     createdAt: string;
     increment: number;
     status: "in_development" | "in_deployment" | "active" | "deprecated";
-    releaseComponentIds: string[];
+    releaseComponentIds: ReleaseComponentFixture["id"][];
   }>;
 };
 
@@ -577,8 +580,7 @@ const RELEASE_VERSIONS = {
 } satisfies Record<string, ReleaseVersionFixtureData>;
 
 export type ReleaseVersionFixtureKey = keyof typeof RELEASE_VERSIONS;
-export type ReleaseVersionFixtureStub =
-  (typeof RELEASE_VERSIONS)[ReleaseVersionFixtureKey];
+export type ReleaseVersionFixtureStub = ReleaseVersionFixtureData;
 
 export const releaseVersionFixtures = Object.freeze(RELEASE_VERSIONS) as Record<
   ReleaseVersionFixtureKey,

@@ -83,7 +83,9 @@ function assertDevelopmentEnv() {
   }
 }
 
-function toDbReleaseTrack(track: unknown): DbReleaseTrack {
+function toDbReleaseTrack(
+  track: ReleaseVersionFixtureStub["releaseTrack"],
+): DbReleaseTrack {
   switch (track) {
     case "Future":
       return "Future";
@@ -96,7 +98,7 @@ function toDbReleaseTrack(track: unknown): DbReleaseTrack {
     case "Archived":
       return "Archived";
     default:
-      return "Future";
+      throw new Error(`Unknown release track fixture value: ${String(track)}`);
   }
 }
 
