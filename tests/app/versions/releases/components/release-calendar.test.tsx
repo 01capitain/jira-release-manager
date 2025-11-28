@@ -44,10 +44,10 @@ describe("ReleaseCalendar", () => {
     render(<ReleaseCalendar release={createRelease()} events={[]} />);
 
     const emptyState = screen.getByText(
-      /does not have any builds yet\. New builds will appear/i,
+      /does not have any patches yet\. New patches will appear/i,
     );
     expect(emptyState).toBeTruthy();
-    expect(screen.queryByText(/Showing builds from/i)).toBeNull();
+    expect(screen.queryByText(/Showing patches from/i)).toBeNull();
   });
 
   it("renders release context, summary, and feature chips when events exist", () => {
@@ -62,7 +62,7 @@ describe("ReleaseCalendar", () => {
       name: /Release 2\.1\.0 calendar/i,
     });
     expect(heading).toBeTruthy();
-    expect(screen.getByText(/Showing builds from/i)).toBeTruthy();
+    expect(screen.getByText(/Showing patches from/i)).toBeTruthy();
     expect(screen.getByText("API build")).toBeTruthy();
     expect(screen.getByText("Web")).toBeTruthy();
   });
@@ -72,7 +72,9 @@ describe("ReleaseCalendar", () => {
       <ReleaseCalendar release={createRelease()} events={[createEvent()]} />,
     );
 
-    const toggle = screen.getByRole("button", { name: /Showing builds from/i });
+    const toggle = screen.getByRole("button", {
+      name: /Showing patches from/i,
+    });
     const initialGridCount = screen.queryAllByRole("grid").length;
     fireEvent.click(toggle);
     const expandedGridCount = screen.queryAllByRole("grid").length;
