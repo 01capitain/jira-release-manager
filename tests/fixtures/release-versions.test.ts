@@ -7,14 +7,14 @@ describe("releaseVersionFixtures", () => {
     );
   });
 
-  it("keeps built metadata for version 177 stable", () => {
+  it("keeps patch metadata for version 177 stable", () => {
     const version = releaseVersionFixtures.version177;
     expect(version).toBeDefined();
-    const builtNames = version.builtVersions.map((built) => built.name);
-    expect(builtNames).toEqual(["177.0", "177.1", "177.2"]);
+    const patchNames = version.patches.map((patch) => patch.name);
+    expect(patchNames).toEqual(["177.0", "177.1", "177.2"]);
 
     const statusByName = Object.fromEntries(
-      version.builtVersions.map((built) => [built.name, built.status]),
+      version.patches.map((patch) => [patch.name, patch.status]),
     );
     expect(statusByName["177.0"]).toBe("deprecated");
     expect(statusByName["177.1"]).toBe("active");

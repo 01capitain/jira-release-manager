@@ -1,6 +1,6 @@
 # REST Entity Playbook
 
-This guide distills everything we learned from the built version feature into a reusable playbook. Follow it whenever you expose a new domain entity via REST. The goal is that every entity has a single source of truth, consistent OpenAPI output, and well‑behaved tests.
+This guide distills everything we learned from the patch feature into a reusable playbook. Follow it whenever you expose a new domain entity via REST. The goal is that every entity has a single source of truth, consistent OpenAPI output, and well‑behaved tests.
 
 ---
 
@@ -8,7 +8,7 @@ This guide distills everything we learned from the built version feature into a 
 
 | Step | File | Notes |
 | --- | --- | --- |
-| Define the DTO type | `src/shared/types/<entity>.ts` | Use existing DTOs (e.g., `built-version.ts`) as a blueprint. Prefer `UuidV7` for identifiers and `ISO8601` for timestamps. |
+| Define the DTO type | `src/shared/types/<entity>.ts` | Use existing DTOs (e.g., `patch.ts`) as a blueprint. Prefer `UuidV7` for identifiers and `ISO8601` for timestamps. |
 | Add supporting enums/types | Same folder | Keep public, serialisable types alongside the DTO. Do not import Prisma types here. |
 
 ### UUID requirements
@@ -45,7 +45,7 @@ const ThingWithRelationsSchema = ThingDtoSchema.extend({
 | --- | --- | --- |
 | Return DTOs | `src/server/services/<entity>.service.ts` | Map Prisma results to DTOs before returning. Never leak raw Prisma objects. |
 | Normalise relations | `src/server/services/<entity>.relations.ts` | Keep relation allow-lists small and explicit. Cross-check with REST controllers. |
-| Emit audit logs | `src/server/services/<entity>.service.ts` | If a write touches domain state, use `ActionHistoryService` just as `BuiltVersionService` does. |
+| Emit audit logs | `src/server/services/<entity>.service.ts` | If a write touches domain state, use `ActionHistoryService` just as `PatchService` does. |
 
 Make sure any hard-coded IDs in tests use UUIDv7-formatted strings; the DTO schemas now enforce it.
 
@@ -89,10 +89,10 @@ If your schema metadata is present, the generator will collapse arrays of entiti
 | Step | File | Notes |
 | --- | --- | --- |
 | Service unit tests | `tests/services/<entity>.service.test.ts` | Continue to use mocked Prisma clients. When seeding fake data, ensure IDs match UUIDv7 format and timestamps are `Date` objects. |
-| REST e2e tests | `tests/e2e/<entity>.rest.e2e.test.ts` | Mirror the release and built version tests. Use request helpers (`NextRequest`) and parse the JSON with the exported response schemas to assert contracts. |
+| REST e2e tests | `tests/e2e/<entity>.rest.e2e.test.ts` | Mirror the release and patch tests. Use request helpers (`NextRequest`) and parse the JSON with the exported response schemas to assert contracts. |
 | Regression tests | `tests/e2e/<entity>.rest.e2e.test.ts` | Extend pagination and relation tests to cover new allow-lists. |
 
-For quick setup, copy the structure from the built version specs and replace the entity-specific fields.
+For quick setup, copy the structure from the patch specs and replace the entity-specific fields.
 
 ---
 

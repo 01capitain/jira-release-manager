@@ -8,7 +8,7 @@ import { ReleaseComponentService } from "~/server/services/release-component.ser
 import { ComponentVersionService } from "~/server/services/component-version.service";
 
 const COMPONENT_A_ID = releaseComponentFixtures.iosApp.id;
-const BUILT_VERSION_ID = "00000000-0000-7000-8000-000000000003";
+const PATCH_ID = "00000000-0000-7000-8000-000000000003";
 const COMPONENT_VERSION_ID = "00000000-0000-7000-8000-000000000004";
 
 type ReleaseComponentRow = {
@@ -54,19 +54,19 @@ type ReleaseComponentDelegate = {
 type ComponentVersionRow = {
   id: string;
   releaseComponentId: string;
-  builtVersionId: string;
+  patchId: string;
   name: string;
   increment: number;
   createdAt: Date;
 };
 
 type ComponentVersionFindManyArgs = {
-  where: { builtVersionId: string };
+  where: { patchId: string };
   orderBy: [{ releaseComponentId: "asc" }, { increment: "asc" }];
   select: {
     id: true;
     releaseComponentId: true;
-    builtVersionId: true;
+    patchId: true;
     name: true;
     increment: true;
     createdAt: true;
@@ -145,7 +145,7 @@ describe("ReleaseComponentService", () => {
     const res = await svc.create(userFixtures.adamScott.id, {
       name: "  Android App  ",
       color: "emerald",
-      namingPattern: "  app.android.{built_version}  ",
+      namingPattern: "  app.android.{patch}  ",
       releaseScope: "global",
     });
 
@@ -153,7 +153,7 @@ describe("ReleaseComponentService", () => {
       data: {
         name: "Android App",
         color: "emerald",
-        namingPattern: "app.android.{built_version}",
+        namingPattern: "app.android.{patch}",
         releaseScope: "global",
         createdBy: { connect: { id: userFixtures.adamScott.id } },
       },
@@ -171,13 +171,13 @@ describe("ReleaseComponentService", () => {
       ...androidFixture,
       name: "Android App",
       color: "emerald",
-      namingPattern: "app.android.{built_version}",
+      namingPattern: "app.android.{patch}",
     });
   });
 });
 
 describe("ComponentVersionService", () => {
-  test("listByBuilt maps rows to DTOs", async () => {
+  test("listByPatch maps rows to DTOs", async () => {
     const createdAt = new Date("2024-04-01T09:15:00Z");
     const componentVersionDelegate: ComponentVersionDelegate = {
       findMany: jest.fn<
@@ -187,7 +187,7 @@ describe("ComponentVersionService", () => {
         {
           id: COMPONENT_VERSION_ID,
           releaseComponentId: COMPONENT_A_ID,
-          builtVersionId: BUILT_VERSION_ID,
+          patchId: PATCH_ID,
           name: "component-a-0",
           increment: 0,
           createdAt,
@@ -199,15 +199,15 @@ describe("ComponentVersionService", () => {
     } as unknown as PrismaClient;
 
     const svc = new ComponentVersionService(db);
-    const res = await svc.listByBuilt(BUILT_VERSION_ID);
+    const res = await svc.listByPatch(PATCH_ID);
 
     expect(componentVersionDelegate.findMany).toHaveBeenCalledWith({
-      where: { builtVersionId: BUILT_VERSION_ID },
+      where: { patchId: PATCH_ID },
       orderBy: [{ releaseComponentId: "asc" }, { increment: "asc" }],
       select: {
         id: true,
         releaseComponentId: true,
-        builtVersionId: true,
+        patchId: true,
         name: true,
         increment: true,
         createdAt: true,
@@ -217,7 +217,7 @@ describe("ComponentVersionService", () => {
       {
         id: COMPONENT_VERSION_ID,
         releaseComponentId: COMPONENT_A_ID,
-        builtVersionId: BUILT_VERSION_ID,
+        patchId: PATCH_ID,
         name: "component-a-0",
         increment: 0,
         createdAt: createdAt.toISOString(),

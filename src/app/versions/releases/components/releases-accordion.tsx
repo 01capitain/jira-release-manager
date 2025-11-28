@@ -7,15 +7,15 @@ import {
   Check,
 } from "lucide-react";
 import * as React from "react";
-import type { ReleaseVersionWithBuildsDto } from "~/shared/types/release-version-with-builds";
-import type { BuiltVersionStatusResponse } from "~/shared/types/built-version-status-response";
+import type { ReleaseVersionWithPatchesDto } from "~/shared/types/release-version-with-patches";
+import type { PatchStatusResponse } from "~/shared/types/patch-status-response";
 import type { ReleaseTrack } from "~/shared/types/release-track";
 import { RELEASE_TRACK_VALUES } from "~/shared/types/release-track";
 import {
   STATUS_STALE_TIME_MS,
-  useBuiltVersionStatusQuery,
+  usePatchStatusQuery,
 } from "../../builds/api";
-import BuiltVersionCard from "../../builds/components/built-version-card";
+import PatchCard from "../../builds/components/patch-card";
 import { useReleaseEntities, useUpdateReleaseTrackMutation } from "../api";
 import { Button } from "~/components/ui/button";
 import {
@@ -24,40 +24,40 @@ import {
   PopoverTrigger,
 } from "~/components/ui/popover";
 import ReleaseCalendar from "./release-calendar";
-import { mapBuiltVersionsToCalendarEvents } from "../lib/calendar-events";
+import { mapPatchesToCalendarEvents } from "../lib/calendar-events";
 import { isRestApiError } from "~/lib/rest-client";
 
 function LatestActiveTag({
-  builtVersionIds,
-  builtVersionNames,
+  patchIds,
+  patchNames,
   statusSnapshots,
 }: {
-  builtVersionIds: string[];
-  builtVersionNames: string[];
-  statusSnapshots: Record<string, BuiltVersionStatusResponse | undefined>;
+  patchIds: string[];
+  patchNames: string[];
+  statusSnapshots: Record<string, PatchStatusResponse | undefined>;
 }) {
   // Query at most the first 5 builds for status to find the latest active,
   // but keep hook count/order stable across renders to satisfy the Rules of Hooks.
   const NIL_UUID = "00000000-0000-0000-0000-000000000000";
   const statusOptions = (index: number) => ({
     staleTime: STATUS_STALE_TIME_MS,
-    enabled: builtVersionIds[index] !== undefined,
-    initialData: statusSnapshots[builtVersionIds[index] ?? ""],
+    enabled: patchIds[index] !== undefined,
+    initialData: statusSnapshots[patchIds[index] ?? ""],
   });
-  const q0 = useBuiltVersionStatusQuery(
-    builtVersionIds[0] ?? NIL_UUID,
+  const q0 = usePatchStatusQuery(
+    patchIds[0] ?? NIL_UUID,
     statusOptions(0),
   );
-  const q1 = useBuiltVersionStatusQuery(builtVersionIds[1] ?? NIL_UUID, {
+  const q1 = usePatchStatusQuery(patchIds[1] ?? NIL_UUID, {
     ...statusOptions(1),
   });
-  const q2 = useBuiltVersionStatusQuery(builtVersionIds[2] ?? NIL_UUID, {
+  const q2 = usePatchStatusQuery(patchIds[2] ?? NIL_UUID, {
     ...statusOptions(2),
   });
-  const q3 = useBuiltVersionStatusQuery(builtVersionIds[3] ?? NIL_UUID, {
+  const q3 = usePatchStatusQuery(patchIds[3] ?? NIL_UUID, {
     ...statusOptions(3),
   });
-  const q4 = useBuiltVersionStatusQuery(builtVersionIds[4] ?? NIL_UUID, {
+  const q4 = usePatchStatusQuery(patchIds[4] ?? NIL_UUID, {
     ...statusOptions(4),
   });
   const queries = [q0, q1, q2, q3, q4];
@@ -72,7 +72,7 @@ function LatestActiveTag({
   })();
 
   if (activeIdx < 0) return null;
-  const name = builtVersionNames[activeIdx]!;
+  const name = patchNames[activeIdx]!;
   return (
     <span className="ml-2 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900/40 dark:text-green-200">
       Active: {name}
@@ -260,18 +260,18 @@ export default function ReleasesAccordion({
     Record<string, "list" | "calendar">
   >({});
 
-  const { releases, isFetching, builtStatusById, componentStateByBuiltId } =
+  const { releases, isFetching, patchStatusById, componentStateByPatchId } =
     useReleaseEntities({ enabled: true });
 
-  const normalizedReleases: ReleaseVersionWithBuildsDto[] = releases ?? [];
+  const normalizedReleases: ReleaseVersionWithPatchesDto[] = releases ?? [];
 
   return (
     <div className="space-y-5">
       {normalizedReleases.map((rel) => {
-        const ids = rel.builtVersions.map((b) => b.id);
-        const names = rel.builtVersions.map((b) => b.name);
+        const ids = rel.patches.map((b) => b.id);
+        const names = rel.patches.map((b) => b.name);
         const mode = viewModeByRelease[rel.id] ?? "list";
-        const calendarEvents = mapBuiltVersionsToCalendarEvents(
+        const calendarEvents = mapPatchesToCalendarEvents(
           rel,
           [],
           releaseComponentLookup,
@@ -291,16 +291,16 @@ export default function ReleasesAccordion({
                   <span className="text-base font-medium">
                     Release {rel.name}
                   </span>
-                  {/* When collapsed, show latest active built version */}
+                  {/* When collapsed, show latest active patch */}
                   <LatestActiveTag
-                    builtVersionIds={ids}
-                    builtVersionNames={names}
-                    statusSnapshots={builtStatusById}
+                    patchIds={ids}
+                    patchNames={names}
+                    statusSnapshots={patchStatusById}
                   />
                 </div>
                 <div className="flex items-center gap-2 text-xs text-neutral-500 dark:text-neutral-400">
                   <span className="text-xs">
-                    {rel.builtVersions.length} builds
+                    {rel.patches.length} builds
                   </span>
                   <Button
                     type="button"
@@ -339,8 +339,8 @@ export default function ReleasesAccordion({
                 <ReleaseCalendar release={rel} events={calendarEvents} />
               ) : (
                 <div className="relative grid w-full grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-                  {rel.builtVersions.map((b) => {
-                    const componentState = componentStateByBuiltId[b.id];
+                  {rel.patches.map((b) => {
+                    const componentState = componentStateByPatchId[b.id];
                     const componentsLoading =
                       componentState?.status === "loading";
                     const componentsError =
@@ -348,7 +348,7 @@ export default function ReleasesAccordion({
                         ? componentState.error
                         : undefined;
                     return (
-                      <BuiltVersionCard
+                      <PatchCard
                         key={b.id}
                         id={b.id}
                         name={b.name}
@@ -357,7 +357,7 @@ export default function ReleasesAccordion({
                         components={b.deployedComponents ?? []}
                         componentsLoading={componentsLoading}
                         componentsError={componentsError}
-                        initialStatus={builtStatusById[b.id]}
+                        initialStatus={patchStatusById[b.id]}
                       />
                     );
                   })}

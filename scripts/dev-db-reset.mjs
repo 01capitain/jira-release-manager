@@ -7,7 +7,7 @@ if (typeof process.loadEnvFile === "function") {
   process.loadEnvFile();
 }
 
-const args = process.argv.slice(2);
+const args = process.argv.slice(2).filter((arg) => arg !== "--");
 const allowedFlags = new Set(["--reseed"]);
 const unknownFlags = args.filter((arg) => !allowedFlags.has(arg));
 if (unknownFlags.length > 0) {
@@ -31,8 +31,8 @@ if (env !== "development") {
 const stages = [
   {
     type: "reset",
-    label: "pnpm run db:push -- --force-reset",
-    command: "pnpm run db:push -- --force-reset",
+    label: "pnpm exec prisma db push --force-reset",
+    command: ["pnpm", "exec", "prisma", "db", "push", "--force-reset"],
     summary: "Database schema was reset",
     spinnerText: "Resetting database schema...",
     enabled: true,
@@ -40,7 +40,7 @@ const stages = [
   {
     type: "init",
     label: "pnpm run db:init",
-    command: "pnpm run db:init",
+    command: ["pnpm", "run", "db:init"],
     summary: "Database extensions were initialized",
     spinnerText: "Ensuring DB extensions...",
     enabled: true,
@@ -48,7 +48,7 @@ const stages = [
   {
     type: "push",
     label: "pnpm run db:push",
-    command: "pnpm run db:push",
+    command: ["pnpm", "run", "db:push"],
     summary: "Database schema was updated",
     spinnerText: "Pushing Prisma schema...",
     enabled: true,
@@ -56,7 +56,7 @@ const stages = [
   {
     type: "seed",
     label: "pnpm run db:seed",
-    command: "pnpm run db:seed",
+    command: ["pnpm", "run", "db:seed"],
     summary: "Fixture data was reseeded",
     spinnerText: "Seeding fixtures...",
     enabled: shouldReseed,
@@ -179,8 +179,9 @@ async function runStage(stage) {
   setSpinner(stage.spinnerText);
 
   await new Promise((resolve, reject) => {
-    const child = spawn(stage.command, {
-      shell: true,
+    const [cmd, ...cmdArgs] = stage.command;
+    const child = spawn(cmd, cmdArgs, {
+      shell: false,
       stdio: ["ignore", "pipe", "pipe"],
     });
     let stdout = "";

@@ -4,7 +4,7 @@
 
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import ReleaseCalendar from "~/app/versions/releases/components/release-calendar";
-import type { ReleaseVersionWithBuildsDto } from "~/shared/types/release-version-with-builds";
+import type { ReleaseVersionWithPatchesDto } from "~/shared/types/release-version-with-patches";
 import type { ReleaseCalendarEvent } from "~/shared/types/release-calendar";
 import type { UuidV7 } from "~/shared/types/uuid";
 import type { ISO8601 } from "~/shared/types/iso8601";
@@ -13,21 +13,21 @@ const uuid = (value: string) => value as UuidV7;
 const iso = (value: string) => value as ISO8601;
 
 const createRelease = (
-  overrides: Partial<ReleaseVersionWithBuildsDto> = {},
-): ReleaseVersionWithBuildsDto => ({
+  overrides: Partial<ReleaseVersionWithPatchesDto> = {},
+): ReleaseVersionWithPatchesDto => ({
   id: uuid("00000000-0000-0000-0000-000000001000"),
   name: "2.1.0",
   releaseTrack: "Future",
   createdAt: iso("2024-01-01T00:00:00.000Z"),
-  builtVersions: [],
+  patches: [],
   ...overrides,
 });
 
 const createEvent = (
   overrides: Partial<ReleaseCalendarEvent> = {},
 ): ReleaseCalendarEvent => ({
-  builtVersionId: uuid("00000000-0000-0000-0000-000000002000"),
-  builtVersionName: "API build",
+  patchId: uuid("00000000-0000-0000-0000-000000002000"),
+  patchName: "API build",
   timestamp: iso("2024-01-05T12:00:00.000Z"),
   statusLabel: "Created",
   components: [
@@ -54,7 +54,7 @@ describe("ReleaseCalendar", () => {
     render(
       <ReleaseCalendar
         release={createRelease()}
-        events={[createEvent(), createEvent({ builtVersionName: "Web" })]}
+        events={[createEvent(), createEvent({ patchName: "Web" })]}
       />,
     );
 
@@ -99,7 +99,7 @@ describe("ReleaseCalendar", () => {
           id: uuid("00000000-0000-0000-0000-000000001111"),
           name: "3.0.0",
         })}
-        events={[createEvent({ builtVersionName: "CLI" })]}
+        events={[createEvent({ patchName: "CLI" })]}
       />,
     );
 

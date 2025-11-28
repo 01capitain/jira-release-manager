@@ -8,7 +8,7 @@ type ReleaseVersionFixtureData = {
   releaseTrack?: ReleaseTrack;
   createdAt: string;
   createdById: string;
-  builtVersions: Array<{
+  patches: Array<{
     id: string;
     name: string;
     versionId: string;
@@ -25,7 +25,7 @@ const RELEASE_VERSIONS = {
     name: "177",
     createdAt: "2025-01-05T09:00:00.000Z",
     createdById: userFixtures.adamScott.id,
-    builtVersions: [
+    patches: [
       {
         id: "018f1a50-0000-7000-9000-000000000311",
         name: "177.0",
@@ -72,7 +72,7 @@ const RELEASE_VERSIONS = {
     name: "178",
     createdAt: "2025-09-11T09:00:00.000Z",
     createdById: userFixtures.adamScott.id,
-    builtVersions: [
+    patches: [
       {
         id: "018f1a50-0000-7000-9000-000000000111",
         name: "178.0",
@@ -556,7 +556,7 @@ const RELEASE_VERSIONS = {
     name: "26.1",
     createdAt: "2025-02-12T11:45:00.000Z",
     createdById: userFixtures.melanieMayer.id,
-    builtVersions: [
+    patches: [
       {
         id: "018f1a50-0000-7000-9000-000000000321",
         name: "26.1.0",

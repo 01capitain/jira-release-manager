@@ -1,4 +1,4 @@
-import type { PrismaClient, Prisma, BuiltVersion } from "@prisma/client";
+import type { PrismaClient, Prisma, Patch } from "@prisma/client";
 import type { ComponentVersionDto } from "~/shared/types/component-version";
 import { mapToComponentVersionDtos } from "~/server/zod/dto/component-version.dto";
 import {
@@ -11,8 +11,8 @@ export class ComponentVersionService {
 
   async create(input: ComponentVersionCreateInput) {
     const {
-      builtId,
-      builtName,
+      patchId,
+      patchName,
       releaseName,
       componentId,
       namingPattern,
@@ -23,7 +23,7 @@ export class ComponentVersionService {
     if (!valid) return null;
     const computedName = expandPattern(namingPattern, {
       releaseVersion: releaseName,
-      builtVersion: builtName,
+      patch: patchName,
       nextIncrement: increment,
     });
     return this.db.componentVersion.create({
@@ -31,26 +31,24 @@ export class ComponentVersionService {
         name: computedName,
         increment,
         releaseComponent: { connect: { id: componentId } },
-        builtVersion: { connect: { id: builtId } },
+        patch: { connect: { id: patchId } },
         tokenValues: {
           release_version: releaseName,
-          built_version: builtName,
+          patch: patchName,
           increment,
         } as Prisma.InputJsonValue,
       },
     });
   }
 
-  async listByBuilt(
-    builtVersionId: BuiltVersion["id"],
-  ): Promise<ComponentVersionDto[]> {
+  async listByPatch(patchId: Patch["id"]): Promise<ComponentVersionDto[]> {
     const rows = await this.db.componentVersion.findMany({
-      where: { builtVersionId },
+      where: { patchId },
       orderBy: [{ releaseComponentId: "asc" }, { increment: "asc" }],
       select: {
         id: true,
         releaseComponentId: true,
-        builtVersionId: true,
+        patchId: true,
         name: true,
         increment: true,
         createdAt: true,
@@ -61,8 +59,8 @@ export class ComponentVersionService {
 }
 
 export type ComponentVersionCreateInput = {
-  builtId: string;
-  builtName: string;
+  patchId: string;
+  patchName: string;
   releaseName: string;
   componentId: string;
   namingPattern: string | null;

@@ -24,13 +24,13 @@ import {
 } from "~/components/ui/card";
 import { Calendar as RangeCalendar } from "~/components/ui/calendar";
 import { Button } from "~/components/ui/button";
-import type { ReleaseVersionWithBuildsDto } from "~/shared/types/release-version-with-builds";
+import type { ReleaseVersionWithPatchesDto } from "~/shared/types/release-version-with-patches";
 import type { ReleaseCalendarEvent } from "~/shared/types/release-calendar";
-import BuiltVersionCalendarEvent from "./built-version-calendar-event";
+import PatchCalendarEvent from "./patch-calendar-event";
 import type { DateRange } from "react-day-picker";
 
 type ReleaseCalendarProps = {
-  release: ReleaseVersionWithBuildsDto;
+  release: ReleaseVersionWithPatchesDto;
   events: ReleaseCalendarEvent[];
 };
 
@@ -65,8 +65,8 @@ export default function ReleaseCalendar({
 
   const features = React.useMemo<CalendarFeature[]>(() => {
     return events.map((event, index) => ({
-      id: `${event.builtVersionId}-${index}`,
-      name: event.builtVersionName,
+      id: `${event.patchId}-${index}`,
+      name: event.patchName,
       startAt: new Date(event.timestamp),
       endAt: new Date(event.timestamp),
       status: {
@@ -159,7 +159,7 @@ export default function ReleaseCalendar({
           Release {release.name} calendar
         </CardTitle>
         <CardDescription>
-          Built versions for release {release.name} plotted on their creation
+          Patches for release {release.name} plotted on their creation
           dates. Use the calendar controls to review previous months.
         </CardDescription>
       </CardHeader>
@@ -249,8 +249,8 @@ export default function ReleaseCalendar({
                 {({ feature }) => {
                   const event = (feature as CalendarFeature).event;
                   return (
-                    <BuiltVersionCalendarEvent
-                      name={event.builtVersionName}
+                    <PatchCalendarEvent
+                      name={event.patchName}
                       statusLabel={event.statusLabel}
                       components={event.components}
                     />

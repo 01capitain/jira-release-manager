@@ -1,12 +1,12 @@
 export type NamingContext = {
   releaseVersion: string;
-  builtVersion: string;
+  patch: string;
   nextIncrement: number;
 };
 
 export const AllowedTokens = [
   "{release_version}",
-  "{built_version}",
+  "{patch}",
   "{increment}",
 ] as const;
 export type AllowedToken = (typeof AllowedTokens)[number];
@@ -40,6 +40,6 @@ export function validatePattern(pattern: string): {
 export function expandPattern(pattern: string, ctx: NamingContext): string {
   return pattern
     .replaceAll("{release_version}", ctx.releaseVersion)
-    .replaceAll("{built_version}", ctx.builtVersion)
+    .replaceAll("{patch}", ctx.patch)
     .replaceAll("{increment}", String(ctx.nextIncrement));
 }

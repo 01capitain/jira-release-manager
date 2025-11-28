@@ -2,9 +2,9 @@ import type { ZodTypeAny } from "zod";
 import { clone } from "zod/mini";
 
 import {
-  BuiltVersionCreateSchema,
-  BuiltVersionDefaultSelectionInputSchema,
-} from "~/shared/schemas/built-version";
+  PatchCreateSchema,
+  PatchDefaultSelectionInputSchema,
+} from "~/shared/schemas/patch";
 import { ReleaseComponentCreateSchema } from "~/shared/schemas/release-component";
 import { ReleaseVersionCreateSchema } from "~/shared/schemas/release-version";
 
@@ -21,10 +21,10 @@ const cloneSchema = <T extends ZodTypeAny>(schema: T): T => {
   return cloned as T;
 };
 
-export const BuiltVersionCreateSchemaMini: typeof BuiltVersionCreateSchema =
-  cloneSchema(BuiltVersionCreateSchema);
-export const BuiltVersionDefaultSelectionInputSchemaMini: typeof BuiltVersionDefaultSelectionInputSchema =
-  cloneSchema(BuiltVersionDefaultSelectionInputSchema);
+export const PatchCreateSchemaMini: typeof PatchCreateSchema =
+  cloneSchema(PatchCreateSchema);
+export const PatchDefaultSelectionInputSchemaMini: typeof PatchDefaultSelectionInputSchema =
+  cloneSchema(PatchDefaultSelectionInputSchema);
 export const ReleaseComponentCreateSchemaMini: typeof ReleaseComponentCreateSchema =
   cloneSchema(ReleaseComponentCreateSchema);
 export const ReleaseVersionCreateSchemaMini: typeof ReleaseVersionCreateSchema =

@@ -6,11 +6,11 @@ import { createDocument, type ZodOpenApiPathsObject } from "zod-openapi";
 import YAML from "yaml";
 
 import { actionHistoryPaths } from "../src/server/rest/controllers/action-history.controller";
-import { builtVersionPaths } from "../src/server/rest/controllers/built-version-transitions.controller";
+import { patchPaths } from "../src/server/rest/controllers/patch-transitions.controller";
 import { releaseComponentPaths } from "../src/server/rest/controllers/release-components.controller";
 import { releaseVersionPaths } from "../src/server/rest/controllers/release-versions.controller";
 import { userPaths } from "../src/server/rest/controllers/users.controller";
-import { builtVersionManagementPaths } from "../src/server/rest/controllers/built-versions.controller";
+import { patchManagementPaths } from "../src/server/rest/controllers/patches.controller";
 import { jiraSetupPaths } from "../src/server/rest/controllers/jira-setup.controller";
 import { jiraReleasesPaths } from "../src/server/rest/controllers/jira-releases.controller";
 
@@ -23,9 +23,9 @@ const outputPath = path.join(rootDir, "docs", "api", "openapi.yaml");
 const paths = {
   ...releaseVersionPaths,
   ...releaseComponentPaths,
-  ...builtVersionPaths,
+  ...patchPaths,
   ...actionHistoryPaths,
-  ...builtVersionManagementPaths,
+  ...patchManagementPaths,
   ...jiraSetupPaths,
   ...jiraReleasesPaths,
   ...userPaths,

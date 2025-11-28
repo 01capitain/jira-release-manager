@@ -65,7 +65,7 @@ export class ReleaseComponentService {
     }
     if (filters?.releaseId) {
       where.componentVersions = {
-        some: { builtVersion: { versionId: filters.releaseId } },
+        some: { patch: { versionId: filters.releaseId } },
       };
     }
     const delegate = this.db.releaseComponent as unknown as {

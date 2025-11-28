@@ -13,12 +13,12 @@ const prisma = new PrismaClient();
 type SeedClient = PrismaClient | Prisma.TransactionClient;
 
 type DbReleaseComponentScope = "global" | "version_bound";
-type DbBuiltStatus =
+type DbPatchStatus =
   | "in_development"
   | "in_deployment"
   | "active"
   | "deprecated";
-type DbBuiltAction =
+type DbPatchAction =
   | "start_deployment"
   | "mark_active"
   | "deprecate"
@@ -38,8 +38,8 @@ const USER_IDS = [
 ];
 
 const TransitionChains: Record<
-  DbBuiltStatus,
-  Array<{ action: DbBuiltAction; from: DbBuiltStatus; to: DbBuiltStatus }>
+  DbPatchStatus,
+  Array<{ action: DbPatchAction; from: DbPatchStatus; to: DbPatchStatus }>
 > = {
   in_development: [],
   in_deployment: [
@@ -81,14 +81,14 @@ async function cleanup(tx: SeedClient) {
   await tx.componentVersion.deleteMany({
     where: { releaseComponentId: { in: RELEASE_COMPONENT_IDS } },
   });
-  await tx.builtVersionTransition.deleteMany({
+  await tx.patchTransition.deleteMany({
     where: {
-      builtVersion: {
+      patch: {
         versionId: { in: RELEASE_VERSION_IDS },
       },
     },
   });
-  await tx.builtVersion.deleteMany({
+  await tx.patch.deleteMany({
     where: { versionId: { in: RELEASE_VERSION_IDS } },
   });
   await tx.releaseVersion.deleteMany({
@@ -147,8 +147,8 @@ async function seedReleaseVersions(tx: SeedClient) {
   );
 
   for (const version of releaseVersionFixtureList) {
-    const lastUsedIncrement = version.builtVersions.reduce(
-      (max, built) => Math.max(max, built.increment),
+    const lastUsedIncrement = version.patches.reduce(
+      (max, patch) => Math.max(max, patch.increment),
       -1,
     );
     const release = await tx.releaseVersion.create({
@@ -162,26 +162,26 @@ async function seedReleaseVersions(tx: SeedClient) {
     });
 
     const componentCounters = new Map<string, number>();
-    const builtVersions = [...version.builtVersions].sort((a, b) =>
+    const patches = [...version.patches].sort((a, b) =>
       a.createdAt.localeCompare(b.createdAt),
     );
 
-    for (const built of builtVersions) {
-      const builtRow = await tx.builtVersion.create({
+    for (const patch of patches) {
+      const patchRow = await tx.patch.create({
         data: {
-          id: built.id,
-          name: built.name,
+          id: patch.id,
+          name: patch.name,
           versionId: release.id,
-          createdAt: new Date(built.createdAt),
+          createdAt: new Date(patch.createdAt),
           createdById: SEED_PLACEHOLDER_USER.id,
           tokenValues: {
             release_version: version.name,
-            increment: built.increment,
+            increment: patch.increment,
           } satisfies Prisma.InputJsonValue,
         },
       });
 
-      for (const componentId of built.releaseComponentIds) {
+      for (const componentId of patch.releaseComponentIds) {
         const component = componentMap.get(componentId);
         if (!component?.namingPattern) continue;
         const nextIncrement = (componentCounters.get(componentId) ?? -1) + 1;
@@ -189,33 +189,33 @@ async function seedReleaseVersions(tx: SeedClient) {
         await tx.componentVersion.create({
           data: {
             releaseComponentId: componentId,
-            builtVersionId: builtRow.id,
+            patchId: patchRow.id,
             name: expandPattern(component.namingPattern, {
               releaseVersion: version.name,
-              builtVersion: builtRow.name,
+              patch: patchRow.name,
               nextIncrement,
             }),
             increment: nextIncrement,
-            createdAt: new Date(built.createdAt),
+            createdAt: new Date(patch.createdAt),
             tokenValues: {
               release_version: version.name,
-              built_version: builtRow.name,
+              patch: patchRow.name,
               increment: nextIncrement,
             } satisfies Prisma.InputJsonValue,
           },
         });
       }
 
-      const transitions = TransitionChains[built.status as DbBuiltStatus] ?? [];
+      const transitions = TransitionChains[patch.status as DbPatchStatus] ?? [];
       for (const [index, transition] of transitions.entries()) {
-        await tx.builtVersionTransition.create({
+        await tx.patchTransition.create({
           data: {
-            builtVersionId: builtRow.id,
+            patchId: patchRow.id,
             fromStatus: transition.from,
             toStatus: transition.to,
             action: transition.action,
             createdAt: new Date(
-              new Date(built.createdAt).getTime() + (index + 1) * 1000,
+              new Date(patch.createdAt).getTime() + (index + 1) * 1000,
             ),
             createdById: SEED_PLACEHOLDER_USER.id,
           },

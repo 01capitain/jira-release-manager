@@ -1,12 +1,12 @@
-import type { ReleaseVersionWithBuildsDto } from "~/shared/types/release-version-with-builds";
+import type { ReleaseVersionWithPatchesDto } from "~/shared/types/release-version-with-patches";
 import type {
   ReleaseCalendarEvent,
   ReleaseCalendarEventComponent,
 } from "~/shared/types/release-calendar";
 
 export type ReleaseCalendarExtraOccurrence = {
-  builtVersionId: ReleaseCalendarEvent["builtVersionId"];
-  builtVersionName: string;
+  patchId: ReleaseCalendarEvent["patchId"];
+  patchName: string;
   timestamp: ReleaseCalendarEvent["timestamp"];
   components?: ReleaseCalendarEventComponent[];
   statusLabel?: ReleaseCalendarEvent["statusLabel"];
@@ -14,17 +14,17 @@ export type ReleaseCalendarExtraOccurrence = {
 
 export type ReleaseComponentColorLookup = Record<string, { color?: string }>;
 
-export function mapBuiltVersionsToCalendarEvents(
-  release: ReleaseVersionWithBuildsDto,
+export function mapPatchesToCalendarEvents(
+  release: ReleaseVersionWithPatchesDto,
   extraOccurrences: ReleaseCalendarExtraOccurrence[] = [],
   componentLookup: ReleaseComponentColorLookup = {},
 ): ReleaseCalendarEvent[] {
-  const baseEvents: ReleaseCalendarEvent[] = release.builtVersions.map(
-    (built) => ({
-      builtVersionId: built.id,
-      builtVersionName: built.name,
-      timestamp: built.createdAt,
-      components: (built.deployedComponents ?? []).map((component) => ({
+  const baseEvents: ReleaseCalendarEvent[] = release.patches.map(
+    (patch) => ({
+      patchId: patch.id,
+      patchName: patch.name,
+      timestamp: patch.createdAt,
+      components: (patch.deployedComponents ?? []).map((component) => ({
         name: component.name,
         color: componentLookup[component.releaseComponentId]?.color,
       })),
@@ -33,8 +33,8 @@ export function mapBuiltVersionsToCalendarEvents(
 
   const mergedExtraEvents: ReleaseCalendarEvent[] = extraOccurrences.map(
     (occurrence) => ({
-      builtVersionId: occurrence.builtVersionId,
-      builtVersionName: occurrence.builtVersionName,
+      patchId: occurrence.patchId,
+      patchName: occurrence.patchName,
       timestamp: occurrence.timestamp,
       statusLabel: occurrence.statusLabel,
       components: occurrence.components ?? [],

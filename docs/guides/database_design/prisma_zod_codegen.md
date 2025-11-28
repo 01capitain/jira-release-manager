@@ -34,8 +34,7 @@ Note: In this environment we don’t auto-run `pnpm prisma generate`. Ask the de
 
 ## Example
 
-- Built Version DTO mapping at `src/server/zod/dto/built-version.dto.ts`:
+- Patch DTO mapping at `src/server/zod/dto/patch.dto.ts`:
   - Picks `{ id, name, versionId, createdAt }` from the model
   - Converts `createdAt` to ISO string
-  - Validates DTO via `BuiltVersionDtoSchema`
-
+  - Validates DTO via `PatchDtoSchema`

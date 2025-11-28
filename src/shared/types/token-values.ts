@@ -1,5 +1,5 @@
 export type TokenValues = {
   release_version: string;
-  built_version?: string;
+  patch?: string;
   increment: number;
 };

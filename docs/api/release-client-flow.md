@@ -3,17 +3,17 @@
 This page summarises the REST endpoints used by the release management UI. Refer to `openapi.yaml` for the canonical schema and pagination contracts.
 
 ## Release Versions
-- `GET /release-versions` — paginated list of release versions (`PaginatedResponse<ReleaseVersionDto>`). Supports `page`, `pageSize`, `sortBy` (`createdAt` | `name`, prefix with `-` for descending), and repeatable `relations` (e.g. `relations=builtVersions` to include builds).
+- `GET /release-versions` — paginated list of release versions (`PaginatedResponse<ReleaseVersionDto>`). Supports `page`, `pageSize`, `sortBy` (`createdAt` | `name`, prefix with `-` for descending), and repeatable `relations` (e.g. `relations=patches` to include patches).
 - `POST /release-versions` — create a release version. Body: `ReleaseVersionCreateInput`. Response: `ReleaseVersionDto`.
 
-## Built Versions
-- `GET /release-versions/{releaseId}/built-versions` — built versions for a given release.
-- `POST /release-versions/{releaseId}/built-versions` — create a built version. Body: `BuiltVersionCreateInput` (must include matching `versionId`).
-- `GET /built-versions/{builtId}/status` — current status and history for a built version.
-- `GET /built-versions/{builtId}/default-selection` — component selection defaults when preparing a successor build.
-- `GET /built-versions/{builtId}/component-versions` — component versions associated with a built version.
-- `POST /built-versions/{builtId}/successor` — arrange successor built components. Body: `{ builtVersionId, selectedReleaseComponentIds[] }`. Returns summary plus updated status/history.
-- Transition endpoints remain under `/release-versions/{releaseId}/built-versions/{builtId}/<action>` (`start-deployment`, `cancel-deployment`, `mark-active`, `revert-to-deployment`, `deprecate`, `reactivate`).
+## Patches
+- `GET /release-versions/{releaseId}/patches` — patches for a given release.
+- `POST /release-versions/{releaseId}/patches` — create a patch. Body: `PatchCreateInput` (must include matching `versionId`).
+- `GET /patches/{patchId}/status` — current status and history for a patch.
+- `GET /patches/{patchId}/default-selection` — component selection defaults when preparing a successor patch.
+- `GET /patches/{patchId}/component-versions` — component versions associated with a patch.
+- `POST /patches/{patchId}/successor` — arrange successor patch components. Body: `{ patchId, selectedReleaseComponentIds[] }`. Returns summary plus updated status/history.
+- Transition endpoints remain under `/release-versions/{releaseId}/patches/{patchId}/<action>` (`start-deployment`, `cancel-deployment`, `mark-active`, `revert-to-deployment`, `deprecate`, `reactivate`).
 
 ## Jira Setup
 - `GET /jira/setup/config` — expose the configured base URL and project key.

@@ -1,5 +1,5 @@
 import { ComponentVersionModelSchema } from "~/server/zod/schemas/variants/pure/ComponentVersion.pure";
-import { BuiltVersionIdSchema } from "~/server/zod/dto/built-version.dto";
+import { PatchIdSchema } from "~/server/zod/dto/patch.dto";
 import { ReleaseComponentIdSchema } from "~/server/zod/dto/release-component.dto";
 import type { ComponentVersionDto } from "~/shared/types/component-version";
 import { IsoTimestampSchema } from "~/shared/types/iso8601";
@@ -8,7 +8,7 @@ import { UuidV7Schema } from "~/shared/types/uuid";
 const ComponentVersionModelFieldsSchema = ComponentVersionModelSchema.pick({
   id: true,
   releaseComponentId: true,
-  builtVersionId: true,
+  patchId: true,
   name: true,
   increment: true,
   createdAt: true,
@@ -17,27 +17,27 @@ export const ComponentVersionDtoSchema = ComponentVersionModelFieldsSchema.omit(
   {
     id: true,
     releaseComponentId: true,
-    builtVersionId: true,
+    patchId: true,
     createdAt: true,
   },
 )
   .extend({
     id: UuidV7Schema,
     releaseComponentId: ReleaseComponentIdSchema,
-    builtVersionId: BuiltVersionIdSchema,
+    patchId: PatchIdSchema,
     createdAt: IsoTimestampSchema,
   })
   .meta({
     id: "ComponentVersion",
     title: "Component Version",
-    description: "Component version details deployed with a built version.",
+    description: "Component version details deployed with a patch.",
   });
 
 export function toComponentVersionDto(model: unknown): ComponentVersionDto {
   const parsed = ComponentVersionModelSchema.pick({
     id: true,
     releaseComponentId: true,
-    builtVersionId: true,
+    patchId: true,
     name: true,
     increment: true,
     createdAt: true,
@@ -49,7 +49,7 @@ export function toComponentVersionDto(model: unknown): ComponentVersionDto {
     releaseComponentId: ReleaseComponentIdSchema.parse(
       parsed.releaseComponentId,
     ),
-    builtVersionId: BuiltVersionIdSchema.parse(parsed.builtVersionId),
+    patchId: PatchIdSchema.parse(parsed.patchId),
     name: parsed.name,
     increment: parsed.increment,
     createdAt:

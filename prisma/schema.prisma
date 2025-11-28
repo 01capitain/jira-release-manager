@@ -24,8 +24,8 @@ datasource db {
     schemas    = ["app", "auth"]
 }
 
-// --- Built Version lifecycle enums ---
-enum BuiltVersionStatus {
+// --- Patch lifecycle enums ---
+enum PatchStatus {
     in_development
     in_deployment
     active
@@ -34,7 +34,7 @@ enum BuiltVersionStatus {
     @@schema("app")
 }
 
-enum BuiltVersionAction {
+enum PatchAction {
     start_deployment
     cancel_deployment
     mark_active
@@ -64,14 +64,14 @@ enum ActionExecutionStatus {
 }
 
 model ReleaseVersion {
-    id                String         @id @default(dbgenerated("uuidv7()")) @db.Uuid
-    name              String         @unique
+    id                String    @id @default(dbgenerated("uuidv7()")) @db.Uuid
+    name              String    @unique
     // componentVersions ComponentVersion[]
-    builtVersions     BuiltVersion[]
-    /// Tracks the last used builtVersion increment for this release
-    /// Starts at -1 so the first auto-created builtVersion gets increment 0
-    lastUsedIncrement Int            @default(-1)
-    releaseTrack      ReleaseTrack   @default(Future)
+    patches           Patch[]
+    /// Tracks the last used patch increment for this release
+    /// Starts at -1 so the first auto-created patch gets increment 0
+    lastUsedIncrement Int         @default(-1)
+    releaseTrack      ReleaseTrack @default(Future)
 
     createdAt   DateTime @default(now())
     updatedAt   DateTime @updatedAt
@@ -84,18 +84,18 @@ model ReleaseVersion {
 }
 
 model User {
-    id                     String                   @id @default(dbgenerated("uuidv7()")) @db.Uuid
+    id                     String @id @default(dbgenerated("uuidv7()")) @db.Uuid
     name                   String?
     // TODO: Remove
-    email                  String?                  @unique
+    email                  String? @unique
     emailVerified          DateTime?
     image                  String?
     accounts               Account[]
     sessions               Session[]
     ReleaseVersions        ReleaseVersion[]
-    BuiltVersions          BuiltVersion[]
+    Patches                Patch[]
     ReleaseComponents      ReleaseComponent[]
-    BuiltVersionTransition BuiltVersionTransition[]
+    PatchTransition        PatchTransition[]
     jiraCredential         JiraCredential?
     actionLogs             ActionLog[]
 
@@ -145,12 +145,12 @@ model VerificationToken {
     @@schema("auth")
 }
 
-model BuiltVersion {
+model Patch {
     id                String             @id @default(dbgenerated("uuidv7()")) @db.Uuid
     name              String
     version           ReleaseVersion     @relation(fields: [versionId], references: [id])
     versionId         String             @db.Uuid
-    /// Snapshot of tokens used to generate this built version's name
+    /// Snapshot of tokens used to generate this patch's name
     tokenValues       Json
     componentVersions ComponentVersion[]
 
@@ -158,7 +158,7 @@ model BuiltVersion {
     updatedAt              DateTime                 @updatedAt
     createdBy              User                     @relation(fields: [createdById], references: [id])
     createdById            String                   @db.Uuid
-    BuiltVersionTransition BuiltVersionTransition[]
+    PatchTransition        PatchTransition[]
 
     @@index([versionId, createdAt])
     @@index([createdById])
@@ -193,8 +193,8 @@ model ComponentVersion {
     id                 String           @id @default(dbgenerated("uuidv7()")) @db.Uuid
     releaseComponent   ReleaseComponent @relation(fields: [releaseComponentId], references: [id])
     releaseComponentId String           @db.Uuid
-    builtVersion       BuiltVersion     @relation(fields: [builtVersionId], references: [id])
-    builtVersionId     String           @db.Uuid
+    patch              Patch            @relation(fields: [patchId], references: [id])
+    patchId            String           @db.Uuid
     name               String
     increment          Int
     /// Snapshot of tokens used to generate this component version's name
@@ -203,28 +203,28 @@ model ComponentVersion {
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
 
-    /// Ensure at most one ComponentVersion exists per (builtVersion, releaseComponent)
-    @@unique([builtVersionId, releaseComponentId])
+    /// Ensure at most one ComponentVersion exists per (patch, releaseComponent)
+    @@unique([patchId, releaseComponentId])
     @@index([releaseComponentId])
-    @@index([builtVersionId])
+    @@index([patchId])
     @@schema("app")
 }
 
-// History of state transitions for Releases (Built Versions).
-model BuiltVersionTransition {
+// History of state transitions for Release patches.
+model PatchTransition {
     id             String             @id @default(dbgenerated("uuidv7()")) @db.Uuid
-    builtVersion   BuiltVersion       @relation(fields: [builtVersionId], references: [id])
-    builtVersionId String             @db.Uuid
-    fromStatus     BuiltVersionStatus
-    toStatus       BuiltVersionStatus
-    action         BuiltVersionAction
+    patch          Patch              @relation(fields: [patchId], references: [id])
+    patchId        String             @db.Uuid
+    fromStatus     PatchStatus
+    toStatus       PatchStatus
+    action         PatchAction
 
     createdAt   DateTime @default(now())
     updatedAt   DateTime @updatedAt
     createdBy   User     @relation(fields: [createdById], references: [id])
     createdById String   @db.Uuid
 
-    @@index([builtVersionId, createdAt])
+    @@index([patchId, createdAt])
     @@schema("app")
 }
 

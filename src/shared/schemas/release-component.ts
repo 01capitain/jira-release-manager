@@ -35,16 +35,16 @@ export const ReleaseComponentCreateSchema = z.object({
     .min(1, { error: "Please enter a naming pattern." })
     .refine(
       (p) => {
-        // Only allow known tokens: {release_version}, {built_version}, {increment}
+        // Only allow known tokens: {release_version}, {patch}, {increment}
         const tokenRegex = /\{[^}]+\}/g;
         const tokens = p.match(tokenRegex) ?? [];
         return tokens.every((t) =>
-          ["{release_version}", "{built_version}", "{increment}"].includes(t),
+          ["{release_version}", "{patch}", "{increment}"].includes(t),
         );
       },
       {
         error:
-          "Pattern may only contain {release_version}, {built_version}, {increment} tokens.",
+          "Pattern may only contain {release_version}, {patch}, {increment} tokens.",
       },
     ),
   releaseScope: ReleaseComponentScopeSchema,

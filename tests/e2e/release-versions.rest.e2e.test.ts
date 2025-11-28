@@ -27,15 +27,15 @@ type UserRecord = {
 type ComponentVersionRecord = {
   id: string;
   releaseComponentId: string;
-  builtVersionId: string;
+  patchId: string;
   name: string;
   increment: number;
   createdAt: Date;
 };
 
-type BuiltVersionTransitionRecord = {
+type PatchTransitionRecord = {
   id: string;
-  builtVersionId: string;
+  patchId: string;
   fromStatus: string;
   toStatus: string;
   action: string;
@@ -43,13 +43,13 @@ type BuiltVersionTransitionRecord = {
   createdById: string;
 };
 
-type BuiltVersionRecord = {
+type PatchRecord = {
   id: string;
   name: string;
   versionId: string;
   createdAt: Date;
   componentVersions?: ComponentVersionRecord[];
-  transitions?: BuiltVersionTransitionRecord[];
+  transitions?: PatchTransitionRecord[];
 };
 
 type ReleaseRecord = {
@@ -57,7 +57,7 @@ type ReleaseRecord = {
   name: string;
   createdAt: Date;
   releaseTrack: ReleaseTrack;
-  builtVersions?: BuiltVersionRecord[];
+  patches?: PatchRecord[];
   createdBy?: UserRecord;
   lastUsedIncrement?: number;
 };
@@ -68,7 +68,7 @@ type ReleaseRecordInput = Omit<ReleaseRecord, "releaseTrack"> & {
 
 const releaseData: ReleaseRecord[] = [];
 let releaseCounter = 0;
-let builtCounter = 0;
+let patchCounter = 0;
 const COMPONENT_A_ID = releaseComponentFixtures.iosApp.id;
 const COMPONENT_VERSION_ID = "018f1a50-0000-7000-9000-00000000c0d1";
 const COMPONENT_VERSION_ID_2 = "018f1a50-0000-7000-9000-00000000c0d2";
@@ -84,12 +84,12 @@ const cloneComponentVersion = (
 ): ComponentVersionRecord => ({ ...record });
 
 const cloneTransition = (
-  record: BuiltVersionTransitionRecord,
-): BuiltVersionTransitionRecord => ({ ...record });
+  record: PatchTransitionRecord,
+): PatchTransitionRecord => ({ ...record });
 
-const cloneBuiltVersionRecord = (
-  record: BuiltVersionRecord,
-): BuiltVersionRecord => ({
+const clonePatchRecord = (
+  record: PatchRecord,
+): PatchRecord => ({
   ...record,
   componentVersions: record.componentVersions
     ? record.componentVersions.map(cloneComponentVersion)
@@ -101,8 +101,8 @@ const cloneBuiltVersionRecord = (
 
 const cloneReleaseRecord = (record: ReleaseRecord): ReleaseRecord => ({
   ...record,
-  builtVersions: record.builtVersions
-    ? record.builtVersions.map(cloneBuiltVersionRecord)
+  patches: record.patches
+    ? record.patches.map(clonePatchRecord)
     : [],
   createdBy: record.createdBy ? { ...record.createdBy } : undefined,
   lastUsedIncrement: record.lastUsedIncrement,
@@ -118,12 +118,12 @@ const sortByCreatedAt = <T extends { createdAt: Date }>(
   );
 };
 
-const materializeBuiltVersion = (
-  record: BuiltVersionRecord,
+const materializePatch = (
+  record: PatchRecord,
   args?: {
     select?: {
       componentVersions?: { orderBy?: { createdAt?: "asc" | "desc" } };
-      BuiltVersionTransition?: { orderBy?: { createdAt?: "asc" | "desc" } };
+      PatchTransition?: { orderBy?: { createdAt?: "asc" | "desc" } };
     };
   },
 ) => {
@@ -141,12 +141,12 @@ const materializeBuiltVersion = (
     );
     base.componentVersions = ordered.map((entry) => ({ ...entry }));
   }
-  if (args?.select?.BuiltVersionTransition) {
+  if (args?.select?.PatchTransition) {
     const ordered = sortByCreatedAt(
       record.transitions ?? [],
-      args.select.BuiltVersionTransition.orderBy?.createdAt ?? "asc",
+      args.select.PatchTransition.orderBy?.createdAt ?? "asc",
     );
-    base.BuiltVersionTransition = ordered.map((entry) => ({ ...entry }));
+    base.PatchTransition = ordered.map((entry) => ({ ...entry }));
   }
   return base;
 };
@@ -156,11 +156,11 @@ const materializeRelease = (
   args?: {
     include?: {
       createdBy?: unknown;
-      builtVersions?: {
+      patches?: {
         orderBy?: { createdAt?: "asc" | "desc" };
         select?: {
           componentVersions?: { orderBy?: { createdAt?: "asc" | "desc" } };
-          BuiltVersionTransition?: { orderBy?: { createdAt?: "asc" | "desc" } };
+          PatchTransition?: { orderBy?: { createdAt?: "asc" | "desc" } };
         };
       };
     };
@@ -176,11 +176,11 @@ const materializeRelease = (
   if (args?.include?.createdBy) {
     base.createdBy = record.createdBy ? { ...record.createdBy } : null;
   }
-  if (args?.include?.builtVersions) {
-    const direction = args.include.builtVersions.orderBy?.createdAt ?? "asc";
-    const ordered = sortByCreatedAt(record.builtVersions ?? [], direction);
-    base.builtVersions = ordered.map((entry) =>
-      materializeBuiltVersion(entry, args.include?.builtVersions),
+  if (args?.include?.patches) {
+    const direction = args.include.patches.orderBy?.createdAt ?? "asc";
+    const ordered = sortByCreatedAt(record.patches ?? [], direction);
+    base.patches = ordered.map((entry) =>
+      materializePatch(entry, args.include?.patches),
     );
   }
 
@@ -199,8 +199,8 @@ const setReleaseRecords = (records: ReleaseRecordInput[]) => {
     ),
   );
   releaseCounter = releaseData.length;
-  builtCounter = releaseData.reduce(
-    (total, record) => total + (record.builtVersions?.length ?? 0),
+  patchCounter = releaseData.reduce(
+    (total, record) => total + (record.patches?.length ?? 0),
     0,
   );
 };
@@ -208,7 +208,7 @@ const setReleaseRecords = (records: ReleaseRecordInput[]) => {
 const clearReleaseRecords = () => {
   releaseData.splice(0, releaseData.length);
   releaseCounter = 0;
-  builtCounter = 0;
+  patchCounter = 0;
 };
 
 type JsonResponse = {
@@ -246,11 +246,11 @@ mockDb.releaseVersion = {
       take?: number;
       include?: {
         createdBy?: unknown;
-        builtVersions?: {
+        patches?: {
           orderBy?: { createdAt?: "asc" | "desc" };
           select?: {
             componentVersions?: { orderBy?: { createdAt?: "asc" | "desc" } };
-            BuiltVersionTransition?: {
+            PatchTransition?: {
               orderBy?: { createdAt?: "asc" | "desc" };
             };
           };
@@ -284,11 +284,11 @@ mockDb.releaseVersion = {
       where?: { id?: string };
       include?: {
         createdBy?: unknown;
-        builtVersions?: {
+        patches?: {
           orderBy?: { createdAt?: "asc" | "desc" };
           select?: {
             componentVersions?: { orderBy?: { createdAt?: "asc" | "desc" } };
-            BuiltVersionTransition?: {
+            PatchTransition?: {
               orderBy?: { createdAt?: "asc" | "desc" };
             };
           };
@@ -324,7 +324,7 @@ mockDb.releaseVersion = {
       name,
       releaseTrack,
       createdAt,
-      builtVersions: [],
+      patches: [],
     };
     releaseData.push(record);
     return {
@@ -362,28 +362,28 @@ mockDb.releaseVersion = {
   ),
 };
 
-mockDb.builtVersion = {
+mockDb.patch = {
   create: jest.fn(async ({ data }: { data?: Record<string, unknown> } = {}) => {
-    builtCounter += 1;
+    patchCounter += 1;
     const versionId =
       (data?.version as { connect?: { id?: string } } | undefined)?.connect
         ?.id ?? "";
-    const built: BuiltVersionRecord = {
-      id: `018f1a50-0000-7000-9000-${builtCounter
+    const patch: PatchRecord = {
+      id: `018f1a50-0000-7000-9000-${patchCounter
         .toString(16)
         .padStart(12, "0")}`,
-      name: (data?.name as string | undefined) ?? `Built ${builtCounter}`,
+      name: (data?.name as string | undefined) ?? `Patch ${patchCounter}`,
       versionId,
       createdAt: new Date(
-        `2024-06-${(builtCounter + 10).toString().padStart(2, "0")}T08:00:00.000Z`,
+        `2024-06-${(patchCounter + 10).toString().padStart(2, "0")}T08:00:00.000Z`,
       ),
     };
     const release = releaseData.find((entry) => entry.id === versionId);
     if (release) {
-      release.builtVersions = release.builtVersions ?? [];
-      release.builtVersions.unshift(built);
+      release.patches = release.patches ?? [];
+      release.patches.unshift(patch);
     }
-    return built;
+    return patch;
   }),
 };
 
@@ -521,7 +521,7 @@ describe("Release Versions REST endpoints", () => {
           hasNextPage: true,
         },
       });
-      expect(parsed.data[0]).not.toHaveProperty("builtVersions");
+      expect(parsed.data[0]).not.toHaveProperty("patches");
       const findManyCalls = (mockDb.releaseVersion as { findMany: jest.Mock })
         .findMany.mock.calls as Array<[Record<string, unknown>]>;
       const args = findManyCalls[0]?.[0] ?? {};
@@ -578,7 +578,7 @@ describe("Release Versions REST endpoints", () => {
     it("includes requested relations when relations query params are provided", async () => {
       authMock.mockResolvedValue(authenticatedSession);
       const releaseId = "018f1a50-0000-7000-8000-000000001111";
-      const builtId = "018f1a50-0000-7000-9000-000000001112";
+      const patchId = "018f1a50-0000-7000-9000-000000001112";
       setReleaseRecords([
         {
           id: releaseId,
@@ -589,9 +589,9 @@ describe("Release Versions REST endpoints", () => {
             name: "Owner",
             email: "owner@example.com",
           },
-          builtVersions: [
+          patches: [
             {
-              id: builtId,
+              id: patchId,
               name: "Release With Relations.0",
               versionId: releaseId,
               createdAt: new Date("2024-06-02T09:00:00.000Z"),
@@ -599,7 +599,7 @@ describe("Release Versions REST endpoints", () => {
                 {
                   id: COMPONENT_VERSION_ID,
                   releaseComponentId: COMPONENT_A_ID,
-                  builtVersionId: builtId,
+                  patchId: patchId,
                   name: "component-a",
                   increment: 0,
                   createdAt: new Date("2024-06-02T10:00:00.000Z"),
@@ -608,7 +608,7 @@ describe("Release Versions REST endpoints", () => {
               transitions: [
                 {
                   id: TRANSITION_ID,
-                  builtVersionId: builtId,
+                  patchId: patchId,
                   fromStatus: "in_development",
                   toStatus: "in_deployment",
                   action: "start_deployment",
@@ -622,7 +622,7 @@ describe("Release Versions REST endpoints", () => {
       ]);
 
       const request = new NextRequest(
-        "http://test/api/v1/release-versions?relations=creater&relations=builtVersions&relations=builtVersions.deployedComponents&relations=builtVersions.transitions",
+        "http://test/api/v1/release-versions?relations=creater&relations=patches&relations=patches.deployedComponents&relations=patches.transitions",
       );
 
       const response = await executeHandler(listReleaseVersions, request);
@@ -635,8 +635,8 @@ describe("Release Versions REST endpoints", () => {
         name: "Owner",
         email: "owner@example.com",
       });
-      expect(parsed.data[0]?.builtVersions?.[0]).toMatchObject({
-        id: builtId,
+      expect(parsed.data[0]?.patches?.[0]).toMatchObject({
+        id: patchId,
         deployedComponents: [
           expect.objectContaining({
             releaseComponentId: COMPONENT_A_ID,
@@ -653,7 +653,7 @@ describe("Release Versions REST endpoints", () => {
         args as {
           include?: {
             createdBy?: { select?: Record<string, boolean> };
-            builtVersions?: {
+            patches?: {
               select?: Record<string, unknown>;
             };
           };
@@ -664,9 +664,9 @@ describe("Release Versions REST endpoints", () => {
         name: true,
         email: true,
       });
-      expect(include?.builtVersions?.select?.componentVersions).toBeDefined();
+      expect(include?.patches?.select?.componentVersions).toBeDefined();
       expect(
-        include?.builtVersions?.select?.BuiltVersionTransition,
+        include?.patches?.select?.PatchTransition,
       ).toBeDefined();
     });
 
@@ -694,7 +694,7 @@ describe("Release Versions REST endpoints", () => {
       ).toContain("unknownRelation");
 
       const nestedOnlyRequest = new NextRequest(
-        "http://test/api/v1/release-versions?relations=builtVersions.deployedComponents",
+        "http://test/api/v1/release-versions?relations=patches.deployedComponents",
       );
       const nestedOnlyResponse = await executeHandler(
         listReleaseVersions,
@@ -707,7 +707,7 @@ describe("Release Versions REST endpoints", () => {
       expect(nestedOnlyResponse.status).toBe(400);
       expect(
         nestedError.details?.missingParentRelations as string[] | undefined,
-      ).toContain("builtVersions.deployedComponents");
+      ).toContain("patches.deployedComponents");
     });
   });
 
@@ -746,7 +746,7 @@ describe("Release Versions REST endpoints", () => {
         select: { id: true, name: true, releaseTrack: true, createdAt: true },
       });
       expect(
-        (mockDb.builtVersion as { create: jest.Mock }).create,
+        (mockDb.patch as { create: jest.Mock }).create,
       ).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
@@ -799,8 +799,8 @@ describe("Release Versions REST endpoints", () => {
         [
           {
             where: {
-              builtVersionId_releaseComponentId: {
-                builtVersionId: string;
+              patchId_releaseComponentId: {
+                patchId: string;
                 releaseComponentId: string;
               };
             };
@@ -821,7 +821,7 @@ describe("Release Versions REST endpoints", () => {
       upsertCalls.forEach(([args]) => {
         expect(args.create.increment).toBe(0);
         expect(
-          args.where.builtVersionId_releaseComponentId.releaseComponentId,
+          args.where.patchId_releaseComponentId.releaseComponentId,
         ).toBe(args.create.releaseComponent.connect.id);
       });
     });
@@ -847,7 +847,7 @@ describe("Release Versions REST endpoints", () => {
         (mockDb.releaseVersion as Record<string, unknown>).create,
       ).not.toHaveBeenCalled();
       expect(
-        (mockDb.builtVersion as Record<string, unknown>).create,
+        (mockDb.patch as Record<string, unknown>).create,
       ).not.toHaveBeenCalled();
     });
   });
@@ -1065,7 +1065,7 @@ describe("Release Versions REST endpoints", () => {
           id: releaseId,
           name: "Release Detail",
           createdAt: new Date("2024-05-10T10:00:00.000Z"),
-          builtVersions: [
+          patches: [
             {
               id: "018f1a50-0000-7000-9000-0000000000ab",
               name: "Release Detail.1",
@@ -1093,14 +1093,14 @@ describe("Release Versions REST endpoints", () => {
         name: "Release Detail",
         createdAt: "2024-05-10T10:00:00.000Z",
       });
-      expect(parsed).not.toHaveProperty("builtVersions");
+      expect(parsed).not.toHaveProperty("patches");
       expect(parsed).not.toHaveProperty("creater");
     });
 
     it("returns release details with relations when requested", async () => {
       authMock.mockResolvedValue(authenticatedSession);
       const releaseId = "018f1a50-0000-7000-8000-0000000000bb";
-      const builtId = "018f1a50-0000-7000-9000-0000000000bc";
+      const patchId = "018f1a50-0000-7000-9000-0000000000bc";
       setReleaseRecords([
         {
           id: releaseId,
@@ -1111,9 +1111,9 @@ describe("Release Versions REST endpoints", () => {
             name: "Owner",
             email: "owner@example.com",
           },
-          builtVersions: [
+          patches: [
             {
-              id: builtId,
+              id: patchId,
               name: "Release Detail Relations.0",
               versionId: releaseId,
               createdAt: new Date("2024-05-13T08:00:00.000Z"),
@@ -1121,7 +1121,7 @@ describe("Release Versions REST endpoints", () => {
                 {
                   id: COMPONENT_VERSION_ID_2,
                   releaseComponentId: COMPONENT_A_ID,
-                  builtVersionId: builtId,
+                  patchId: patchId,
                   name: "component-b",
                   increment: 1,
                   createdAt: new Date("2024-05-13T09:00:00.000Z"),
@@ -1130,7 +1130,7 @@ describe("Release Versions REST endpoints", () => {
               transitions: [
                 {
                   id: TRANSITION_ID_2,
-                  builtVersionId: builtId,
+                  patchId: patchId,
                   fromStatus: "in_deployment",
                   toStatus: "active",
                   action: "mark_active",
@@ -1144,7 +1144,7 @@ describe("Release Versions REST endpoints", () => {
       ]);
 
       const request = new NextRequest(
-        `http://test/api/v1/release-versions/${releaseId}?relations=creater&relations=builtVersions&relations=builtVersions.deployedComponents&relations=builtVersions.transitions`,
+        `http://test/api/v1/release-versions/${releaseId}?relations=creater&relations=patches&relations=patches.deployedComponents&relations=patches.transitions`,
       );
 
       const response = await executeHandler(getReleaseVersion, request, {
@@ -1159,8 +1159,8 @@ describe("Release Versions REST endpoints", () => {
         name: "Owner",
         email: "owner@example.com",
       });
-      expect(parsed.builtVersions?.[0]).toMatchObject({
-        id: builtId,
+      expect(parsed.patches?.[0]).toMatchObject({
+        id: patchId,
         deployedComponents: [expect.objectContaining({ increment: 1 })],
         transitions: [expect.objectContaining({ action: "mark_active" })],
       });
@@ -1171,11 +1171,11 @@ describe("Release Versions REST endpoints", () => {
       const include = (
         args as {
           include?: {
-            builtVersions?: { select?: Record<string, unknown> };
+            patches?: { select?: Record<string, unknown> };
           };
         }
       ).include;
-      expect(include?.builtVersions?.select?.componentVersions).toBeDefined();
+      expect(include?.patches?.select?.componentVersions).toBeDefined();
     });
 
     it("returns 400 for invalid relations on detail endpoint", async () => {

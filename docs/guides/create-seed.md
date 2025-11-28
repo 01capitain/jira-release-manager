@@ -11,8 +11,8 @@ This guide captures how to turn a manually curated local dataset into an automat
 
 1. Start with a clean database: `pnpm db:reset -- --reseed` (the reset script reads `.env`, so no manual `NODE_ENV` override is needed).
 2. Configure everything through the UI until the data matches the desired golden state.
-3. Translate the curated data into deterministic fixtures under `tests/fixtures/*.ts`. These modules are the single source of truth for release components, seed users, and release versions (w/ built + component versions).
-4. Confirm the fixtures align with `docs/guides/business_logic`, especially the built version seeding behaviour and naming rules.
+3. Translate the curated data into deterministic fixtures under `tests/fixtures/*.ts`. These modules are the single source of truth for release components, seed users, and release versions (w/ patch + component versions).
+4. Confirm the fixtures align with `docs/guides/business_logic`, especially the patch seeding behaviour and naming rules.
 
 ## 2. Build The Seed Script
 
@@ -21,7 +21,7 @@ This guide captures how to turn a manually curated local dataset into an automat
 - Guards against non-development environments before any writes.
 - Wipes only the rows referenced by the fixtures to keep the script idempotent.
 - Inserts a dedicated placeholder (`SEED_PLACEHOLDER_USER`) plus the human fixture users so referential integrity stays intact.
-- Recreates release components, versions, built versions, component versions, and transition history with the UUID/timestamps from the fixtures while also capturing token snapshots.
+- Recreates release components, versions, patches, component versions, and transition history with the UUID/timestamps from the fixtures while also capturing token snapshots.
 
 Register the script in `package.json` so `pnpm run db:seed` executes it:
 

@@ -329,7 +329,7 @@ function HeaderActions({ pathname }: { pathname: string }) {
     setIsFetching(true);
     try {
       await queryClient.invalidateQueries({
-        queryKey: ["release-versions", "with-builds"],
+        queryKey: ["release-versions", "with-patches"],
       });
     } finally {
       setIsFetching(false);

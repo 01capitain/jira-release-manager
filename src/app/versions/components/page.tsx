@@ -55,14 +55,14 @@ const scopeMeta = scopeOptions.reduce(
 );
 
 const PREVIEW_RELEASE_VERSION = "v26.1";
-const PREVIEW_BUILT_VERSION = `${PREVIEW_RELEASE_VERSION}.0`;
+const PREVIEW_PATCH = `${PREVIEW_RELEASE_VERSION}.0`;
 const PREVIEW_INCREMENT = 0;
-const DEFAULT_NAMING_PATTERN = "{built_version}";
+const DEFAULT_NAMING_PATTERN = "{patch}";
 
 function expandNamingPreview(pattern: string): string {
   return pattern
     .replaceAll("{release_version}", PREVIEW_RELEASE_VERSION)
-    .replaceAll("{built_version}", PREVIEW_BUILT_VERSION)
+    .replaceAll("{patch}", PREVIEW_PATCH)
     .replaceAll("{increment}", String(PREVIEW_INCREMENT));
 }
 
@@ -170,7 +170,7 @@ export default function VersionsComponentsPage() {
                 disabled={phase === "loading"}
               />
               <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                Allowed tokens: {"{release_version}"}, {"{built_version}"},{" "}
+                Allowed tokens: {"{release_version}"}, {"{patch}"},{" "}
                 {"{increment}"}
               </p>
             </div>

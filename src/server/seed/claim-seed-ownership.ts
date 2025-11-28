@@ -6,8 +6,8 @@ import { SEED_PLACEHOLDER_USER } from "~/server/seed/constants";
 const OwnershipTargets = [
   "releaseComponent",
   "releaseVersion",
-  "builtVersion",
-  "builtVersionTransition",
+  "patch",
+  "patchTransition",
   "actionLog",
 ] as const;
 
