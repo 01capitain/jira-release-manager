@@ -16,6 +16,7 @@ A quick map of this repository’s docs and guides. Each entry links to a source
 - [guides/business_logic/entity_management_policies](guides/business_logic/entity_management_policies.md) — how to add new domain entities and keep server/client in sync.
 - [guides/business_logic/service_conventions](guides/business_logic/service_conventions.md) — service design patterns (semantic IDs, SRP, transitions API).
 - [guides/business_logic/patch](guides/business_logic/patch.md) — Patch creation side effects, status lifecycle (history), and client caching.
+- [guides/business_logic/patch_lifecycle](guides/business_logic/patch_lifecycle.md) — canonical patch state machine with named transitions.
 - [guides/business_logic/release_component_naming](guides/business_logic/release_component_naming.md) — tokens, increments, and token snapshot persistence for component naming.
 - [guides/business_logic/error_handling_policy](guides/business_logic/error_handling_policy.md) — current error handling approach and known limitations.
 

@@ -3,8 +3,11 @@
  */
 
 import { render, screen } from "@testing-library/react";
+import * as ReactQuery from "@tanstack/react-query";
 import type { ActionHistoryEntryDto } from "~/shared/types/action-history";
 import type { PaginatedResponse } from "~/shared/types/pagination";
+import { IsoTimestampSchema } from "~/shared/types/iso8601";
+import { UuidV7Schema } from "~/shared/types/uuid";
 import { ActionHistoryLog } from "~/components/action-history/action-history-log";
 
 jest.mock("@tanstack/react-query", () => {
@@ -15,19 +18,20 @@ jest.mock("@tanstack/react-query", () => {
   };
 });
 
-const useInfiniteQueryMock = require("@tanstack/react-query")
-  .useInfiniteQuery as jest.MockedFunction<typeof import("@tanstack/react-query").useInfiniteQuery>;
+const useInfiniteQueryMock = ReactQuery.useInfiniteQuery as jest.MockedFunction<
+  typeof ReactQuery.useInfiniteQuery
+>;
 
 const makeEntry = (
   overrides: Partial<ActionHistoryEntryDto> = {},
 ): ActionHistoryEntryDto => ({
-  id: "018f1a50-0000-7000-9000-00000000aaaa",
+  id: UuidV7Schema.parse("018f1a50-0000-7000-9000-00000000aaaa"),
   actionType: "releaseVersion.track.update",
   message: "Release 123 track updated",
   status: "success",
-  createdAt: new Date("2024-01-01T12:00:00Z").toISOString(),
+  createdAt: IsoTimestampSchema.parse("2024-01-01T12:00:00Z"),
   createdBy: {
-    id: "user-1",
+    id: UuidV7Schema.parse("018f1a50-0000-7000-9000-00000000bbbb"),
     name: "Tester",
     email: "tester@example.com",
   },
@@ -51,7 +55,12 @@ describe("ActionHistoryLog", () => {
             },
           },
         ],
-      } as PaginatedResponse<ActionHistoryEntryDto>,
+      } as {
+        pages: Array<{
+          data: ActionHistoryEntryDto[];
+          pagination: PaginatedResponse<ActionHistoryEntryDto>["pagination"];
+        }>;
+      },
       isLoading: false,
       isFetching: false,
       isFetchingNextPage: false,
