@@ -806,35 +806,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/RestError"
-  /release-versions/{releaseId}/patches:
-    get:
-      operationId: listPatches
-      summary: List patches for a release
-      tags:
-        - Release Versions
-      parameters:
-        - in: path
-          name: releaseId
-          schema:
-            type: string
-            format: uuid
-            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$
-          required: true
-      responses:
-        "200":
-          description: Patches
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Patch"
-        "404":
-          description: Release not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/RestError"
   /patches/{patchId}/default-selection:
     get:
       operationId: getPatchDefaultSelection

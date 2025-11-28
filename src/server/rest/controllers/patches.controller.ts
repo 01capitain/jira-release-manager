@@ -10,15 +10,9 @@ import {
   PatchStatusSchema,
 } from "~/shared/types/patch-status";
 
-export const ReleasePatchesParamsSchema = z.object({
-  releaseId: z.uuidv7(),
-});
-
 export const PatchIdParamSchema = z.object({
   patchId: z.uuidv7(),
 });
-
-export const PatchListResponseSchema = z.array(PatchDtoSchema);
 
 export const PatchStatusHistoryEntrySchema = z.object({
   id: z.uuidv7(),
@@ -34,12 +28,6 @@ export const PatchStatusResponseSchema = z.object({
   history: z.array(PatchStatusHistoryEntrySchema),
 });
 
-export const listPatches = async (context: RestContext, releaseId: string) => {
-  const svc = new PatchService(context.db);
-  const rows = await svc.listByRelease(releaseId);
-  return PatchListResponseSchema.parse(rows);
-};
-
 export const getPatchDefaultSelection = async (
   context: RestContext,
   patchId: string,
@@ -50,27 +38,6 @@ export const getPatchDefaultSelection = async (
 };
 
 export const patchManagementPaths = {
-  "/release-versions/{releaseId}/patches": {
-    get: {
-      operationId: "listPatches",
-      summary: "List patches for a release",
-      tags: ["Release Versions"],
-      requestParams: {
-        path: ReleasePatchesParamsSchema,
-      },
-      responses: {
-        200: {
-          description: "Patches",
-          content: {
-            "application/json": {
-              schema: PatchListResponseSchema,
-            },
-          },
-        },
-        404: jsonErrorResponse("Release not found"),
-      },
-    },
-  },
   "/patches/{patchId}/default-selection": {
     get: {
       operationId: "getPatchDefaultSelection",
