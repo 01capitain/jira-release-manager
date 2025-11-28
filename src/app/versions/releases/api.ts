@@ -164,9 +164,7 @@ export const fetchReleasesWithPatches = async (options?: {
             const hasComponentData = Array.isArray(deployedComponents);
             return {
               ...patch,
-              deployedComponents: hasComponentData
-                ? (deployedComponents ?? [])
-                : [],
+              deployedComponents: hasComponentData ? deployedComponents : [],
               hasComponentData,
             };
           }) ?? [],
