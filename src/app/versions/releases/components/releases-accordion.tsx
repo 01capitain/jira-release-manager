@@ -92,19 +92,26 @@ const TRACK_STYLE_MAP: Record<
 const ReleaseNameEditor = ({
   releaseId,
   name,
+  editingId,
+  setEditingId,
+  isOpen,
+  anyOpen,
 }: {
   releaseId: string;
   name: string;
+  editingId: string | null;
+  setEditingId: (id: string | null) => void;
+  isOpen: boolean;
+  anyOpen: boolean;
 }) => {
   const mutation = useUpdateReleaseMutation();
-  const [editing, setEditing] = React.useState(false);
+  const editing = editingId === releaseId;
   const [value, setValue] = React.useState(name);
   const [error, setError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     setValue(name);
     setError(null);
-    setEditing(false);
   }, [name]);
 
   const onSave = async (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -118,7 +125,7 @@ const ReleaseNameEditor = ({
     }
     try {
       await mutation.mutateAsync({ releaseId, name: parsed.data.name });
-      setEditing(false);
+      setEditingId(null);
     } catch (err) {
       setError(
         isRestApiError(err)
@@ -130,80 +137,73 @@ const ReleaseNameEditor = ({
 
   if (!editing) {
     return (
-      <div className="group flex items-center gap-2">
+      <div className="group flex min-h-[2.4rem] items-center gap-2">
         <span className="text-base font-medium">Release {name}</span>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          aria-label={`Rename release ${name}`}
-          onClick={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            setEditing(true);
-          }}
-          className="text-neutral-500 opacity-0 transition-opacity group-hover:opacity-100 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200"
-        >
-          <Pencil className="h-4 w-4" aria-hidden="true" />
-        </Button>
+        {!isOpen && !anyOpen ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            aria-label={`Rename release ${name}`}
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              setEditingId(releaseId);
+            }}
+            className="text-neutral-500 opacity-0 transition-opacity group-hover:opacity-100 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200"
+          >
+            <Pencil className="h-4 w-4" aria-hidden="true" />
+          </Button>
+        ) : null}
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex items-center gap-2">
-        <Input
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          onClick={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-          }}
-          aria-label="Release name"
-          className="w-48"
-          disabled={mutation.isPending}
-        />
-        <Button
-          type="button"
-          size="sm"
-          onClick={onSave}
-          disabled={mutation.isPending}
-        >
-          Save
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          aria-label="Cancel rename"
-          onClick={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            setEditing(false);
-            setValue(name);
-            setError(null);
-          }}
-          disabled={mutation.isPending}
-        >
-          <XIcon className="h-4 w-4" aria-hidden="true" />
-        </Button>
-      </div>
+    <div className="flex min-h-[2.4rem] items-center gap-2">
+      <Input
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onClick={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+        }}
+        aria-label="Release name"
+        className="h-9 w-48"
+        disabled={mutation.isPending}
+      />
+      <Button
+        type="button"
+        size="sm"
+        onClick={onSave}
+        disabled={mutation.isPending}
+        className="h-9"
+      >
+        Save
+      </Button>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        aria-label="Cancel rename"
+        onClick={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          setEditingId(null);
+          setValue(name);
+          setError(null);
+        }}
+        disabled={mutation.isPending}
+      >
+        <XIcon className="h-4 w-4" aria-hidden="true" />
+      </Button>
       {mutation.isPending ? (
-        <output
-          aria-atomic="true"
-          className="text-xs text-neutral-500 dark:text-neutral-400"
-        >
+        <span className="text-xs text-neutral-500 dark:text-neutral-400">
           Saving…
-        </output>
+        </span>
       ) : null}
       {error ? (
-        <output
-          aria-atomic="true"
-          className="text-xs text-red-600 dark:text-red-400"
-        >
-          {error}
-        </output>
+        <span className="text-xs text-red-600 dark:text-red-400">{error}</span>
       ) : null}
     </div>
   );
@@ -352,9 +352,16 @@ export default function ReleasesAccordion({
   const [viewModeByRelease, setViewModeByRelease] = React.useState<
     Record<string, "list" | "calendar">
   >({});
+  const [openReleaseIds, setOpenReleaseIds] = React.useState<
+    Record<string, boolean>
+  >({});
+  const anyOpen = Object.values(openReleaseIds).some(Boolean);
 
   const { releases, isFetching, patchStatusById, componentStateByPatchId } =
     useReleaseEntities({ enabled: true });
+  const [editingReleaseId, setEditingReleaseId] = React.useState<string | null>(
+    null,
+  );
 
   const normalizedReleases: ReleaseVersionWithPatchesDto[] = releases ?? [];
 
@@ -373,6 +380,13 @@ export default function ReleasesAccordion({
           <details
             key={rel.id}
             className="group rounded-md border border-neutral-200 dark:border-neutral-800"
+            onToggle={(event) => {
+              const isOpen = (event.currentTarget as HTMLDetailsElement).open;
+              if (isOpen) {
+                setEditingReleaseId(null);
+              }
+              setOpenReleaseIds((prev) => ({ ...prev, [rel.id]: isOpen }));
+            }}
           >
             <summary className="flex cursor-pointer list-none items-stretch gap-3 rounded-md bg-neutral-50 pr-4 text-neutral-800 dark:bg-neutral-900 dark:text-neutral-100">
               <ReleaseTrackSelector
@@ -381,7 +395,14 @@ export default function ReleasesAccordion({
               />
               <div className="flex flex-1 flex-wrap items-center justify-between gap-3 py-2 pr-4 pl-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <ReleaseNameEditor releaseId={rel.id} name={rel.name} />
+                  <ReleaseNameEditor
+                    releaseId={rel.id}
+                    name={rel.name}
+                    editingId={editingReleaseId}
+                    setEditingId={setEditingReleaseId}
+                    isOpen={openReleaseIds[rel.id] ?? false}
+                    anyOpen={anyOpen}
+                  />
                   {/* When collapsed, show latest active patch */}
                   <LatestActiveTag
                     patchIds={ids}
