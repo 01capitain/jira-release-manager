@@ -14,8 +14,8 @@ import {
   buildReleaseVersionRelationState,
   type ReleaseVersionRelationState,
 } from "~/server/services/release-version.relations";
-import { mapToBuiltVersionTransitionDtos } from "~/server/zod/dto/built-version-transition.dto";
-import { toBuiltVersionDto } from "~/server/zod/dto/built-version.dto";
+import { mapToPatchTransitionDtos } from "~/server/zod/dto/patch-transition.dto";
+import { toPatchDto } from "~/server/zod/dto/patch.dto";
 import { mapToComponentVersionDtos } from "~/server/zod/dto/component-version.dto";
 import { toReleaseVersionDto } from "~/server/zod/dto/release-version.dto";
 import { toUserSummaryDto } from "~/server/zod/dto/user.dto";
@@ -27,16 +27,16 @@ import type { ReleaseVersionDto } from "~/shared/types/release-version";
 import type { ReleaseTrack } from "~/shared/types/release-track";
 import { DEFAULT_RELEASE_TRACK } from "~/shared/types/release-track";
 import type {
-  BuiltVersionWithRelationsDto,
+  PatchWithRelationsDto,
   ReleaseVersionRelationKey,
   ReleaseVersionWithRelationsDto,
 } from "~/shared/types/release-version-relations";
-import { BuiltVersionService } from "~/server/services/built-version.service";
+import { PatchService } from "~/server/services/patch.service";
 
 export class ReleaseVersionService {
   constructor(
     private readonly db: PrismaClient,
-    private readonly builtVersionService: BuiltVersionService = new BuiltVersionService(
+    private readonly patchService: PatchService = new PatchService(
       db,
     ),
   ) {}
@@ -50,32 +50,32 @@ export class ReleaseVersionService {
         select: { id: true, name: true, email: true },
       };
     }
-    if (state.includeBuiltVersions) {
-      const builtSelect: Prisma.BuiltVersionSelect = {
+    if (state.includePatches) {
+      const patchSelect: Prisma.PatchSelect = {
         id: true,
         name: true,
         versionId: true,
         createdAt: true,
       };
-      if (state.includeBuiltVersionComponents) {
-        builtSelect.componentVersions = {
+      if (state.includePatchComponents) {
+        patchSelect.componentVersions = {
           orderBy: { createdAt: "desc" },
           select: {
             id: true,
             releaseComponentId: true,
-            builtVersionId: true,
+            patchId: true,
             name: true,
             increment: true,
             createdAt: true,
           },
         };
       }
-      if (state.includeBuiltVersionTransitions) {
-        builtSelect.BuiltVersionTransition = {
+      if (state.includePatchTransitions) {
+        patchSelect.PatchTransition = {
           orderBy: { createdAt: "desc" },
           select: {
             id: true,
-            builtVersionId: true,
+            patchId: true,
             fromStatus: true,
             toStatus: true,
             action: true,
@@ -84,26 +84,26 @@ export class ReleaseVersionService {
           },
         };
       }
-      include.builtVersions = {
+      include.patches = {
         orderBy: { createdAt: "desc" },
-        select: builtSelect,
+        select: patchSelect,
       };
     }
     return Object.keys(include).length > 0 ? include : undefined;
   }
 
-  private mapBuiltVersion(
+  private mapPatch(
     row: unknown,
     state: ReleaseVersionRelationState,
-  ): BuiltVersionWithRelationsDto {
-    const base = toBuiltVersionDto(row);
+  ): PatchWithRelationsDto {
+    const base = toPatchDto(row);
     const typed = row as {
       componentVersions?: unknown[];
-      BuiltVersionTransition?: unknown[];
+      PatchTransition?: unknown[];
     };
-    const result: BuiltVersionWithRelationsDto = { ...base };
+    const result: PatchWithRelationsDto = { ...base };
     if (
-      state.includeBuiltVersionComponents &&
+      state.includePatchComponents &&
       Array.isArray(typed.componentVersions)
     ) {
       result.deployedComponents = mapToComponentVersionDtos(
@@ -111,11 +111,11 @@ export class ReleaseVersionService {
       );
     }
     if (
-      state.includeBuiltVersionTransitions &&
-      Array.isArray(typed.BuiltVersionTransition)
+      state.includePatchTransitions &&
+      Array.isArray(typed.PatchTransition)
     ) {
-      result.transitions = mapToBuiltVersionTransitionDtos(
-        typed.BuiltVersionTransition,
+      result.transitions = mapToPatchTransitionDtos(
+        typed.PatchTransition,
       );
     }
     return result;
@@ -128,15 +128,15 @@ export class ReleaseVersionService {
     const base = toReleaseVersionDto(row);
     const typed = row as {
       createdBy?: unknown;
-      builtVersions?: unknown[];
+      patches?: unknown[];
     };
     const result: ReleaseVersionWithRelationsDto = { ...base };
     if (state.includeCreater && typed.createdBy) {
       result.creater = toUserSummaryDto(typed.createdBy);
     }
-    if (state.includeBuiltVersions && Array.isArray(typed.builtVersions)) {
-      result.builtVersions = typed.builtVersions.map((built) =>
-        this.mapBuiltVersion(built, state),
+    if (state.includePatches && Array.isArray(typed.patches)) {
+      result.patches = typed.patches.map((patch) =>
+        this.mapPatch(patch, state),
       );
     }
     return result;
@@ -202,22 +202,22 @@ export class ReleaseVersionService {
         message: `Release ${release.name} stored`,
         metadata: { id: release.id },
       });
-      // Auto-create initial built version with increment 0
-      const builtIncrement = 0;
-      const builtName = `${release.name}.${builtIncrement}`;
-      const { auditTrail: builtTrail } =
-        await this.builtVersionService.createInitialForRelease(tx, {
+      // Auto-create initial patch with increment 0
+      const patchIncrement = 0;
+      const patchName = `${release.name}.${patchIncrement}`;
+      const { auditTrail: patchTrail } =
+        await this.patchService.createInitialForRelease(tx, {
           userId,
           releaseId: release.id,
           releaseName: release.name,
-          builtName,
+          patchName,
         });
-      auditTrail.push(...builtTrail);
+      auditTrail.push(...patchTrail);
 
       // Update release's lastUsedIncrement to 0
       await tx.releaseVersion.update({
         where: { id: release.id },
-        data: { lastUsedIncrement: builtIncrement },
+        data: { lastUsedIncrement: patchIncrement },
       });
 
       return release;

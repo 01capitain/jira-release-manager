@@ -36,7 +36,7 @@ export default function VersionsReleasesPage() {
       setName("");
       setOpen(false);
       await queryClient.invalidateQueries({
-        queryKey: ["release-versions", "with-builds"],
+        queryKey: ["release-versions", "with-patches"],
       });
     } catch (err) {
       setError(

@@ -10,3 +10,4 @@ export { SessionModelSchema } from "./Session.pure";
 export { VerificationTokenModelSchema } from "./VerificationToken.pure";
 export { ReleaseComponentModelSchema } from "./ReleaseComponent.pure";
 export { ComponentVersionModelSchema } from "./ComponentVersion.pure";
+export { PatchModelSchema } from "./Patch.pure";

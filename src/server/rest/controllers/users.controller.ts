@@ -16,7 +16,7 @@ export const UsersMeResponseSchema = z.object({
     releaseComponents: z.object({
       create: z.boolean(),
     }),
-    builtVersions: z.object({
+    patches: z.object({
       transition: z.boolean(),
     }),
   }),
@@ -35,7 +35,7 @@ export const getCurrentUser = (context: RestContext) => {
     permissions: {
       releaseVersions: { create: true },
       releaseComponents: { create: true },
-      builtVersions: { transition: true },
+      patches: { transition: true },
     },
   });
 };

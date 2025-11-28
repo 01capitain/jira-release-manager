@@ -46,9 +46,9 @@ paths:
               type: string
               enum:
                 - creater
-                - builtVersions
-                - builtVersions.deployedComponents
-                - builtVersions.transitions
+                - patches
+                - patches.deployedComponents
+                - patches.transitions
       responses:
         "200":
           description: Release versions page
@@ -78,7 +78,7 @@ paths:
                           $ref: "#/components/schemas/iso8601Timestamp"
                         creater:
                           $ref: "#/components/schemas/User"
-                        builtVersions:
+                        patches:
                           type: array
                           items:
                             type: object
@@ -98,7 +98,7 @@ paths:
                               transitions:
                                 type: array
                                 items:
-                                  $ref: "#/components/schemas/BuiltVersionTransition"
+                                  $ref: "#/components/schemas/PatchTransition"
                             required:
                               - name
                               - id
@@ -188,9 +188,9 @@ paths:
               type: string
               enum:
                 - creater
-                - builtVersions
-                - builtVersions.deployedComponents
-                - builtVersions.transitions
+                - patches
+                - patches.deployedComponents
+                - patches.transitions
       responses:
         "200":
           description: Release version
@@ -215,7 +215,7 @@ paths:
                     $ref: "#/components/schemas/iso8601Timestamp"
                   creater:
                     $ref: "#/components/schemas/User"
-                  builtVersions:
+                  patches:
                     type: array
                     items:
                       type: object
@@ -235,7 +235,7 @@ paths:
                         transitions:
                           type: array
                           items:
-                            $ref: "#/components/schemas/BuiltVersionTransition"
+                            $ref: "#/components/schemas/PatchTransition"
                       required:
                         - name
                         - id
@@ -476,10 +476,10 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/RestError"
-  /release-versions/{releaseId}/built-versions/{builtId}/start-deployment:
+  /release-versions/{releaseId}/patches/{patchId}/start-deployment:
     post:
-      operationId: startDeploymentBuiltVersion
-      summary: Start deployment built version
+      operationId: startDeploymentPatch
+      summary: Start deployment patch
       tags:
         - Release Versions
       parameters:
@@ -490,7 +490,7 @@ paths:
           required: true
           description: Universally unique identifier (version 7).
         - in: path
-          name: builtId
+          name: patchId
           schema:
             $ref: "#/components/schemas/uuidv7"
           required: true
@@ -501,7 +501,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/BuiltVersionTransitionResult"
+                $ref: "#/components/schemas/PatchTransitionResult"
         "400":
           description: Invalid transition
           content:
@@ -515,15 +515,15 @@ paths:
               schema:
                 $ref: "#/components/schemas/RestError"
         "404":
-          description: Built version not found
+          description: Patch not found
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/RestError"
-  /release-versions/{releaseId}/built-versions/{builtId}/cancel-deployment:
+  /release-versions/{releaseId}/patches/{patchId}/cancel-deployment:
     post:
-      operationId: cancelDeploymentBuiltVersion
-      summary: Cancel deployment built version
+      operationId: cancelDeploymentPatch
+      summary: Cancel deployment patch
       tags:
         - Release Versions
       parameters:
@@ -534,7 +534,7 @@ paths:
           required: true
           description: Universally unique identifier (version 7).
         - in: path
-          name: builtId
+          name: patchId
           schema:
             $ref: "#/components/schemas/uuidv7"
           required: true
@@ -545,7 +545,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/BuiltVersionTransitionResult"
+                $ref: "#/components/schemas/PatchTransitionResult"
         "400":
           description: Invalid transition
           content:
@@ -559,15 +559,15 @@ paths:
               schema:
                 $ref: "#/components/schemas/RestError"
         "404":
-          description: Built version not found
+          description: Patch not found
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/RestError"
-  /release-versions/{releaseId}/built-versions/{builtId}/mark-active:
+  /release-versions/{releaseId}/patches/{patchId}/mark-active:
     post:
-      operationId: markActiveBuiltVersion
-      summary: Mark active built version
+      operationId: markActivePatch
+      summary: Mark active patch
       tags:
         - Release Versions
       parameters:
@@ -578,7 +578,7 @@ paths:
           required: true
           description: Universally unique identifier (version 7).
         - in: path
-          name: builtId
+          name: patchId
           schema:
             $ref: "#/components/schemas/uuidv7"
           required: true
@@ -589,7 +589,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/BuiltVersionTransitionResult"
+                $ref: "#/components/schemas/PatchTransitionResult"
         "400":
           description: Invalid transition
           content:
@@ -603,15 +603,15 @@ paths:
               schema:
                 $ref: "#/components/schemas/RestError"
         "404":
-          description: Built version not found
+          description: Patch not found
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/RestError"
-  /release-versions/{releaseId}/built-versions/{builtId}/revert-to-deployment:
+  /release-versions/{releaseId}/patches/{patchId}/revert-to-deployment:
     post:
-      operationId: revertToDeploymentBuiltVersion
-      summary: Revert to deployment built version
+      operationId: revertToDeploymentPatch
+      summary: Revert to deployment patch
       tags:
         - Release Versions
       parameters:
@@ -622,7 +622,7 @@ paths:
           required: true
           description: Universally unique identifier (version 7).
         - in: path
-          name: builtId
+          name: patchId
           schema:
             $ref: "#/components/schemas/uuidv7"
           required: true
@@ -633,7 +633,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/BuiltVersionTransitionResult"
+                $ref: "#/components/schemas/PatchTransitionResult"
         "400":
           description: Invalid transition
           content:
@@ -647,15 +647,15 @@ paths:
               schema:
                 $ref: "#/components/schemas/RestError"
         "404":
-          description: Built version not found
+          description: Patch not found
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/RestError"
-  /release-versions/{releaseId}/built-versions/{builtId}/deprecate:
+  /release-versions/{releaseId}/patches/{patchId}/deprecate:
     post:
-      operationId: deprecateBuiltVersion
-      summary: Deprecate built version
+      operationId: deprecatePatch
+      summary: Deprecate patch
       tags:
         - Release Versions
       parameters:
@@ -666,7 +666,7 @@ paths:
           required: true
           description: Universally unique identifier (version 7).
         - in: path
-          name: builtId
+          name: patchId
           schema:
             $ref: "#/components/schemas/uuidv7"
           required: true
@@ -677,7 +677,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/BuiltVersionTransitionResult"
+                $ref: "#/components/schemas/PatchTransitionResult"
         "400":
           description: Invalid transition
           content:
@@ -691,15 +691,15 @@ paths:
               schema:
                 $ref: "#/components/schemas/RestError"
         "404":
-          description: Built version not found
+          description: Patch not found
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/RestError"
-  /release-versions/{releaseId}/built-versions/{builtId}/reactivate:
+  /release-versions/{releaseId}/patches/{patchId}/reactivate:
     post:
-      operationId: reactivateBuiltVersion
-      summary: Reactivate built version
+      operationId: reactivatePatch
+      summary: Reactivate patch
       tags:
         - Release Versions
       parameters:
@@ -710,7 +710,7 @@ paths:
           required: true
           description: Universally unique identifier (version 7).
         - in: path
-          name: builtId
+          name: patchId
           schema:
             $ref: "#/components/schemas/uuidv7"
           required: true
@@ -721,7 +721,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/BuiltVersionTransitionResult"
+                $ref: "#/components/schemas/PatchTransitionResult"
         "400":
           description: Invalid transition
           content:
@@ -735,7 +735,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/RestError"
         "404":
-          description: Built version not found
+          description: Patch not found
           content:
             application/json:
               schema:
@@ -790,10 +790,10 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/RestError"
-  /release-versions/{releaseId}/built-versions:
+  /release-versions/{releaseId}/patches:
     get:
-      operationId: listBuiltVersions
-      summary: List built versions for a release
+      operationId: listPatches
+      summary: List patches for a release
       tags:
         - Release Versions
       parameters:
@@ -806,13 +806,13 @@ paths:
           required: true
       responses:
         "200":
-          description: Built versions
+          description: Patches
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/BuiltVersion"
+                  $ref: "#/components/schemas/Patch"
         "404":
           description: Release not found
           content:
@@ -820,8 +820,8 @@ paths:
               schema:
                 $ref: "#/components/schemas/RestError"
     post:
-      operationId: createBuiltVersion
-      summary: Create built version
+      operationId: createPatch
+      summary: Create patch
       tags:
         - Release Versions
       parameters:
@@ -851,11 +851,11 @@ paths:
                 - name
       responses:
         "201":
-          description: Built version created
+          description: Patch created
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/BuiltVersion"
+                $ref: "#/components/schemas/Patch"
         "400":
           description: Validation error
           content:
@@ -868,15 +868,15 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/RestError"
-  /built-versions/{builtId}/status:
+  /patches/{patchId}/status:
     get:
-      operationId: getBuiltVersionStatus
-      summary: Get built version status
+      operationId: getPatchStatus
+      summary: Get patch status
       tags:
         - Release Versions
       parameters:
         - in: path
-          name: builtId
+          name: patchId
           schema:
             type: string
             format: uuid
@@ -884,7 +884,7 @@ paths:
           required: true
       responses:
         "200":
-          description: Built version status
+          description: Patch status
           content:
             application/json:
               schema:
@@ -926,20 +926,20 @@ paths:
                   - history
                 additionalProperties: false
         "404":
-          description: Built version not found
+          description: Patch not found
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/RestError"
-  /built-versions/{builtId}/default-selection:
+  /patches/{patchId}/default-selection:
     get:
-      operationId: getBuiltVersionDefaultSelection
-      summary: Get default component selection for a built version
+      operationId: getPatchDefaultSelection
+      summary: Get default component selection for a patch
       tags:
         - Release Versions
       parameters:
         - in: path
-          name: builtId
+          name: patchId
           schema:
             type: string
             format: uuid
@@ -963,20 +963,20 @@ paths:
                   - selectedReleaseComponentIds
                 additionalProperties: false
         "404":
-          description: Built version not found
+          description: Patch not found
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/RestError"
-  /built-versions/{builtId}/component-versions:
+  /patches/{patchId}/component-versions:
     get:
-      operationId: listComponentVersionsByBuilt
-      summary: List component versions for a built version
+      operationId: listComponentVersionsByPatch
+      summary: List component versions for a patch
       tags:
         - Release Versions
       parameters:
         - in: path
-          name: builtId
+          name: patchId
           schema:
             type: string
             format: uuid
@@ -992,20 +992,20 @@ paths:
                 items:
                   $ref: "#/components/schemas/ComponentVersion"
         "404":
-          description: Built version not found
+          description: Patch not found
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/RestError"
-  /built-versions/{builtId}/successor:
+  /patches/{patchId}/successor:
     post:
-      operationId: createSuccessorBuilt
-      summary: Arrange successor built components
+      operationId: createSuccessorPatch
+      summary: Arrange successor patch components
       tags:
         - Release Versions
       parameters:
         - in: path
-          name: builtId
+          name: patchId
           schema:
             type: string
             format: uuid
@@ -1018,7 +1018,7 @@ paths:
             schema:
               type: object
               properties:
-                builtVersionId:
+                patchId:
                   type: string
                   format: uuid
                   pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$
@@ -1030,7 +1030,7 @@ paths:
                     format: uuid
                     pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$
               required:
-                - builtVersionId
+                - patchId
                 - selectedReleaseComponentIds
       responses:
         "200":
@@ -1055,13 +1055,13 @@ paths:
                         type: integer
                         minimum: -9007199254740991
                         maximum: 9007199254740991
-                      successorBuiltId:
+                      successorPatchId:
                         type: string
                     required:
                       - moved
                       - created
                       - updated
-                      - successorBuiltId
+                      - successorPatchId
                     additionalProperties: false
                   status:
                     type: string
@@ -1112,7 +1112,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/RestError"
         "404":
-          description: Built version not found
+          description: Patch not found
           content:
             application/json:
               schema:
@@ -1363,7 +1363,7 @@ paths:
                         required:
                           - create
                         additionalProperties: false
-                      builtVersions:
+                      patches:
                         type: object
                         properties:
                           transition:
@@ -1374,7 +1374,7 @@ paths:
                     required:
                       - releaseVersions
                       - releaseComponents
-                      - builtVersions
+                      - patches
                     additionalProperties: false
                 required:
                   - id
@@ -1426,7 +1426,7 @@ components:
       additionalProperties: false
     ComponentVersion:
       title: Component Version
-      description: Component version details deployed with a built version.
+      description: Component version details deployed with a patch.
       type: object
       properties:
         name:
@@ -1439,7 +1439,7 @@ components:
           $ref: "#/components/schemas/uuidv7"
         releaseComponentId:
           $ref: "#/components/schemas/uuidv7"
-        builtVersionId:
+        patchId:
           $ref: "#/components/schemas/uuidv7"
         createdAt:
           $ref: "#/components/schemas/iso8601Timestamp"
@@ -1448,17 +1448,17 @@ components:
         - increment
         - id
         - releaseComponentId
-        - builtVersionId
+        - patchId
         - createdAt
       additionalProperties: false
-    BuiltVersionTransition:
-      title: Built Version Transition
-      description: Status transition event for a built version.
+    PatchTransition:
+      title: Patch Transition
+      description: Status transition event for a patch.
       type: object
       properties:
         id:
           $ref: "#/components/schemas/uuidv7"
-        builtVersionId:
+        patchId:
           $ref: "#/components/schemas/uuidv7"
         fromStatus:
           type: string
@@ -1472,7 +1472,7 @@ components:
           $ref: "#/components/schemas/uuidv7"
       required:
         - id
-        - builtVersionId
+        - patchId
         - fromStatus
         - toStatus
         - action
@@ -1579,13 +1579,13 @@ components:
         - id
         - createdAt
       additionalProperties: false
-    BuiltVersionTransitionResult:
-      title: Built Version Transition Result
-      description: Built version transition response including current status and history.
+    PatchTransitionResult:
+      title: Patch Transition Result
+      description: Patch transition response including current status and history.
       type: object
       properties:
-        builtVersion:
-          $ref: "#/components/schemas/BuiltVersion"
+        patch:
+          $ref: "#/components/schemas/Patch"
         status:
           type: string
           enum:
@@ -1596,15 +1596,15 @@ components:
         history:
           type: array
           items:
-            $ref: "#/components/schemas/BuiltVersionTransition"
+            $ref: "#/components/schemas/PatchTransition"
       required:
-        - builtVersion
+        - patch
         - status
         - history
       additionalProperties: false
-    BuiltVersion:
-      title: Built Version
-      description: Built version summary information.
+    Patch:
+      title: Patch
+      description: Patch summary information.
       type: object
       properties:
         name:

@@ -3,12 +3,12 @@ import { z } from "zod";
 import { createPaginatedRequestSchema } from "~/shared/schemas/pagination";
 import type { NormalizedPaginatedRequest } from "~/shared/types/pagination";
 
-export const ComponentVersionListByBuiltSchema = z.object({
-  builtVersionId: z.uuidv7({ error: "Invalid built version id" }),
+export const ComponentVersionListByPatchSchema = z.object({
+  patchId: z.uuidv7({ error: "Invalid patch id" }),
 });
 
-export type ComponentVersionListByBuiltInput = z.infer<
-  typeof ComponentVersionListByBuiltSchema
+export type ComponentVersionListByPatchInput = z.infer<
+  typeof ComponentVersionListByPatchSchema
 >;
 
 export const RELEASE_VERSION_SORT_FIELDS = ["createdAt", "name"] as const;
@@ -37,25 +37,25 @@ export type ReleaseVersionListInput = z.infer<
   typeof ReleaseVersionListInputSchema
 >;
 
-const builtVersionIdSchema = z.uuidv7({ error: "Invalid built version id" });
+const patchIdSchema = z.uuidv7({ error: "Invalid patch id" });
 
-export const BuiltVersionStatusInputSchema = z.object({
-  builtVersionId: builtVersionIdSchema,
+export const PatchStatusInputSchema = z.object({
+  patchId: patchIdSchema,
 });
 
-export type BuiltVersionStatusInput = z.infer<
-  typeof BuiltVersionStatusInputSchema
+export type PatchStatusInput = z.infer<
+  typeof PatchStatusInputSchema
 >;
 
-export const BuiltVersionCreateSuccessorInputSchema = z.object({
-  builtVersionId: builtVersionIdSchema,
+export const PatchCreateSuccessorInputSchema = z.object({
+  patchId: patchIdSchema,
   selectedReleaseComponentIds: z
     .array(z.uuidv7({ error: "Invalid release component id" }))
     .min(1, { error: "Select at least one component" }),
 });
 
-export type BuiltVersionCreateSuccessorInput = z.infer<
-  typeof BuiltVersionCreateSuccessorInputSchema
+export type PatchCreateSuccessorInput = z.infer<
+  typeof PatchCreateSuccessorInputSchema
 >;
 
 const JiraEmailSchema = z.string().trim().pipe(z.email());

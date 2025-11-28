@@ -2,7 +2,7 @@ import type { ReleaseVersionRelationKey } from "~/shared/types/release-version-r
 
 const TopLevelRelations = [
   "creater",
-  "builtVersions",
+  "patches",
 ] as const satisfies readonly ReleaseVersionRelationKey[];
 
 type ParentMap = Record<
@@ -12,15 +12,15 @@ type ParentMap = Record<
 
 const ParentRelation: ParentMap = {
   creater: null,
-  builtVersions: null,
-  "builtVersions.deployedComponents": "builtVersions",
-  "builtVersions.transitions": "builtVersions",
+  patches: null,
+  "patches.deployedComponents": "patches",
+  "patches.transitions": "patches",
 };
 
 const AllowedRelations = new Set<ReleaseVersionRelationKey>([
   ...TopLevelRelations,
-  "builtVersions.deployedComponents",
-  "builtVersions.transitions",
+  "patches.deployedComponents",
+  "patches.transitions",
 ]);
 
 export type ReleaseVersionRelationValidation = {
@@ -62,27 +62,27 @@ export const validateReleaseVersionRelations = (
 
 export type ReleaseVersionRelationState = {
   includeCreater: boolean;
-  includeBuiltVersions: boolean;
-  includeBuiltVersionComponents: boolean;
-  includeBuiltVersionTransitions: boolean;
+  includePatches: boolean;
+  includePatchComponents: boolean;
+  includePatchTransitions: boolean;
 };
 
 export const buildReleaseVersionRelationState = (
   relations: ReleaseVersionRelationKey[],
 ): ReleaseVersionRelationState => {
-  const includeBuiltVersions =
-    relations.includes("builtVersions") ||
-    relations.includes("builtVersions.deployedComponents") ||
-    relations.includes("builtVersions.transitions");
+  const includePatches =
+    relations.includes("patches") ||
+    relations.includes("patches.deployedComponents") ||
+    relations.includes("patches.transitions");
 
   return {
     includeCreater: relations.includes("creater"),
-    includeBuiltVersions,
-    includeBuiltVersionComponents: relations.includes(
-      "builtVersions.deployedComponents",
+    includePatches,
+    includePatchComponents: relations.includes(
+      "patches.deployedComponents",
     ),
-    includeBuiltVersionTransitions: relations.includes(
-      "builtVersions.transitions",
+    includePatchTransitions: relations.includes(
+      "patches.transitions",
     ),
   };
 };

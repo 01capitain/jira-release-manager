@@ -66,7 +66,7 @@ describe("ReleaseVersion REST contract", () => {
             name: "Owner",
             email: "owner@example.com",
           },
-          builtVersions: [
+          patches: [
             {
               id: SAMPLE_UUID_B,
               name: "Release A.0",
@@ -76,7 +76,7 @@ describe("ReleaseVersion REST contract", () => {
                 {
                   id: SAMPLE_UUID_C,
                   releaseComponentId: SAMPLE_UUID_B,
-                  builtVersionId: SAMPLE_UUID_B,
+                  patchId: SAMPLE_UUID_B,
                   name: "component-a",
                   increment: 0,
                   createdAt: "2024-01-02T00:00:00.000Z",
@@ -85,7 +85,7 @@ describe("ReleaseVersion REST contract", () => {
               transitions: [
                 {
                   id: SAMPLE_UUID_C,
-                  builtVersionId: SAMPLE_UUID_B,
+                  patchId: SAMPLE_UUID_B,
                   fromStatus: "in_development",
                   toStatus: "in_deployment",
                   action: "start_deployment",

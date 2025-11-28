@@ -13,11 +13,11 @@ import type { PaginatedResponse } from "~/shared/types/pagination";
 import type { ReleaseVersionDto } from "~/shared/types/release-version";
 import type { ReleaseVersionWithRelationsDto } from "~/shared/types/release-version-relations";
 import type {
-  ReleaseBuiltVersionDto,
-  ReleaseVersionWithBuildsDto,
-} from "~/shared/types/release-version-with-builds";
+  ReleasePatchDto,
+  ReleaseVersionWithPatchesDto,
+} from "~/shared/types/release-version-with-patches";
 import type { ComponentVersionDto } from "~/shared/types/component-version";
-import type { BuiltVersionStatusResponse } from "~/shared/types/built-version-status-response";
+import type { PatchStatusResponse } from "~/shared/types/patch-status-response";
 import type { ReleaseTrack } from "~/shared/types/release-track";
 
 export const createReleaseVersion = async (
@@ -71,11 +71,11 @@ export const useUpdateReleaseTrackMutation = () => {
 export const releaseVersionListQueryKey = (params: Record<string, unknown>) =>
   ["release-versions", "list", params] as const;
 
-export const releasesWithBuildsQueryKey = (fetchOptions?: {
+export const releasesWithPatchesQueryKey = (fetchOptions?: {
   pageSize?: number;
   sortBy?: string;
   maxPages?: number;
-}) => ["release-versions", "with-builds", fetchOptions] as const;
+}) => ["release-versions", "with-patches", fetchOptions] as const;
 
 export const fetchReleaseVersions = async (
   params: {
@@ -95,11 +95,11 @@ export const fetchReleaseVersions = async (
   return getJson<PaginatedResponse<ReleaseVersionDto>>(url);
 };
 
-export const fetchReleasesWithBuilds = async (options?: {
+export const fetchReleasesWithPatches = async (options?: {
   pageSize?: number;
   sortBy?: string;
   maxPages?: number;
-}): Promise<ReleaseVersionWithBuildsDto[]> => {
+}): Promise<ReleaseVersionWithPatchesDto[]> => {
   const DEFAULT_PAGE_SIZE = 10;
   const DEFAULT_SORT_BY = "-createdAt";
   const DEFAULT_MAX_PAGES = 1000;
@@ -112,7 +112,7 @@ export const fetchReleasesWithBuilds = async (options?: {
     maxPages = DEFAULT_MAX_PAGES,
   } = options ?? {};
 
-  const aggregated: ReleaseVersionWithBuildsDto[] = [];
+  const aggregated: ReleaseVersionWithPatchesDto[] = [];
   let page = 1;
   let hasNextPage = true;
 
@@ -121,9 +121,9 @@ export const fetchReleasesWithBuilds = async (options?: {
     search.set("page", String(page));
     search.set("pageSize", String(pageSize));
     search.set("sortBy", sortBy);
-    search.append("relations", "builtVersions");
-    search.append("relations", "builtVersions.deployedComponents");
-    search.append("relations", "builtVersions.transitions");
+    search.append("relations", "patches");
+    search.append("relations", "patches.deployedComponents");
+    search.append("relations", "patches.transitions");
 
     let response: PaginatedResponse<ReleaseVersionWithRelationsDto> | undefined;
 
@@ -155,18 +155,18 @@ export const fetchReleasesWithBuilds = async (options?: {
     }
 
     aggregated.push(
-      ...response.data.map<ReleaseVersionWithBuildsDto>((release) => ({
+      ...response.data.map<ReleaseVersionWithPatchesDto>((release) => ({
         id: release.id,
         name: release.name,
         releaseTrack: release.releaseTrack,
         createdAt: release.createdAt,
-        builtVersions:
-          release.builtVersions?.map(
-            ({ deployedComponents, transitions, ...built }) => {
+        patches:
+          release.patches?.map(
+            ({ deployedComponents, transitions, ...patch }) => {
               const hasComponentData = Array.isArray(deployedComponents);
               const hasStatusData = Array.isArray(transitions);
               return {
-                ...built,
+                ...patch,
                 deployedComponents: hasComponentData
                   ? (deployedComponents ?? [])
                   : [],
@@ -192,16 +192,16 @@ export const fetchReleasesWithBuilds = async (options?: {
   return aggregated;
 };
 
-export const useReleasesWithBuildsQuery = (options?: {
+export const useReleasesWithPatchesQuery = (options?: {
   enabled?: boolean;
   placeholderData?:
-    | ReleaseVersionWithBuildsDto[]
-    | (() => ReleaseVersionWithBuildsDto[] | undefined);
-  fetchOptions?: Parameters<typeof fetchReleasesWithBuilds>[0];
+    | ReleaseVersionWithPatchesDto[]
+    | (() => ReleaseVersionWithPatchesDto[] | undefined);
+  fetchOptions?: Parameters<typeof fetchReleasesWithPatches>[0];
 }) => {
   return useQuery({
-    queryKey: releasesWithBuildsQueryKey(options?.fetchOptions),
-    queryFn: () => fetchReleasesWithBuilds(options?.fetchOptions),
+    queryKey: releasesWithPatchesQueryKey(options?.fetchOptions),
+    queryFn: () => fetchReleasesWithPatches(options?.fetchOptions),
     staleTime: Infinity,
     gcTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
@@ -214,17 +214,17 @@ export const useReleasesWithBuildsQuery = (options?: {
 };
 
 type ReleaseCollections = {
-  releases: ReleaseVersionWithBuildsDto[];
+  releases: ReleaseVersionWithPatchesDto[];
   releaseIds: string[];
-  releasesById: Record<string, ReleaseVersionWithBuildsDto>;
-  builtById: Record<string, ReleaseBuiltVersionDto & { releaseId: string }>;
-  builtIdsByReleaseId: Record<string, string[]>;
-  builtStatusById: Record<string, BuiltVersionStatusResponse>;
-  missingComponentBuiltIds: string[];
+  releasesById: Record<string, ReleaseVersionWithPatchesDto>;
+  patchById: Record<string, ReleasePatchDto & { releaseId: string }>;
+  patchIdsByReleaseId: Record<string, string[]>;
+  patchStatusById: Record<string, PatchStatusResponse>;
+  missingComponentPatchIds: string[];
 };
 
 const sortTransitionsAsc = (
-  transitions: ReleaseBuiltVersionDto["transitions"] = [],
+  transitions: ReleasePatchDto["transitions"] = [],
 ) => {
   return [...transitions].sort(
     (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
@@ -232,33 +232,33 @@ const sortTransitionsAsc = (
 };
 
 export const mapReleaseCollections = (
-  releases: ReleaseVersionWithBuildsDto[] | undefined,
+  releases: ReleaseVersionWithPatchesDto[] | undefined,
 ): ReleaseCollections => {
   const safeReleases = releases ?? [];
   const releaseIds: string[] = [];
-  const releasesById: Record<string, ReleaseVersionWithBuildsDto> = {};
-  const builtIdsByReleaseId: Record<string, string[]> = {};
-  const builtById: Record<
+  const releasesById: Record<string, ReleaseVersionWithPatchesDto> = {};
+  const patchIdsByReleaseId: Record<string, string[]> = {};
+  const patchById: Record<
     string,
-    ReleaseBuiltVersionDto & { releaseId: string }
+    ReleasePatchDto & { releaseId: string }
   > = {};
-  const builtStatusById: Record<string, BuiltVersionStatusResponse> = {};
-  const missingComponentBuiltIds: string[] = [];
+  const patchStatusById: Record<string, PatchStatusResponse> = {};
+  const missingComponentPatchIds: string[] = [];
 
   safeReleases.forEach((release) => {
     releaseIds.push(release.id);
     releasesById[release.id] = release;
-    const builtIds: string[] = [];
-    release.builtVersions.forEach((built) => {
-      builtIds.push(built.id);
-      builtById[built.id] = { ...built, releaseId: release.id };
-      if (!built.hasComponentData) {
-        missingComponentBuiltIds.push(built.id);
+    const patchIds: string[] = [];
+    release.patches.forEach((patch) => {
+      patchIds.push(patch.id);
+      patchById[patch.id] = { ...patch, releaseId: release.id };
+      if (!patch.hasComponentData) {
+        missingComponentPatchIds.push(patch.id);
       }
-      if (built.hasStatusData) {
-        const sortedHistory = sortTransitionsAsc(built.transitions);
+      if (patch.hasStatusData) {
+        const sortedHistory = sortTransitionsAsc(patch.transitions);
         const status = sortedHistory.at(-1)?.toStatus ?? "in_development";
-        builtStatusById[built.id] = {
+        patchStatusById[patch.id] = {
           status,
           history: sortedHistory.map((transition) => ({
             id: transition.id,
@@ -271,17 +271,17 @@ export const mapReleaseCollections = (
         };
       }
     });
-    builtIdsByReleaseId[release.id] = builtIds;
+    patchIdsByReleaseId[release.id] = patchIds;
   });
 
   return {
     releases: safeReleases,
     releaseIds,
     releasesById,
-    builtById,
-    builtIdsByReleaseId,
-    builtStatusById,
-    missingComponentBuiltIds,
+    patchById,
+    patchIdsByReleaseId,
+    patchStatusById,
+    missingComponentPatchIds,
   };
 };
 
@@ -291,18 +291,18 @@ type ComponentBackfillState = {
   error?: string;
 };
 
-const fetchBuiltComponentVersions = async (
-  builtVersionId: string,
+const fetchPatchComponentVersions = async (
+  patchId: string,
 ): Promise<ComponentVersionDto[]> => {
   return getJson<ComponentVersionDto[]>(
-    `/api/v1/built-versions/${builtVersionId}/component-versions`,
+    `/api/v1/patches/${patchId}/component-versions`,
   );
 };
 
 export const useReleaseEntities = (
-  options?: Parameters<typeof useReleasesWithBuildsQuery>[0],
+  options?: Parameters<typeof useReleasesWithPatchesQuery>[0],
 ) => {
-  const query = useReleasesWithBuildsQuery(options);
+  const query = useReleasesWithPatchesQuery(options);
   const collections = React.useMemo(
     () => mapReleaseCollections(query.data),
     [query.data],
@@ -313,48 +313,48 @@ export const useReleaseEntities = (
 
   React.useEffect(() => {
     setComponentState((prev) => {
-      const nextEntries = Object.entries(prev).filter(([builtId]) =>
-        Boolean(collections.builtById[builtId]),
+      const nextEntries = Object.entries(prev).filter(([patchId]) =>
+        Boolean(collections.patchById[patchId]),
       );
       if (nextEntries.length === Object.keys(prev).length) {
         return prev;
       }
       const next: Record<string, ComponentBackfillState> = {};
-      nextEntries.forEach(([builtId, state]) => {
-        next[builtId] = state;
+      nextEntries.forEach(([patchId, state]) => {
+        next[patchId] = state;
       });
       return next;
     });
-  }, [collections.builtById]);
+  }, [collections.patchById]);
 
-  const pendingBuiltIds = React.useMemo(() => {
-    return collections.missingComponentBuiltIds.filter((builtId) => {
-      const state = componentState[builtId];
+  const pendingPatchIds = React.useMemo(() => {
+    return collections.missingComponentPatchIds.filter((patchId) => {
+      const state = componentState[patchId];
       return state?.status !== "loading" && state?.status !== "success";
     });
-  }, [collections.missingComponentBuiltIds, componentState]);
+  }, [collections.missingComponentPatchIds, componentState]);
 
   React.useEffect(() => {
-    if (pendingBuiltIds.length === 0) return;
+    if (pendingPatchIds.length === 0) return;
     let cancelled = false;
-    pendingBuiltIds.forEach((builtId) => {
+    pendingPatchIds.forEach((patchId) => {
       setComponentState((prev) => ({
         ...prev,
-        [builtId]: { status: "loading" },
+        [patchId]: { status: "loading" },
       }));
-      void fetchBuiltComponentVersions(builtId)
+      void fetchPatchComponentVersions(patchId)
         .then((components) => {
           if (cancelled) return;
           setComponentState((prev) => ({
             ...prev,
-            [builtId]: { status: "success", components },
+            [patchId]: { status: "success", components },
           }));
         })
         .catch((error) => {
           if (cancelled) return;
           setComponentState((prev) => ({
             ...prev,
-            [builtId]: {
+            [patchId]: {
               status: "error",
               components: [],
               error:
@@ -368,14 +368,14 @@ export const useReleaseEntities = (
     return () => {
       cancelled = true;
     };
-  }, [pendingBuiltIds]);
+  }, [pendingPatchIds]);
 
-  const builtById = React.useMemo(() => {
-    const patched = { ...collections.builtById };
-    Object.entries(componentState).forEach(([builtId, state]) => {
-      const entry = patched[builtId];
+  const patchById = React.useMemo(() => {
+    const patched = { ...collections.patchById };
+    Object.entries(componentState).forEach(([patchId, state]) => {
+      const entry = patched[patchId];
       if (state.status === "success" && state.components && entry) {
-        patched[builtId] = {
+        patched[patchId] = {
           ...entry,
           deployedComponents: state.components,
           hasComponentData: true,
@@ -383,7 +383,7 @@ export const useReleaseEntities = (
       }
     });
     return patched;
-  }, [collections.builtById, componentState]);
+  }, [collections.patchById, componentState]);
 
   const releases = React.useMemo(() => {
     return collections.releaseIds
@@ -392,35 +392,35 @@ export const useReleaseEntities = (
         if (!release) {
           return null;
         }
-        const builtIds = collections.builtIdsByReleaseId[releaseId] ?? [];
-        const builtVersions = builtIds
-          .map((builtId) => {
-            const built = builtById[builtId];
-            if (!built) return null;
-            const { releaseId: _releaseOwner, ...rest } = built;
+        const patchIds = collections.patchIdsByReleaseId[releaseId] ?? [];
+        const patches = patchIds
+          .map((patchId) => {
+            const patch = patchById[patchId];
+            if (!patch) return null;
+            const { releaseId: _releaseOwner, ...rest } = patch;
             if (_releaseOwner) {
               // noop: release ownership is only used to build lookups
             }
             return rest;
           })
-          .filter((entry): entry is ReleaseBuiltVersionDto => entry !== null);
+          .filter((entry): entry is ReleasePatchDto => entry !== null);
         return {
           ...release,
-          builtVersions,
+          patches,
         };
       })
       .filter(
-        (release): release is ReleaseVersionWithBuildsDto => release !== null,
+        (release): release is ReleaseVersionWithPatchesDto => release !== null,
       );
   }, [
-    builtById,
-    collections.builtIdsByReleaseId,
+    patchById,
+    collections.patchIdsByReleaseId,
     collections.releaseIds,
     collections.releasesById,
   ]);
 
   const releasesById = React.useMemo(() => {
-    const next: Record<string, ReleaseVersionWithBuildsDto> = {};
+    const next: Record<string, ReleaseVersionWithPatchesDto> = {};
     releases.forEach((release) => {
       next[release.id] = release;
     });
@@ -432,9 +432,9 @@ export const useReleaseEntities = (
     releases,
     releaseIds: collections.releaseIds,
     releasesById,
-    builtIdsByReleaseId: collections.builtIdsByReleaseId,
-    builtById,
-    builtStatusById: collections.builtStatusById,
-    componentStateByBuiltId: componentState,
+    patchIdsByReleaseId: collections.patchIdsByReleaseId,
+    patchById,
+    patchStatusById: collections.patchStatusById,
+    componentStateByPatchId: componentState,
   };
 };

@@ -191,7 +191,7 @@ mockDb.releaseComponent = {
         color: (data?.color as string | undefined) ?? "blue",
         namingPattern:
           (data?.namingPattern as string | undefined)?.trim() ??
-          "{release_version}-{built_version}-{increment}",
+          "{release_version}-{patch}-{increment}",
         releaseScope: normalizedScope,
         createdAt:
           data?.createdAt instanceof Date
@@ -365,7 +365,7 @@ describe("Release Components REST endpoints", () => {
         body: JSON.stringify({
           name: "  Scheduler ",
           color: "teal",
-          namingPattern: "{release_version}-{built_version}-{increment}",
+          namingPattern: "{release_version}-{patch}-{increment}",
           releaseScope: "version-bound",
         }),
         headers: {
@@ -381,7 +381,7 @@ describe("Release Components REST endpoints", () => {
       expect(payload).toMatchObject({
         name: "Scheduler",
         color: "teal",
-        namingPattern: "{release_version}-{built_version}-{increment}",
+        namingPattern: "{release_version}-{patch}-{increment}",
         releaseScope: "version-bound",
       });
       expect(
@@ -390,7 +390,7 @@ describe("Release Components REST endpoints", () => {
         data: {
           name: "Scheduler",
           color: "teal",
-          namingPattern: "{release_version}-{built_version}-{increment}",
+          namingPattern: "{release_version}-{patch}-{increment}",
           releaseScope: "version_bound",
           createdBy: { connect: { id: userFixtures.adamScott.id } },
         },

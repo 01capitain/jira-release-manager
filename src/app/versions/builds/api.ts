@@ -9,68 +9,68 @@ import {
   type RestApiError,
 } from "~/lib/rest-client";
 import { withUiSpan } from "~/lib/otel/ui-span";
-import type { BuiltVersionDto } from "~/shared/types/built-version";
-import type { BuiltVersionCreateInput } from "~/shared/schemas/built-version";
-import type { BuiltVersionDefaultSelection } from "~/shared/schemas/built-version-selection";
-import type { ReleaseVersionWithBuildsDto } from "~/shared/types/release-version-with-builds";
-import { releasesWithBuildsQueryKey } from "../releases/api";
+import type { PatchDto } from "~/shared/types/patch";
+import type { PatchCreateInput } from "~/shared/schemas/patch";
+import type { PatchDefaultSelection } from "~/shared/schemas/patch-selection";
+import type { ReleaseVersionWithPatchesDto } from "~/shared/types/release-version-with-patches";
+import { releasesWithPatchesQueryKey } from "../releases/api";
 import type {
-  BuiltVersionAction,
-  BuiltVersionStatus,
-} from "~/shared/types/built-version-status";
-import type { BuiltVersionStatusResponse } from "~/shared/types/built-version-status-response";
+  PatchAction,
+  PatchStatus,
+} from "~/shared/types/patch-status";
+import type { PatchStatusResponse } from "~/shared/types/patch-status-response";
 
-export const builtVersionsByReleaseQueryKey = (releaseId: string) =>
-  ["built-versions", "by-release", releaseId] as const;
+export const patchesByReleaseQueryKey = (releaseId: string) =>
+  ["patches", "by-release", releaseId] as const;
 
-export const builtVersionStatusQueryKey = (builtVersionId: string) =>
-  ["built-versions", "status", builtVersionId] as const;
+export const patchStatusQueryKey = (patchId: string) =>
+  ["patches", "status", patchId] as const;
 
-export const builtVersionDefaultSelectionQueryKey = (builtVersionId: string) =>
-  ["built-versions", "default-selection", builtVersionId] as const;
+export const patchDefaultSelectionQueryKey = (patchId: string) =>
+  ["patches", "default-selection", patchId] as const;
 
-export type BuiltVersionTransitionResponse = {
-  builtVersion: BuiltVersionDto;
-  status: BuiltVersionStatus;
-  history: BuiltVersionStatusResponse["history"];
+export type PatchTransitionResponse = {
+  patch: PatchDto;
+  status: PatchStatus;
+  history: PatchStatusResponse["history"];
 };
 
-export const fetchBuiltVersionsByRelease = async (
+export const fetchPatchesByRelease = async (
   releaseId: string,
-): Promise<BuiltVersionDto[]> => {
-  return getJson<BuiltVersionDto[]>(
-    `/api/v1/release-versions/${releaseId}/built-versions`,
+): Promise<PatchDto[]> => {
+  return getJson<PatchDto[]>(
+    `/api/v1/release-versions/${releaseId}/patches`,
   );
 };
 
-export const fetchBuiltVersionStatus = async (
-  builtVersionId: string,
-): Promise<BuiltVersionStatusResponse> => {
-  return getJson<BuiltVersionStatusResponse>(
-    `/api/v1/built-versions/${builtVersionId}/status`,
+export const fetchPatchStatus = async (
+  patchId: string,
+): Promise<PatchStatusResponse> => {
+  return getJson<PatchStatusResponse>(
+    `/api/v1/patches/${patchId}/status`,
   );
 };
 
-export const fetchBuiltVersionDefaultSelection = async (
-  builtVersionId: string,
-): Promise<BuiltVersionDefaultSelection> => {
-  return getJson<BuiltVersionDefaultSelection>(
-    `/api/v1/built-versions/${builtVersionId}/default-selection`,
+export const fetchPatchDefaultSelection = async (
+  patchId: string,
+): Promise<PatchDefaultSelection> => {
+  return getJson<PatchDefaultSelection>(
+    `/api/v1/patches/${patchId}/default-selection`,
   );
 };
 
-export const createBuiltVersion = async (
-  input: BuiltVersionCreateInput,
-): Promise<BuiltVersionDto> => {
-  return withUiSpan("ui.built.create", () =>
-    postJson<BuiltVersionCreateInput, BuiltVersionDto>(
-      `/api/v1/release-versions/${input.versionId}/built-versions`,
+export const createPatch = async (
+  input: PatchCreateInput,
+): Promise<PatchDto> => {
+  return withUiSpan("ui.patch.create", () =>
+    postJson<PatchCreateInput, PatchDto>(
+      `/api/v1/release-versions/${input.versionId}/patches`,
       input,
     ),
   );
 };
 
-const transitionSegments: Record<BuiltVersionAction, string> = {
+const transitionSegments: Record<PatchAction, string> = {
   startDeployment: "start-deployment",
   cancelDeployment: "cancel-deployment",
   markActive: "mark-active",
@@ -79,113 +79,113 @@ const transitionSegments: Record<BuiltVersionAction, string> = {
   reactivate: "reactivate",
 };
 
-export const transitionBuiltVersion = async ({
+export const transitionPatch = async ({
   releaseId,
-  builtVersionId,
+  patchId,
   action,
 }: {
   releaseId: string;
-  builtVersionId: string;
-  action: BuiltVersionAction;
-}): Promise<BuiltVersionTransitionResponse> => {
+  patchId: string;
+  action: PatchAction;
+}): Promise<PatchTransitionResponse> => {
   const segment = transitionSegments[action];
-  return withUiSpan(`ui.built.transition.${action}`, () =>
-    requestJson<BuiltVersionTransitionResponse>(
-      `/api/v1/release-versions/${releaseId}/built-versions/${builtVersionId}/${segment}`,
+  return withUiSpan(`ui.patch.transition.${action}`, () =>
+    requestJson<PatchTransitionResponse>(
+      `/api/v1/release-versions/${releaseId}/patches/${patchId}/${segment}`,
       { method: "POST" },
     ),
   );
 };
 
-export type BuiltVersionSuccessorResponse = {
+export type PatchSuccessorResponse = {
   summary: {
     moved: number;
     created: number;
     updated: number;
-    successorBuiltId: string;
+    successorPatchId: string;
   };
   status: string;
-  history: BuiltVersionStatusResponse["history"];
+  history: PatchStatusResponse["history"];
 };
 
-export const createSuccessorBuilt = async (input: {
-  builtVersionId: string;
+export const createSuccessorPatch = async (input: {
+  patchId: string;
   selectedReleaseComponentIds: string[];
-}): Promise<BuiltVersionSuccessorResponse> => {
-  return withUiSpan("ui.built.successor.create", () =>
-    postJson<typeof input, BuiltVersionSuccessorResponse>(
-      `/api/v1/built-versions/${input.builtVersionId}/successor`,
+}): Promise<PatchSuccessorResponse> => {
+  return withUiSpan("ui.patch.successor.create", () =>
+    postJson<typeof input, PatchSuccessorResponse>(
+      `/api/v1/patches/${input.patchId}/successor`,
       input,
     ),
   );
 };
 
-export const useBuiltVersionsByReleaseQuery = (releaseId: string) => {
+export const usePatchesByReleaseQuery = (releaseId: string) => {
   return useQuery({
-    queryKey: builtVersionsByReleaseQueryKey(releaseId),
-    queryFn: () => fetchBuiltVersionsByRelease(releaseId),
+    queryKey: patchesByReleaseQueryKey(releaseId),
+    queryFn: () => fetchPatchesByRelease(releaseId),
   });
 };
 
 export const STATUS_STALE_TIME_MS = 5 * 60 * 1000;
 
-export const useBuiltVersionStatusQuery = (
-  builtVersionId: string,
+export const usePatchStatusQuery = (
+  patchId: string,
   options?: {
     enabled?: boolean;
     staleTime?: number;
-    initialData?: BuiltVersionStatusResponse;
+    initialData?: PatchStatusResponse;
   },
 ) => {
   return useQuery({
-    queryKey: builtVersionStatusQueryKey(builtVersionId),
-    queryFn: () => fetchBuiltVersionStatus(builtVersionId),
+    queryKey: patchStatusQueryKey(patchId),
+    queryFn: () => fetchPatchStatus(patchId),
     staleTime: options?.staleTime ?? STATUS_STALE_TIME_MS,
     enabled: options?.enabled ?? true,
     initialData: options?.initialData,
   });
 };
 
-export const useBuiltVersionDefaultSelectionQuery = (
-  builtVersionId: string,
+export const usePatchDefaultSelectionQuery = (
+  patchId: string,
   options?: { enabled?: boolean },
 ) => {
   return useQuery({
-    queryKey: builtVersionDefaultSelectionQueryKey(builtVersionId),
-    queryFn: () => fetchBuiltVersionDefaultSelection(builtVersionId),
+    queryKey: patchDefaultSelectionQueryKey(patchId),
+    queryFn: () => fetchPatchDefaultSelection(patchId),
     enabled: options?.enabled ?? true,
   });
 };
 
-export const useCreateBuiltVersionMutation = () => {
+export const useCreatePatchMutation = () => {
   const queryClient = useQueryClient();
-  return useMutation<BuiltVersionDto, RestApiError, BuiltVersionCreateInput>({
-    mutationFn: createBuiltVersion,
+  return useMutation<PatchDto, RestApiError, PatchCreateInput>({
+    mutationFn: createPatch,
     onSuccess: async () => {
       await queryClient.invalidateQueries({
-        queryKey: ["release-versions", "with-builds"],
+        queryKey: ["release-versions", "with-patches"],
       });
     },
   });
 };
 
-export const useReleasesWithBuildsRefetch = () => {
+export const useReleasesWithPatchesRefetch = () => {
   const queryClient = useQueryClient();
   return {
     refetch: () =>
       queryClient.invalidateQueries({
-        queryKey: ["release-versions", "with-builds"],
+        queryKey: ["release-versions", "with-patches"],
       }),
     setData: (
       updater:
-        | ReleaseVersionWithBuildsDto[]
+        | ReleaseVersionWithPatchesDto[]
         | ((
-            current: ReleaseVersionWithBuildsDto[] | undefined,
-          ) => ReleaseVersionWithBuildsDto[] | undefined),
+            current: ReleaseVersionWithPatchesDto[] | undefined,
+          ) => ReleaseVersionWithPatchesDto[] | undefined),
     ) =>
-      queryClient.setQueryData<ReleaseVersionWithBuildsDto[] | undefined>(
-        releasesWithBuildsQueryKey(),
-        updater as ReleaseVersionWithBuildsDto[] | undefined,
+      queryClient.setQueryData<ReleaseVersionWithPatchesDto[] | undefined>(
+        releasesWithPatchesQueryKey(),
+        updater as ReleaseVersionWithPatchesDto[] | undefined,
       ),
   };
 };

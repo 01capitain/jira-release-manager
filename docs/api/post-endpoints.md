@@ -14,7 +14,7 @@ Follow this playbook whenever you introduce a new create POST endpoint so it mir
 - **Service layer** (`src/server/services`):
   - Accept the authenticated `userId` (semantic ID type) plus the validated input.
   - Perform trimming or normalisation before persistence; avoid repeating these operations in controllers.
-  - Use a single transaction to persist the entity and any cascading records. The release version service creates the release, seeds the initial built version, updates `lastUsedIncrement`, and pre-populates component versions.
+  - Use a single transaction to persist the entity and any cascading records. The release version service creates the release, seeds the initial patch, updates `lastUsedIncrement`, and pre-populates component versions.
   - Collect audit trail metadata during the transaction and flush subactions via the optional `{ logger?: ActionLogger }` once the transaction commits.
   - Return the DTO (`to<Entity>Dto`) so every caller shares the same shape.
 - **REST controller** (`src/server/rest/controllers`):
@@ -29,13 +29,13 @@ Follow this playbook whenever you introduce a new create POST endpoint so it mir
 - Validate form input on the client with the same shared schema (e.g., `ReleaseVersionCreateSchema.safeParse`) to provide immediate feedback before firing the request.
 - Wrap the POST call with `postJson` from `src/lib/rest-client.ts`, which handles headers and converts non-2xx responses into `RestApiError`.
 - Use React Query `useMutation` helpers (`src/app/versions/releases/api.ts`) to expose a typed mutation hook that returns the shared DTO and surfaces `RestApiError` instances for UI error states.
-- After a successful mutation, invalidate any cached queries that depend on the created entity. For React Query, call `queryClient.invalidateQueries({ queryKey: ['release-versions', 'with-builds'] })` (adjust the key to your flow) to refresh views.
+- After a successful mutation, invalidate any cached queries that depend on the created entity. For React Query, call `queryClient.invalidateQueries({ queryKey: ['release-versions', 'with-patches'] })` (adjust the key to your flow) to refresh views.
 
 ## Testing Expectations
 
 - Add service-level unit tests in `tests/services/<entity>.service.test.ts` to verify transactional side effects (entity persistence, related record creation, audit logging).
 - Extend the REST e2e suite (`tests/e2e/<entity>.rest.e2e.test.ts`) with cases for:
-  - 201 success payload and side effects (e.g., seeded built versions).
+  - 201 success payload and side effects (e.g., seeded patches).
   - 401 for unauthenticated requests.
   - 400 validation errors when the shared schema rejects input.
   - 409 or other domain-specific conflicts where applicable.

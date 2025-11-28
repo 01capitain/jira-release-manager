@@ -10,8 +10,8 @@ import { RestError } from "~/server/rest/errors";
 import { jsonErrorResponse } from "~/server/rest/openapi";
 import { ActionHistoryService } from "~/server/services/action-history.service";
 import { ReleaseVersionService } from "~/server/services/release-version.service";
-import { BuiltVersionDtoSchema } from "~/server/zod/dto/built-version.dto";
-import { BuiltVersionTransitionDtoSchema } from "~/server/zod/dto/built-version-transition.dto";
+import { PatchDtoSchema } from "~/server/zod/dto/patch.dto";
+import { PatchTransitionDtoSchema } from "~/server/zod/dto/patch-transition.dto";
 import { ComponentVersionDtoSchema } from "~/server/zod/dto/component-version.dto";
 import { ReleaseVersionDtoSchema } from "~/server/zod/dto/release-version.dto";
 import { UserSummaryDtoSchema } from "~/server/zod/dto/user.dto";
@@ -72,17 +72,17 @@ export const ReleaseVersionListQueryDocSchema = createPaginatedQueryDocSchema(
   z.enum(RELEASE_VERSION_SORT_DOC_VALUES),
 ).merge(ReleaseVersionRelationsDocSchema);
 
-const ReleaseVersionBuiltVersionWithRelationsSchema =
-  BuiltVersionDtoSchema.extend({
+const ReleaseVersionPatchWithRelationsSchema =
+  PatchDtoSchema.extend({
     deployedComponents: z.array(ComponentVersionDtoSchema).optional(),
-    transitions: z.array(BuiltVersionTransitionDtoSchema).optional(),
+    transitions: z.array(PatchTransitionDtoSchema).optional(),
   });
 
 export const ReleaseVersionWithRelationsSchema = ReleaseVersionDtoSchema.extend(
   {
     creater: UserSummaryDtoSchema.optional(),
-    builtVersions: z
-      .array(ReleaseVersionBuiltVersionWithRelationsSchema)
+    patches: z
+      .array(ReleaseVersionPatchWithRelationsSchema)
       .optional(),
   },
 );

@@ -4,15 +4,15 @@ import { ComponentVersionService } from "~/server/services/component-version.ser
 import type { RestContext } from "~/server/rest/context";
 import { ComponentVersionDtoSchema } from "~/server/zod/dto/component-version.dto";
 
-export const ComponentVersionByBuiltParamsSchema = z.object({
-  builtId: z.uuidv7(),
+export const ComponentVersionByPatchParamsSchema = z.object({
+  patchId: z.uuidv7(),
 });
 
-export const listComponentVersionsByBuilt = async (
+export const listComponentVersionsByPatch = async (
   context: RestContext,
-  builtVersionId: string,
+  patchId: string,
 ) => {
   const svc = new ComponentVersionService(context.db);
-  const rows = await svc.listByBuilt(builtVersionId);
+  const rows = await svc.listByPatch(patchId);
   return z.array(ComponentVersionDtoSchema).parse(rows);
 };

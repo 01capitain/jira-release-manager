@@ -7,8 +7,8 @@ export type ReleaseCalendarEventComponent = {
 };
 
 export type ReleaseCalendarEvent = {
-  builtVersionId: UuidV7;
-  builtVersionName: string;
+  patchId: UuidV7;
+  patchName: string;
   timestamp: ISO8601;
   statusLabel?: string;
   components: ReleaseCalendarEventComponent[];

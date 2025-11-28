@@ -4,10 +4,10 @@ Use this playbook when exposing entity detail endpoints so the behavior matches 
 
 ## Shared Contracts
 
-- Return DTOs that extend your base type with any related aggregates. Example: `src/shared/types/release-version-with-builds.ts` merges `ReleaseVersionDto` with a `builtVersions: BuiltVersionDto[]` array.
-- Centralise shared lookup helpers (e.g., `mapToBuiltVersionDtos`) so all transports reuse the same shape.
+- Return DTOs that extend your base type with any related aggregates. Example: `src/shared/types/release-version-with-patches.ts` merges `ReleaseVersionDto` with a `patches: PatchDto[]` array.
+- Centralise shared lookup helpers (e.g., `mapToPatchDtos`) so all transports reuse the same shape.
 - Validate path parameters with Zod schemas placed alongside the controller (`ReleaseVersionIdParamSchema` in `src/server/rest/controllers/release-versions.controller.ts` uses `z.uuidv7`).
-- Document the `relations` allowlist in OpenAPI and note that nested keys (e.g., `builtVersions.deployedComponents`) must be accompanied by their parent. Provide explicit `404` error mappings (`RestError`) for missing entities.
+- Document the `relations` allowlist in OpenAPI and note that nested keys (e.g., `patches.deployedComponents`) must be accompanied by their parent. Provide explicit `404` error mappings (`RestError`) for missing entities.
 
 ## Server Implementation
 
@@ -36,7 +36,7 @@ Use this playbook when exposing entity detail endpoints so the behavior matches 
 ## Testing Expectations
 
 - Add service tests covering:
-  - Relation opt-in (built versions, creator, nested components/transitions).
+  - Relation opt-in (patches, creator, nested components/transitions).
   - Parser failures (unknown relation, missing parent) alongside the existing `NOT_FOUND` path.
 - Extend REST e2e tests (`tests/e2e/<entity>.rest.e2e.test.ts`) with:
   - 200 response assertions verifying DTO fields and nested arrays.

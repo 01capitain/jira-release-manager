@@ -11,8 +11,8 @@ const createMockPrisma = () => {
     },
     releaseComponent: { updateMany: jest.fn() },
     releaseVersion: { updateMany: jest.fn() },
-    builtVersion: { updateMany: jest.fn() },
-    builtVersionTransition: { updateMany: jest.fn() },
+    patch: { updateMany: jest.fn() },
+    patchTransition: { updateMany: jest.fn() },
     actionLog: { updateMany: jest.fn() },
   };
 
@@ -88,12 +88,12 @@ describe("claimSeedOwnership", () => {
       where: { createdById: placeholderUser.id },
       data: { createdById: targetUser.id },
     });
-    expect(mockDelegates.builtVersion.updateMany).toHaveBeenCalledWith({
+    expect(mockDelegates.patch.updateMany).toHaveBeenCalledWith({
       where: { createdById: placeholderUser.id },
       data: { createdById: targetUser.id },
     });
     expect(
-      mockDelegates.builtVersionTransition.updateMany,
+      mockDelegates.patchTransition.updateMany,
     ).toHaveBeenCalledWith({
       where: { createdById: placeholderUser.id },
       data: { createdById: targetUser.id },

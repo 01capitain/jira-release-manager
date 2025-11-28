@@ -95,7 +95,7 @@ Data is stored under `/tmp` inside the container, so traces/metrics/logs reset a
 - The `TelemetryProvider` (see `src/components/providers/telemetry-provider.tsx`) initializes tracing/metrics once on the client using `@opentelemetry/sdk-trace-web`.
 - `@opentelemetry/auto-instrumentations-web` is registered up front so browser `fetch`/XHR calls emit spans and automatically attach `traceparent`/`tracestate` headers.
 - The shared REST helpers (`src/lib/rest-client.ts`) inject the active span context into every request as a fallback, so TanStack Query mutations and custom fetches still propagate trace IDs even outside auto-instrumented paths.
-- Use `withUiSpan` from `src/lib/otel/ui-span.ts` around high-value UI interactions (release creation, built transitions, etc.) to give Tempo readable span names.
+- Use `withUiSpan` from `src/lib/otel/ui-span.ts` around high-value UI interactions (release creation, patch transitions, etc.) to give Tempo readable span names.
 - Collected telemetry flows to the OTLP HTTP endpoints defined by the `NEXT_PUBLIC_OTEL_*` variables.
 - A basic `app.page_view` counter metric fires once on application startup; subscribe to router events (or similar custom logic) and increment the counter manually if you need per-navigation metrics.
 
@@ -109,7 +109,7 @@ Data is stored under `/tmp` inside the container, so traces/metrics/logs reset a
 
 1. **Start the sandbox** using the Docker commands above and wait ~30 seconds for Grafana to finish provisioning datasources/dashboards.
 2. **Log in to Grafana** at `http://localhost:3001` → open the *OTel Sandbox* folder → load the *Overview* dashboard. Panels are pre-wired to Prometheus, Loki, and Tempo so you can validate every signal in one view.
-3. **Trigger a UI action** (e.g., create a release or mutate a built version). The browser auto-instrumentations wrap fetch/XHR calls automatically, and the helper spans added around release/build flows expose human-friendly names in Tempo.
+3. **Trigger a UI action** (e.g., create a release or mutate a patch). The browser auto-instrumentations wrap fetch/XHR calls automatically, and the helper spans added around release/build flows expose human-friendly names in Tempo.
 4. **Inspect traces**: From the dashboard, jump into Tempo and confirm the trace shows both the browser span and the downstream Next.js API span carrying the same trace ID.
 5. **Inspect logs/metrics**: The same interaction should emit Loki log lines (via Alloy) and increment the Prometheus counters/histograms surfaced on the overview dashboard. Because storage is ephemeral, repeat the interaction whenever you restart the container.
 
