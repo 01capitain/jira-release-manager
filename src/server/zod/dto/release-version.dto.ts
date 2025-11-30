@@ -42,16 +42,14 @@ export const ReleaseVersionDtoSchema = ReleaseVersionModelFieldsSchema.omit({
     description: "Release version summary information.",
   });
 
-export const ReleaseVersionDefaultsDtoSchema = z
-  .object({
-    name: z.string(),
-    releaseTrack: ReleaseVersionTrackSchema,
-  })
-  .meta({
-    id: "ReleaseVersionDefaults",
-    title: "Release Version Defaults",
-    description: "Suggested values for a new release version.",
-  });
+export const ReleaseVersionDefaultsDtoSchema = ReleaseVersionDtoSchema.pick({
+  name: true,
+  releaseTrack: true,
+}).meta({
+  id: "ReleaseVersionDefaults",
+  title: "Release Version Defaults",
+  description: "Suggested values for a new release version.",
+});
 
 export const ReleaseVersionIdSchema = ReleaseVersionDtoSchema.shape.id;
 
