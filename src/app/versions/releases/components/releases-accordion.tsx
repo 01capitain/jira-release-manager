@@ -174,7 +174,6 @@ const ReleaseNameEditor = ({
         value={value}
         onChange={(e) => setValue(e.target.value)}
         onClick={(event) => {
-          event.preventDefault();
           event.stopPropagation();
         }}
         aria-label="Release name"
