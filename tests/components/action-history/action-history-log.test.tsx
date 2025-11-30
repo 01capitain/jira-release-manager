@@ -26,8 +26,8 @@ const makeEntry = (
   overrides: Partial<ActionHistoryEntryDto> = {},
 ): ActionHistoryEntryDto => ({
   id: UuidV7Schema.parse("018f1a50-0000-7000-9000-00000000aaaa"),
-  actionType: "releaseVersion.track.update",
-  message: "Release 123 track updated",
+  actionType: "releaseVersion.update",
+  message: "Release 123 updated",
   status: "success",
   createdAt: IsoTimestampSchema.parse("2024-01-01T12:00:00Z"),
   createdBy: {
@@ -35,8 +35,17 @@ const makeEntry = (
     name: "Tester",
     email: "tester@example.com",
   },
-  subactions: [],
-  metadata: { releaseTrack: "Future" },
+  subactions: [
+    {
+      id: UuidV7Schema.parse("018f1a50-0000-7000-9000-00000000cccc"),
+      subactionType: "releaseVersion.track.update",
+      message: "Track moved",
+      status: "success",
+      createdAt: IsoTimestampSchema.parse("2024-01-01T12:00:01Z"),
+      metadata: { from: "Future", to: "Active" },
+    },
+  ],
+  metadata: { releaseTrack: "Active" },
   ...overrides,
 });
 
@@ -78,12 +87,13 @@ describe("ActionHistoryLog", () => {
   it("highlights release track updates with a colored indicator", () => {
     render(<ActionHistoryLog />);
 
-    const entry = screen.getByText(/Release 123 track updated to/i);
+    const entry = screen.getByText(/Release 123 updated/i);
     expect(entry).toBeTruthy();
 
-    const indicator = entry.parentElement?.querySelector(
-      "[aria-hidden='true']",
-    );
+    const sub = screen.getByText(/Track updated from Future to/i);
+    expect(sub).toBeTruthy();
+
+    const indicator = sub.parentElement?.querySelector("[aria-hidden='true']");
     expect(indicator).toBeTruthy();
     expect(indicator?.className).toContain("rounded-full");
   });

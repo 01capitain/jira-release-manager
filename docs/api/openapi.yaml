@@ -8,6 +8,25 @@ servers:
   - url: /api/v1
     description: Application server
 paths:
+  /release-versions/new-values:
+    get:
+      operationId: getReleaseVersionDefaults
+      summary: Get default release version values
+      tags:
+        - Release Versions
+      responses:
+        "200":
+          description: Default values for new release version
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReleaseVersionDefaults"
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestError"
   /release-versions:
     get:
       operationId: listReleaseVersions
@@ -67,13 +86,7 @@ paths:
                         id:
                           $ref: "#/components/schemas/uuidv7"
                         releaseTrack:
-                          type: string
-                          enum:
-                            - Future
-                            - Beta
-                            - Rollout
-                            - Active
-                            - Archived
+                          $ref: "#/components/schemas/ReleaseVersionTrack"
                         createdAt:
                           $ref: "#/components/schemas/iso8601Timestamp"
                         creater:
@@ -146,8 +159,14 @@ paths:
                 name:
                   type: string
                   minLength: 1
-              required:
-                - name
+                releaseTrack:
+                  type: string
+                  enum:
+                    - Future
+                    - Beta
+                    - Rollout
+                    - Active
+                    - Archived
       responses:
         "201":
           description: Release version created
@@ -212,13 +231,7 @@ paths:
                   id:
                     $ref: "#/components/schemas/uuidv7"
                   releaseTrack:
-                    type: string
-                    enum:
-                      - Future
-                      - Beta
-                      - Rollout
-                      - Active
-                      - Archived
+                    $ref: "#/components/schemas/ReleaseVersionTrack"
                   createdAt:
                     $ref: "#/components/schemas/iso8601Timestamp"
                   creater:
@@ -270,10 +283,9 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/RestError"
-  /release-versions/{releaseId}/track:
     patch:
-      operationId: updateReleaseVersionTrack
-      summary: Update release version track
+      operationId: updateReleaseVersion
+      summary: Update release version
       tags:
         - Release Versions
       parameters:
@@ -291,6 +303,9 @@ paths:
             schema:
               type: object
               properties:
+                name:
+                  type: string
+                  minLength: 1
                 releaseTrack:
                   type: string
                   enum:
@@ -299,11 +314,9 @@ paths:
                     - Rollout
                     - Active
                     - Archived
-              required:
-                - releaseTrack
       responses:
         "200":
-          description: Release version track updated
+          description: Release version updated
           content:
             application/json:
               schema:
@@ -322,6 +335,12 @@ paths:
                 $ref: "#/components/schemas/RestError"
         "404":
           description: Release not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestError"
+        "409":
+          description: Release already exists
           content:
             application/json:
               schema:
@@ -1123,6 +1142,54 @@ components:
         - 018f0b4e-5ff9-7000-8000-000000000000
       type: string
       pattern: ^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$
+    ReleaseVersionDefaults:
+      title: Release Version Defaults
+      description: Suggested values for a new release version.
+      type: object
+      properties:
+        name:
+          type: string
+        releaseTrack:
+          $ref: "#/components/schemas/ReleaseVersionTrack"
+      required:
+        - name
+        - releaseTrack
+      additionalProperties: false
+    ReleaseVersionTrack:
+      title: Release Version Track
+      description: Lifecycle track for a release version.
+      type: string
+      enum:
+        - Future
+        - Beta
+        - Rollout
+        - Active
+        - Archived
+    RestError:
+      title: REST Error
+      description: Standard envelope for REST error responses.
+      examples:
+        - code: VALIDATION_ERROR
+          message: Invalid request payload
+          details:
+            field: name
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          anyOf:
+            - $ref: "#/components/schemas/RestErrorDetails"
+            - type: "null"
+      required:
+        - code
+        - message
+      additionalProperties: false
+    RestErrorDetails:
+      title: REST Error Details
+      description: Arbitrary structured data providing additional error context.
     iso8601Timestamp:
       title: ISO 8601 Timestamp
       description: UTC timestamp string ending with 'Z'.
@@ -1244,31 +1311,6 @@ components:
         - totalItems
         - hasNextPage
       additionalProperties: false
-    RestError:
-      title: REST Error
-      description: Standard envelope for REST error responses.
-      examples:
-        - code: VALIDATION_ERROR
-          message: Invalid request payload
-          details:
-            field: name
-      type: object
-      properties:
-        code:
-          type: string
-        message:
-          type: string
-        details:
-          anyOf:
-            - $ref: "#/components/schemas/RestErrorDetails"
-            - type: "null"
-      required:
-        - code
-        - message
-      additionalProperties: false
-    RestErrorDetails:
-      title: REST Error Details
-      description: Arbitrary structured data providing additional error context.
     ReleaseVersion:
       title: Release Version
       description: Release version summary information.
@@ -1279,13 +1321,7 @@ components:
         id:
           $ref: "#/components/schemas/uuidv7"
         releaseTrack:
-          type: string
-          enum:
-            - Future
-            - Beta
-            - Rollout
-            - Active
-            - Archived
+          $ref: "#/components/schemas/ReleaseVersionTrack"
         createdAt:
           $ref: "#/components/schemas/iso8601Timestamp"
       required:

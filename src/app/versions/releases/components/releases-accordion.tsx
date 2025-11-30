@@ -2,26 +2,29 @@
 
 import {
   Calendar as CalendarIcon,
+  Check,
   ChevronDown,
   List as ListIcon,
-  Check,
+  Pencil,
+  X as XIcon,
 } from "lucide-react";
 import * as React from "react";
-import type { ReleaseVersionWithPatchesDto } from "~/shared/types/release-version-with-patches";
+import { Button } from "~/components/ui/button";
+import { Input } from "~/components/ui/input";
+import { isRestApiError } from "~/lib/rest-client";
+import { ReleaseVersionUpdateSchema } from "~/shared/schemas/release-version";
 import type { PatchStatusResponse } from "~/shared/types/patch-status-response";
 import type { ReleaseTrack } from "~/shared/types/release-track";
-import { RELEASE_TRACK_VALUES } from "~/shared/types/release-track";
+import type { ReleaseVersionWithPatchesDto } from "~/shared/types/release-version-with-patches";
 import PatchCard from "../../builds/components/patch-card";
-import { useReleaseEntities, useUpdateReleaseTrackMutation } from "../api";
-import { Button } from "~/components/ui/button";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "~/components/ui/popover";
-import ReleaseCalendar from "./release-calendar";
+  useReleaseEntities,
+  useUpdateReleaseMutation,
+  useUpdateReleaseTrackMutation,
+} from "../api";
 import { mapPatchesToCalendarEvents } from "../lib/calendar-events";
-import { isRestApiError } from "~/lib/rest-client";
+import ReleaseCalendar from "./release-calendar";
+import { ReleaseTrackPicker } from "./release-track-picker";
 
 function LatestActiveTag({
   patchIds,
@@ -45,40 +48,143 @@ function LatestActiveTag({
   );
 }
 
-const TRACK_STYLE_MAP: Record<
-  ReleaseTrack,
-  { swatch: string; border: string; optionDot: string; optionHover: string }
-> = {
-  Future: {
-    swatch: "bg-purple-400/80 dark:bg-purple-500/70",
-    border: "border-purple-400/80 dark:border-purple-400/60",
-    optionDot: "bg-purple-400",
-    optionHover: "hover:bg-purple-50/80 dark:hover:bg-purple-900/40",
-  },
-  Beta: {
-    swatch: "bg-sky-400/80 dark:bg-sky-500/70",
-    border: "border-sky-400/70 dark:border-sky-400/60",
-    optionDot: "bg-sky-400",
-    optionHover: "hover:bg-sky-50/80 dark:hover:bg-sky-900/40",
-  },
-  Rollout: {
-    swatch: "bg-yellow-300/90 dark:bg-yellow-400/70",
-    border: "border-yellow-400/70 dark:border-yellow-400/60",
-    optionDot: "bg-yellow-300",
-    optionHover: "hover:bg-yellow-50/80 dark:hover:bg-yellow-900/40",
-  },
-  Active: {
-    swatch: "bg-emerald-400/80 dark:bg-emerald-500/70",
-    border: "border-emerald-400/70 dark:border-emerald-400/60",
-    optionDot: "bg-emerald-400",
-    optionHover: "hover:bg-emerald-50/80 dark:hover:bg-emerald-900/40",
-  },
-  Archived: {
-    swatch: "bg-neutral-400/70 dark:bg-neutral-500/70",
-    border: "border-neutral-400/70 dark:border-neutral-400/60",
-    optionDot: "bg-neutral-400",
-    optionHover: "hover:bg-neutral-100/80 dark:hover:bg-neutral-800/60",
-  },
+type DraftReleaseData = {
+  name: string;
+  releaseTrack: ReleaseTrack;
+  error: string | null;
+  isSaving: boolean;
+  isLoadingDefaults: boolean;
+  defaultsError?: string | null;
+  status?: "idle" | "saving" | "success";
+};
+
+const ReleaseNameEditor = ({
+  releaseId,
+  name,
+  editingId,
+  setEditingId,
+  isOpen,
+  anyOpen,
+}: {
+  releaseId: string;
+  name: string;
+  editingId: string | null;
+  setEditingId: (id: string | null) => void;
+  isOpen: boolean;
+  anyOpen: boolean;
+}) => {
+  const mutation = useUpdateReleaseMutation();
+  const editing = editingId === releaseId;
+  const [value, setValue] = React.useState(name);
+  const [error, setError] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    setValue(name);
+    setError(null);
+  }, [name]);
+
+  const onSave = async (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setError(null);
+    const parsed = ReleaseVersionUpdateSchema.safeParse({ name: value });
+    if (!parsed.success) {
+      setError(parsed.error.issues[0]?.message ?? "Invalid name");
+      return;
+    }
+    try {
+      await mutation.mutateAsync({ releaseId, name: parsed.data.name });
+      setEditingId(null);
+    } catch (err) {
+      setError(
+        isRestApiError(err)
+          ? err.message
+          : "Failed to rename release. Please try again.",
+      );
+    }
+  };
+
+  if (!editing) {
+    return (
+      <div className="group flex min-h-[2.4rem] items-center gap-2">
+        <span className="text-base font-medium">Release {name}</span>
+        {!isOpen && !anyOpen ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            aria-label={`Rename release ${name}`}
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              setEditingId(releaseId);
+            }}
+            className="text-neutral-500 opacity-0 transition-opacity group-hover:opacity-100 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200"
+          >
+            <Pencil className="h-4 w-4" aria-hidden="true" />
+          </Button>
+        ) : null}
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex min-h-[2.4rem] items-center gap-2">
+      <Input
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onClick={(event) => {
+          event.stopPropagation();
+        }}
+        aria-label="Release name"
+        className="h-9 w-48"
+        disabled={mutation.isPending}
+      />
+      <Button
+        type="button"
+        size="sm"
+        onClick={onSave}
+        disabled={mutation.isPending}
+        className="h-9"
+      >
+        Save
+      </Button>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        aria-label="Cancel rename"
+        onClick={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          setEditingId(null);
+          setValue(name);
+          setError(null);
+        }}
+        disabled={mutation.isPending}
+      >
+        <XIcon className="h-4 w-4" aria-hidden="true" />
+      </Button>
+      {mutation.isPending ? (
+        <output
+          role="status"
+          aria-atomic="true"
+          className="text-xs text-neutral-500 dark:text-neutral-400"
+        >
+          Saving…
+        </output>
+      ) : null}
+      {error ? (
+        <output
+          role="alert"
+          aria-atomic="true"
+          className="text-xs text-red-600 dark:text-red-400"
+        >
+          {error}
+        </output>
+      ) : null}
+    </div>
+  );
 };
 
 const ReleaseTrackSelector = ({
@@ -123,116 +229,207 @@ const ReleaseTrackSelector = ({
     }
   };
 
-  const styles = TRACK_STYLE_MAP[selectedTrack] ?? TRACK_STYLE_MAP.Future;
-
-  const handleTriggerClick = (event: React.MouseEvent<HTMLButtonElement>) => {
-    event.preventDefault();
-    event.stopPropagation();
-    setOpen((prev) => !prev);
-  };
-
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <button
-          type="button"
-          aria-label={`Release track: ${selectedTrack}. Click to change.`}
-          onClick={handleTriggerClick}
-          className={`mr-3 flex w-6 flex-shrink-0 items-stretch self-stretch overflow-hidden rounded-l-md border-y ${styles.border} min-h-[2.75rem] bg-white/40 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:outline-none dark:bg-neutral-900 dark:ring-offset-neutral-900`}
-        >
-          <span className={`flex-1 rounded-l-md ${styles.swatch}`} />
-        </button>
-      </PopoverTrigger>
-      <PopoverContent
-        side="bottom"
-        align="start"
-        className="w-52 space-y-2 p-3 text-sm"
-      >
-        <p className="text-xs font-medium text-neutral-500 dark:text-neutral-300">
-          Select release track
-        </p>
-        <div className="space-y-1">
-          {RELEASE_TRACK_VALUES.map((track) => {
-            const optionStyles = TRACK_STYLE_MAP[track];
-            const isSelected = track === selectedTrack;
-            return (
-              <button
-                key={track}
-                type="button"
-                onClick={(event) => {
-                  event.preventDefault();
-                  event.stopPropagation();
-                  void handleSelect(track);
-                }}
-                disabled={mutation.isPending}
-                aria-pressed={isSelected}
-                className={`flex w-full items-center justify-between rounded-md px-2 py-1 text-left transition ${optionStyles.optionHover} ${
-                  isSelected
-                    ? "ring-2 ring-offset-1 ring-offset-white dark:ring-offset-neutral-900"
-                    : ""
-                }`}
-              >
-                <span className="flex items-center gap-2">
-                  <span
-                    aria-hidden="true"
-                    className={`h-3 w-3 rounded-full ${optionStyles.optionDot}`}
-                  />
-                  {track}
-                </span>
-                {isSelected ? (
-                  <Check
-                    className="h-4 w-4 text-neutral-600 dark:text-neutral-300"
-                    aria-hidden="true"
-                  />
-                ) : (
-                  <span className="h-4 w-4" aria-hidden="true" />
-                )}
-              </button>
-            );
-          })}
+    <ReleaseTrackPicker
+      value={selectedTrack}
+      onSelect={(track) => void handleSelect(track)}
+      disabled={mutation.isPending}
+      open={open}
+      onOpenChange={setOpen}
+      status={{
+        pending: mutation.isPending,
+        error,
+      }}
+      triggerLabel={`Release track: ${selectedTrack}. Click to change.`}
+    />
+  );
+};
+
+const DraftReleaseTrackSelector = ({
+  value,
+  onChange,
+  disabled,
+}: {
+  value: ReleaseTrack;
+  onChange: (track: ReleaseTrack) => void;
+  disabled?: boolean;
+}) => {
+  const [open, setOpen] = React.useState(false);
+  return (
+    <ReleaseTrackPicker
+      value={value}
+      onSelect={(track) => onChange(track)}
+      disabled={disabled}
+      open={open}
+      onOpenChange={setOpen}
+      triggerLabel={`Release track: ${value}. Click to change.`}
+    />
+  );
+};
+
+const DraftReleaseRow = ({
+  draft,
+  onNameChange,
+  onTrackChange,
+  onSave,
+  onCancel,
+}: {
+  draft: DraftReleaseData;
+  onNameChange?: (value: string) => void;
+  onTrackChange?: (value: ReleaseTrack) => void;
+  onSave?: () => void;
+  onCancel?: () => void;
+}) => {
+  const isSuccess = draft.status === "success";
+  const isDisabled = draft.isSaving || isSuccess;
+  return (
+    <details
+      open
+      className="group rounded-md border border-neutral-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900"
+    >
+      <summary className="pointer-events-none flex cursor-default list-none items-stretch gap-3 rounded-md bg-neutral-50 pr-4 text-neutral-800 dark:bg-neutral-900 dark:text-neutral-100">
+        <div className="pointer-events-auto">
+          <DraftReleaseTrackSelector
+            value={draft.releaseTrack}
+            onChange={(next) => onTrackChange?.(next)}
+            disabled={isDisabled}
+          />
         </div>
-        {mutation.isPending ? (
-          <output
-            aria-atomic="true"
-            className="text-xs text-neutral-500 dark:text-neutral-400"
-          >
-            Updating…
-          </output>
-        ) : null}
-        {error ? (
-          <output
-            aria-atomic="true"
-            className="block text-xs text-red-600 dark:text-red-400"
-          >
-            {error}
-          </output>
-        ) : null}
-      </PopoverContent>
-    </Popover>
+        <div className="flex flex-1 flex-wrap items-center justify-between gap-3 py-2 pr-4 pl-1">
+          <div className="flex flex-wrap items-center gap-2">
+            {!isSuccess ? (
+              <div className="flex min-h-[2.4rem] items-center gap-2">
+                <Input
+                  value={draft.name}
+                  onChange={(e) => onNameChange?.(e.target.value)}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                  }}
+                  aria-label="Release name"
+                  className="pointer-events-auto h-9 w-48"
+                  disabled={isDisabled}
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    onSave?.();
+                  }}
+                  disabled={isDisabled}
+                  className="pointer-events-auto h-9"
+                >
+                  Save
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Cancel new release"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    onCancel?.();
+                  }}
+                  disabled={isDisabled}
+                  className="pointer-events-auto"
+                >
+                  <XIcon className="h-4 w-4" aria-hidden="true" />
+                </Button>
+                {draft.isSaving ? (
+                  <output
+                    aria-atomic="true"
+                    className="text-xs text-neutral-500 dark:text-neutral-400"
+                  >
+                    Saving…
+                  </output>
+                ) : null}
+                {draft.error ? (
+                  <output
+                    role="alert"
+                    aria-atomic="true"
+                    className="text-xs text-red-600 dark:text-red-400"
+                  >
+                    {draft.error}
+                  </output>
+                ) : null}
+              </div>
+            ) : (
+              <div className="flex min-h-[2.4rem] items-center gap-2 text-sm text-emerald-500 dark:text-emerald-300">
+                <Check className="h-4 w-4" aria-hidden="true" />
+                <span>Release created</span>
+              </div>
+            )}
+          </div>
+          <div className="flex items-center gap-2 text-xs text-neutral-500 dark:text-neutral-400">
+            {draft.isLoadingDefaults ? <span>Loading defaults…</span> : null}
+          </div>
+        </div>
+      </summary>
+    </details>
   );
 };
 
 type ReleasesAccordionProps = {
   releaseComponentLookup: Record<string, { color?: string }>;
+  draftRelease?: DraftReleaseData | null;
+  onDraftNameChange?: (value: string) => void;
+  onDraftTrackChange?: (track: ReleaseTrack) => void;
+  onDraftSave?: () => void;
+  onDraftCancel?: () => void;
+  autoOpenReleaseId?: string | null;
 };
 
 export default function ReleasesAccordion({
   releaseComponentLookup,
+  draftRelease,
+  onDraftNameChange,
+  onDraftTrackChange,
+  onDraftSave,
+  onDraftCancel,
+  autoOpenReleaseId,
 }: ReleasesAccordionProps) {
   const [hydrated, setHydrated] = React.useState(false);
   React.useEffect(() => setHydrated(true), []);
   const [viewModeByRelease, setViewModeByRelease] = React.useState<
     Record<string, "list" | "calendar">
   >({});
+  const [openReleaseIds, setOpenReleaseIds] = React.useState<
+    Record<string, boolean>
+  >({});
+
+  React.useEffect(() => {
+    if (!autoOpenReleaseId) return;
+    setOpenReleaseIds((prev) =>
+      prev[autoOpenReleaseId] ? prev : { ...prev, [autoOpenReleaseId]: true },
+    );
+  }, [autoOpenReleaseId]);
+
+  const anyOpen =
+    Object.values(openReleaseIds).some(Boolean) || Boolean(draftRelease);
 
   const { releases, isFetching, patchStatusById } = useReleaseEntities({
     enabled: true,
   });
+  const [editingReleaseId, setEditingReleaseId] = React.useState<string | null>(
+    null,
+  );
 
   const normalizedReleases: ReleaseVersionWithPatchesDto[] = releases ?? [];
 
   return (
     <div className="space-y-5">
+      {draftRelease ? (
+        <DraftReleaseRow
+          draft={draftRelease}
+          onNameChange={onDraftNameChange}
+          onTrackChange={onDraftTrackChange}
+          onSave={onDraftSave}
+          onCancel={onDraftCancel}
+        />
+      ) : null}
       {normalizedReleases.map((rel) => {
         const ids = rel.patches.map((b) => b.id);
         const names = rel.patches.map((b) => b.name);
@@ -245,7 +442,15 @@ export default function ReleasesAccordion({
         return (
           <details
             key={rel.id}
+            open={openReleaseIds[rel.id] ?? false}
             className="group rounded-md border border-neutral-200 dark:border-neutral-800"
+            onToggle={(event) => {
+              const isOpen = (event.currentTarget as HTMLDetailsElement).open;
+              if (isOpen) {
+                setEditingReleaseId(null);
+              }
+              setOpenReleaseIds((prev) => ({ ...prev, [rel.id]: isOpen }));
+            }}
           >
             <summary className="flex cursor-pointer list-none items-stretch gap-3 rounded-md bg-neutral-50 pr-4 text-neutral-800 dark:bg-neutral-900 dark:text-neutral-100">
               <ReleaseTrackSelector
@@ -254,9 +459,14 @@ export default function ReleasesAccordion({
               />
               <div className="flex flex-1 flex-wrap items-center justify-between gap-3 py-2 pr-4 pl-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-base font-medium">
-                    Release {rel.name}
-                  </span>
+                  <ReleaseNameEditor
+                    releaseId={rel.id}
+                    name={rel.name}
+                    editingId={editingReleaseId}
+                    setEditingId={setEditingReleaseId}
+                    isOpen={openReleaseIds[rel.id] ?? false}
+                    anyOpen={anyOpen}
+                  />
                   {/* When collapsed, show latest active patch */}
                   <LatestActiveTag
                     patchIds={ids}
