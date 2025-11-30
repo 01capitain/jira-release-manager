@@ -3,7 +3,7 @@
 This page summarises the REST endpoints used by the release management UI. Refer to `openapi.yaml` for the canonical schema and pagination contracts.
 
 ## Release Versions
-- `GET /release-versions/new-values` — fetch default name and release track for new releases (authenticated). Response: `{ name: string; releaseTrack: ReleaseTrack }`.
+- `GET /release-versions/new-values` — fetch default name and release track for new releases (authenticated). Response: `{ name: string; releaseTrack: ReleaseTrack }`. The releases page now preloads this on mount so defaults are ready when the user clicks “New Release.”
 - `GET /release-versions` — paginated list of release versions (`PaginatedResponse<ReleaseVersionDto>`). Supports `page`, `pageSize`, `sortBy` (`createdAt` | `name`, prefix with `-` for descending), and repeatable `relations` (e.g. `relations=patches` to include patches).
 - `POST /release-versions` — create a release version. Body: `ReleaseVersionCreateInput` (name optional; releaseTrack optional). Response: `ReleaseVersionDto`.
 - `PATCH /release-versions/{releaseId}` — update release name and/or track. Body: `ReleaseVersionUpdateInput` (at least one field). Response: `ReleaseVersionDto`.

@@ -2,6 +2,7 @@
 
 import {
   Calendar as CalendarIcon,
+  Check,
   ChevronDown,
   List as ListIcon,
   Pencil,
@@ -54,6 +55,7 @@ type DraftReleaseData = {
   isSaving: boolean;
   isLoadingDefaults: boolean;
   defaultsError?: string | null;
+  status?: "idle" | "saving" | "success";
 };
 
 const ReleaseNameEditor = ({
@@ -278,6 +280,8 @@ const DraftReleaseRow = ({
   onSave?: () => void;
   onCancel?: () => void;
 }) => {
+  const isSuccess = draft.status === "success";
+  const isDisabled = draft.isSaving || isSuccess;
   return (
     <details
       open
@@ -291,67 +295,74 @@ const DraftReleaseRow = ({
         <DraftReleaseTrackSelector
           value={draft.releaseTrack}
           onChange={(next) => onTrackChange?.(next)}
-          disabled={draft.isSaving}
+          disabled={isDisabled}
         />
         <div className="flex flex-1 flex-wrap items-center justify-between gap-3 py-2 pr-4 pl-1">
           <div className="flex flex-wrap items-center gap-2">
-            <div className="flex min-h-[2.4rem] items-center gap-2">
-              <Input
-                value={draft.name}
-                onChange={(e) => onNameChange?.(e.target.value)}
-                onClick={(event) => {
-                  event.preventDefault();
-                  event.stopPropagation();
-                }}
-                aria-label="Release name"
-                className="h-9 w-48"
-                disabled={draft.isSaving}
-              />
-              <Button
-                type="button"
-                size="sm"
-                onClick={(event) => {
-                  event.preventDefault();
-                  event.stopPropagation();
-                  onSave?.();
-                }}
-                disabled={draft.isSaving}
-                className="h-9"
-              >
-                Save
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                aria-label="Cancel new release"
-                onClick={(event) => {
-                  event.preventDefault();
-                  event.stopPropagation();
-                  onCancel?.();
-                }}
-                disabled={draft.isSaving}
-              >
-                <XIcon className="h-4 w-4" aria-hidden="true" />
-              </Button>
-              {draft.isSaving ? (
-                <output
-                  aria-atomic="true"
-                  className="text-xs text-neutral-500 dark:text-neutral-400"
+            {!isSuccess ? (
+              <div className="flex min-h-[2.4rem] items-center gap-2">
+                <Input
+                  value={draft.name}
+                  onChange={(e) => onNameChange?.(e.target.value)}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                  }}
+                  aria-label="Release name"
+                  className="h-9 w-48"
+                  disabled={isDisabled}
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    onSave?.();
+                  }}
+                  disabled={isDisabled}
+                  className="h-9"
                 >
-                  Saving…
-                </output>
-              ) : null}
-              {draft.error ? (
-                <output
-                  role="alert"
-                  aria-atomic="true"
-                  className="text-xs text-red-600 dark:text-red-400"
+                  Save
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Cancel new release"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    onCancel?.();
+                  }}
+                  disabled={isDisabled}
                 >
-                  {draft.error}
-                </output>
-              ) : null}
-            </div>
+                  <XIcon className="h-4 w-4" aria-hidden="true" />
+                </Button>
+                {draft.isSaving ? (
+                  <output
+                    aria-atomic="true"
+                    className="text-xs text-neutral-500 dark:text-neutral-400"
+                  >
+                    Saving…
+                  </output>
+                ) : null}
+                {draft.error ? (
+                  <output
+                    role="alert"
+                    aria-atomic="true"
+                    className="text-xs text-red-600 dark:text-red-400"
+                  >
+                    {draft.error}
+                  </output>
+                ) : null}
+              </div>
+            ) : (
+              <div className="flex min-h-[2.4rem] items-center gap-2 text-sm text-emerald-500 dark:text-emerald-300">
+                <Check className="h-4 w-4" aria-hidden="true" />
+                <span>Release created</span>
+              </div>
+            )}
           </div>
           <div className="flex items-center gap-2 text-xs text-neutral-500 dark:text-neutral-400">
             {draft.isLoadingDefaults ? <span>Loading defaults…</span> : null}
@@ -369,6 +380,7 @@ type ReleasesAccordionProps = {
   onDraftTrackChange?: (track: ReleaseTrack) => void;
   onDraftSave?: () => void;
   onDraftCancel?: () => void;
+  autoOpenReleaseId?: string | null;
 };
 
 export default function ReleasesAccordion({
@@ -378,6 +390,7 @@ export default function ReleasesAccordion({
   onDraftTrackChange,
   onDraftSave,
   onDraftCancel,
+  autoOpenReleaseId,
 }: ReleasesAccordionProps) {
   const [hydrated, setHydrated] = React.useState(false);
   React.useEffect(() => setHydrated(true), []);
@@ -387,6 +400,14 @@ export default function ReleasesAccordion({
   const [openReleaseIds, setOpenReleaseIds] = React.useState<
     Record<string, boolean>
   >({});
+
+  React.useEffect(() => {
+    if (!autoOpenReleaseId) return;
+    setOpenReleaseIds((prev) =>
+      prev[autoOpenReleaseId] ? prev : { ...prev, [autoOpenReleaseId]: true },
+    );
+  }, [autoOpenReleaseId]);
+
   const anyOpen =
     Object.values(openReleaseIds).some(Boolean) || Boolean(draftRelease);
 
@@ -422,6 +443,7 @@ export default function ReleasesAccordion({
         return (
           <details
             key={rel.id}
+            open={openReleaseIds[rel.id] ?? false}
             className="group rounded-md border border-neutral-200 dark:border-neutral-800"
             onToggle={(event) => {
               const isOpen = (event.currentTarget as HTMLDetailsElement).open;

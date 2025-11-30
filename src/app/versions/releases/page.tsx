@@ -16,6 +16,7 @@ import {
   DEFAULT_RELEASE_TRACK,
   type ReleaseTrack,
 } from "~/shared/types/release-track";
+import { CheckCircle } from "lucide-react";
 
 type DraftReleaseState = {
   name: string;
@@ -24,6 +25,7 @@ type DraftReleaseState = {
   isSaving: boolean;
   isLoadingDefaults: boolean;
   defaultsError?: string | null;
+  status?: "idle" | "saving" | "success";
 };
 
 export default function VersionsReleasesPage() {
@@ -34,11 +36,23 @@ export default function VersionsReleasesPage() {
   const refetchDefaults = defaultsQuery.refetch;
   const [draftRelease, setDraftRelease] =
     React.useState<DraftReleaseState | null>(null);
+  const [autoOpenReleaseId, setAutoOpenReleaseId] = React.useState<
+    string | null
+  >(null);
+  const successTimerRef = React.useRef<number | null>(null);
   const { data: releaseComponentsPage } = useReleaseComponentsQuery();
 
   const startDraft = React.useCallback(async () => {
+    if (successTimerRef.current) {
+      window.clearTimeout(successTimerRef.current);
+      successTimerRef.current = null;
+    }
     setDraftRelease((prev) => ({
-      name: defaultsData?.name ?? prev?.name ?? "",
+      name:
+        defaultsData?.name ??
+        (prev && !prev.name.trim()
+          ? (defaultsData?.name ?? "")
+          : (prev?.name ?? "")),
       releaseTrack:
         defaultsData?.releaseTrack ??
         prev?.releaseTrack ??
@@ -47,6 +61,7 @@ export default function VersionsReleasesPage() {
       isSaving: false,
       isLoadingDefaults: true,
       defaultsError: null,
+      status: "idle",
     }));
     try {
       const result = await refetchDefaults();
@@ -54,12 +69,16 @@ export default function VersionsReleasesPage() {
         prev
           ? {
               ...prev,
-              name: prev.name ?? result.data?.name ?? "",
+              name:
+                !prev.name.trim() && result.data?.name
+                  ? result.data.name
+                  : prev.name,
               releaseTrack: result.data?.releaseTrack ?? prev.releaseTrack,
               isLoadingDefaults: false,
               defaultsError: result.error
                 ? "Defaults unavailable, using fallback values."
                 : null,
+              status: "idle",
             }
           : prev,
       );
@@ -70,6 +89,7 @@ export default function VersionsReleasesPage() {
               ...prev,
               isLoadingDefaults: false,
               defaultsError: "Defaults unavailable, using fallback values.",
+              status: "idle",
             }
           : prev,
       );
@@ -106,11 +126,27 @@ export default function VersionsReleasesPage() {
       return;
     }
     setDraftRelease((prev) =>
-      prev ? { ...prev, error: null, isSaving: true } : prev,
+      prev ? { ...prev, error: null, isSaving: true, status: "saving" } : prev,
     );
     try {
-      await createMutation.mutateAsync(parsed.data);
-      setDraftRelease(null);
+      const created = await createMutation.mutateAsync(parsed.data);
+      setAutoOpenReleaseId(created.id);
+      setDraftRelease((prev) =>
+        prev
+          ? {
+              ...prev,
+              isSaving: false,
+              status: "success",
+              error: null,
+            }
+          : prev,
+      );
+      if (successTimerRef.current) {
+        window.clearTimeout(successTimerRef.current);
+      }
+      successTimerRef.current = window.setTimeout(() => {
+        setDraftRelease(null);
+      }, 1200);
       await queryClient.invalidateQueries({
         queryKey: releasesWithPatchesQueryKey(undefined),
       });
@@ -120,6 +156,7 @@ export default function VersionsReleasesPage() {
           ? {
               ...prev,
               isSaving: false,
+              status: "idle",
               error: isRestApiError(err)
                 ? err.message
                 : "Failed to create release. Please try again.",
@@ -140,11 +177,24 @@ export default function VersionsReleasesPage() {
     );
   }, [releaseComponentsPage]);
 
+  React.useEffect(() => {
+    void refetchDefaults();
+  }, [refetchDefaults]);
+
+  React.useEffect(
+    () => () => {
+      if (successTimerRef.current) {
+        window.clearTimeout(successTimerRef.current);
+      }
+    },
+    [],
+  );
+
   return (
     <div className="mx-auto w-full space-y-6 px-4 sm:px-6 xl:px-8">
       <section className="w-full space-y-6 rounded-lg border border-neutral-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
         {!draftRelease ? (
-          <div className="flex items-end justify-start gap-2">
+          <div className="flex items-end justify-start gap-3">
             <Button onClick={startDraft}>New Release</Button>
           </div>
         ) : null}
@@ -156,6 +206,7 @@ export default function VersionsReleasesPage() {
           onDraftTrackChange={updateDraftTrack}
           onDraftSave={saveDraft}
           onDraftCancel={resetDraft}
+          autoOpenReleaseId={autoOpenReleaseId}
         />
       </section>
     </div>

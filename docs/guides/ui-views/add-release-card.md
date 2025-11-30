@@ -4,7 +4,7 @@ Purpose: let authenticated users create a release version inline on the releases
 
 - Location: `src/app/versions/releases/components/add-release-card.tsx` (client component rendered on `/versions/releases`).
 - UI primitives: `Card`, `CardContent`, `Button`, `Input`, `Label`, `GlowingEffect`, `Popover` from `src/components/ui/*`; existing auth helpers `useAuthSession`, `useDiscordLogin` gate access. Track selection uses the same swatch dropdown (`Popover` + buttons) pattern as the release accordion track selector.
-- Data hooks: `useCreateReleaseMutation` (wraps `POST /api/v1/release-versions`) and, after refinement, a lightweight query for `GET /api/v1/release-versions/new-values` to prefill name and track.
+- Data hooks: `useCreateReleaseMutation` (wraps `POST /api/v1/release-versions`) and, after refinement, a lightweight query for `GET /api/v1/release-versions/new-values` to prefill name and track. Defaults are now preloaded on mount so the form opens with values ready.
 - Access: when unauthenticated, the card prompts Discord login and disables submission; when authenticated, it reveals the form.
 
 ## Default prefill flow
@@ -16,7 +16,7 @@ sequenceDiagram
     participant C as AddReleaseCard (client)
     participant API as GET /release-versions/new-values
     U->>C: Open "New Release Version"
-    C->>API: Fetch defaults
+    C->>API: Fetch defaults (prefetched on mount)
     API-->>C: 200 { name, releaseTrack }
     C->>C: Prefill name + track dropdown
     C-->>U: Form ready with defaults

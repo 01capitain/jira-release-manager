@@ -3,6 +3,7 @@
 ## Flow
 
 - User clicks `New Release` on the Releases page (`src/app/versions/releases/page.tsx`).
+- The page preloads defaults on mount (background `refetchDefaults`) so `GET /api/v1/release-versions/new-values` is typically ready when the user opens the draft.
 - Page starts a draft and refetches `GET /api/v1/release-versions/new-values` via `useReleaseDefaultsQuery`; name and track state are prefilled from the response (fallbacks: empty name, `Future` track).
 - A draft row appears at the top of the accordion with the same inline name-edit UI used for renaming existing releases plus the standard track selector chip.
 - User edits the name or track; local state is kept in page-level draft state and passed into `ReleasesAccordion`.
@@ -19,7 +20,7 @@ sequenceDiagram
     participant API as /release-versions endpoints
 
     U->>P: Click "New Release"
-    P->>D: refetch /release-versions/new-values
+    P->>D: refetch /release-versions/new-values (prefetched on mount)
     D-->>P: { name?, releaseTrack? } (fallbacks on error)
     P->>A: render draft row (prefilled name/track)
     U->>A: edit name/track
