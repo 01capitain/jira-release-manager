@@ -511,7 +511,6 @@ const DraftReleaseRow = ({
               </Button>
               {draft.isSaving ? (
                 <output
-                  role="status"
                   aria-atomic="true"
                   className="text-xs text-neutral-500 dark:text-neutral-400"
                 >
