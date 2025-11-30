@@ -2,6 +2,8 @@ import type { ReleaseVersion } from "@prisma/client";
 
 import { DEFAULT_RELEASE_TRACK } from "~/shared/types/release-track";
 import type { ReleaseVersionDefaultsDto } from "~/shared/types/release-version";
+import { ReleaseVersionDefaultsDtoSchema } from "~/server/zod/dto/release-version.dto";
+import type { ReleaseVersionService } from "~/server/services/release-version.service";
 
 export const STATIC_RELEASE_VERSION_NAME = "New Release";
 
@@ -37,5 +39,13 @@ export class ReleaseVersionDefaultsService {
       name: this.calculateName(existing),
       releaseTrack: this.calculateReleaseTrack(existing),
     };
+  }
+
+  async calculateDefaultsForLatest(
+    releaseVersionService: ReleaseVersionService,
+  ): Promise<ReleaseVersionDefaultsDto> {
+    const latest = await releaseVersionService.getLatestRelease();
+    const defaults = this.calculateValues(latest);
+    return ReleaseVersionDefaultsDtoSchema.parse(defaults);
   }
 }

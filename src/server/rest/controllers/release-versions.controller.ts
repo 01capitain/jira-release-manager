@@ -189,14 +189,8 @@ export const createReleaseVersion = async (
 
 export const getReleaseVersionDefaults = async (context: RestContext) => {
   ensureAuthenticated(context);
-  const [latestRelease] = await context.db.releaseVersion.findMany({
-    orderBy: { createdAt: "desc" },
-    take: 1,
-  });
-  const defaults = releaseVersionDefaultsService.calculateValues(
-    latestRelease ?? null,
-  );
-  return ReleaseVersionDefaultsDtoSchema.parse(defaults);
+  const svc = new ReleaseVersionService(context.db);
+  return releaseVersionDefaultsService.calculateDefaultsForLatest(svc);
 };
 
 export const updateReleaseVersion = async (

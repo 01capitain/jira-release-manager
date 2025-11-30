@@ -45,11 +45,15 @@ export class ReleaseVersionService {
   ) {}
 
   async proposeDefaults(): Promise<ReleaseVersionDefaultsDto> {
+    return this.defaultsService.calculateDefaultsForLatest(this);
+  }
+
+  async getLatestRelease(): Promise<ReleaseVersion | null> {
     const [latest] = await this.db.releaseVersion.findMany({
       orderBy: { createdAt: "desc" },
       take: 1,
     });
-    return this.defaultsService.calculateValues(latest ?? null);
+    return latest ?? null;
   }
 
   private buildRelationsInclude(
