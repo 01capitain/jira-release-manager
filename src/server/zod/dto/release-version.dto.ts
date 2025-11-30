@@ -61,7 +61,7 @@ export function toReleaseVersionDto(model: unknown): ReleaseVersionDto {
   const dto: ReleaseVersionDto = {
     id: UuidV7Schema.parse(parsed.id),
     name: parsed.name,
-    releaseTrack: ReleaseTrackSchema.parse(parsed.releaseTrack),
+    releaseTrack: ReleaseVersionTrackSchema.parse(parsed.releaseTrack),
     createdAt: parsed.createdAt.toISOString() as ReleaseVersionDto["createdAt"],
   };
   // Validate the DTO we constructed to ensure the shape remains consistent
