@@ -179,7 +179,8 @@ export default function VersionsReleasesPage() {
 
   React.useEffect(() => {
     void refetchDefaults();
-  }, [refetchDefaults]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   React.useEffect(
     () => () => {
