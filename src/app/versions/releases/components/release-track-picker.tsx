@@ -147,6 +147,7 @@ export const ReleaseTrackPicker = ({
         ) : null}
         {status?.error ? (
           <output
+            role="alert"
             aria-atomic="true"
             className="block text-xs text-red-600 dark:text-red-400"
           >
