@@ -102,7 +102,11 @@ export default function AddReleaseCard({
   React.useEffect(() => {
     if (defaultsQuery.data) {
       setName((prev) => (prev ? prev : (defaultsQuery.data?.name ?? "")));
-      setReleaseTrack(defaultsQuery.data.releaseTrack ?? DEFAULT_RELEASE_TRACK);
+      setReleaseTrack((prev) =>
+        prev !== DEFAULT_RELEASE_TRACK
+          ? prev
+          : (defaultsQuery.data.releaseTrack ?? DEFAULT_RELEASE_TRACK)
+      );
     }
   }, [defaultsQuery.data]);
 
