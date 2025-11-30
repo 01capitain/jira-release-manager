@@ -340,14 +340,12 @@ export default function AddReleaseCard({
                     Sets the starting lifecycle for this release.
                   </p>
                   {defaultsQuery.isFetching ? (
-                    <p
-                      role="status"
+                    <output
                       aria-atomic="true"
-                      className="text-xs text-neutral-500 dark:text-neutral-400"
+                      className="block text-xs text-neutral-500 dark:text-neutral-400"
                     >
                       Loading suggestions…
-                    </p>
-                  ) : null}
+                    </output>
                   {defaultsQuery.isError ? (
                     <p className="text-xs text-amber-600 dark:text-amber-400">
                       Defaults unavailable, using fallback values.
