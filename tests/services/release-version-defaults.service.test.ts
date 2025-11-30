@@ -35,6 +35,16 @@ describe("ReleaseVersionDefaultsService", () => {
     expect(defaults.name).toBe("v180.35");
   });
 
+  it("falls back to static name when no existing release", () => {
+    const defaults = service.calculateValues(null);
+    expect(defaults.name).toBe(STATIC_RELEASE_VERSION_NAME);
+  });
+
+  it("falls back to static name when existing name is empty", () => {
+    const defaults = service.calculateValues(makeReleaseVersion(""));
+    expect(defaults.name).toBe(STATIC_RELEASE_VERSION_NAME);
+  });
+
   it("falls back to static name for unsupported patterns", () => {
     const defaults = service.calculateValues(makeReleaseVersion("release-fox"));
     expect(defaults.name).toBe(STATIC_RELEASE_VERSION_NAME);
