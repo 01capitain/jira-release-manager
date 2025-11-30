@@ -198,12 +198,22 @@ const ReleaseNameEditor = ({
         <XIcon className="h-4 w-4" aria-hidden="true" />
       </Button>
       {mutation.isPending ? (
-        <span className="text-xs text-neutral-500 dark:text-neutral-400">
+        <output 
+          role="status" 
+          aria-atomic="true"
+          className="text-xs text-neutral-500 dark:text-neutral-400"
+        >
           Saving…
-        </span>
+        </output>
       ) : null}
       {error ? (
-        <span className="text-xs text-red-600 dark:text-red-400">{error}</span>
+        <output 
+          role="alert" 
+          aria-atomic="true"
+          className="text-xs text-red-600 dark:text-red-400"
+        >
+          {error}
+        </output>
       ) : null}
     </div>
   );
