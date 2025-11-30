@@ -36,6 +36,17 @@ export const ReleaseVersionDtoSchema = ReleaseVersionModelFieldsSchema.omit({
     description: "Release version summary information.",
   });
 
+export const ReleaseVersionDefaultsDtoSchema = z
+  .object({
+    name: z.string(),
+    releaseTrack: ReleaseTrackSchema,
+  })
+  .meta({
+    id: "ReleaseVersionDefaults",
+    title: "Release Version Defaults",
+    description: "Suggested values for a new release version.",
+  });
+
 export const ReleaseVersionIdSchema = ReleaseVersionDtoSchema.shape.id;
 
 // Helper to convert from Prisma model (via generated schema) to DTO

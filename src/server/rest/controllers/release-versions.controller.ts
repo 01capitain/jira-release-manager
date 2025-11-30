@@ -9,11 +9,15 @@ import type { RestContext } from "~/server/rest/context";
 import { RestError } from "~/server/rest/errors";
 import { jsonErrorResponse } from "~/server/rest/openapi";
 import { ActionHistoryService } from "~/server/services/action-history.service";
+import { ReleaseVersionDefaultsService } from "~/server/services/release-version-defaults.service";
 import { ReleaseVersionService } from "~/server/services/release-version.service";
 import { PatchDtoSchema } from "~/server/zod/dto/patch.dto";
 import { PatchTransitionDtoSchema } from "~/server/zod/dto/patch-transition.dto";
 import { ComponentVersionDtoSchema } from "~/server/zod/dto/component-version.dto";
-import { ReleaseVersionDtoSchema } from "~/server/zod/dto/release-version.dto";
+import {
+  ReleaseVersionDefaultsDtoSchema,
+  ReleaseVersionDtoSchema,
+} from "~/server/zod/dto/release-version.dto";
 import { UserSummaryDtoSchema } from "~/server/zod/dto/user.dto";
 import {
   createPaginatedQueryDocSchema,
@@ -99,10 +103,8 @@ export const ReleaseVersionIdParamSchema = z.object({
 
 export const ReleaseVersionCreateResponseSchema = ReleaseVersionDtoSchema;
 
-export const ReleaseVersionDefaultsResponseSchema = z.object({
-  name: z.string(),
-  releaseTrack: ReleaseVersionDtoSchema.shape.releaseTrack,
-});
+const releaseVersionDefaultsService = new ReleaseVersionDefaultsService();
+
 export const parseReleaseVersionRelations = (
   searchParams: URLSearchParams,
 ): ReleaseVersionRelationKey[] => {
@@ -187,8 +189,14 @@ export const createReleaseVersion = async (
 
 export const getReleaseVersionDefaults = async (context: RestContext) => {
   ensureAuthenticated(context);
-  const svc = new ReleaseVersionService(context.db);
-  return svc.proposeDefaults();
+  const [latestRelease] = await context.db.releaseVersion.findMany({
+    orderBy: { createdAt: "desc" },
+    take: 1,
+  });
+  const defaults = releaseVersionDefaultsService.calculateValues(
+    latestRelease ?? null,
+  );
+  return ReleaseVersionDefaultsDtoSchema.parse(defaults);
 };
 
 export const updateReleaseVersion = async (
@@ -246,7 +254,7 @@ export const releaseVersionPaths = {
           description: "Default values for new release version",
           content: {
             "application/json": {
-              schema: ReleaseVersionDefaultsResponseSchema,
+              schema: ReleaseVersionDefaultsDtoSchema,
             },
           },
         },

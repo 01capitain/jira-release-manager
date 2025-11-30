@@ -20,22 +20,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  name:
-                    type: string
-                  releaseTrack:
-                    type: string
-                    enum:
-                      - Future
-                      - Beta
-                      - Rollout
-                      - Active
-                      - Archived
-                required:
-                  - name
-                  - releaseTrack
-                additionalProperties: false
+                $ref: "#/components/schemas/ReleaseVersionDefaults"
         "401":
           description: Authentication required
           content:
@@ -1169,6 +1154,25 @@ components:
         - 018f0b4e-5ff9-7000-8000-000000000000
       type: string
       pattern: ^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$
+    ReleaseVersionDefaults:
+      title: Release Version Defaults
+      description: Suggested values for a new release version.
+      type: object
+      properties:
+        name:
+          type: string
+        releaseTrack:
+          type: string
+          enum:
+            - Future
+            - Beta
+            - Rollout
+            - Active
+            - Archived
+      required:
+        - name
+        - releaseTrack
+      additionalProperties: false
     RestError:
       title: REST Error
       description: Standard envelope for REST error responses.

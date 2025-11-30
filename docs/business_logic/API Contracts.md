@@ -5,6 +5,7 @@
 - List endpoints return `PaginatedResponse<T>` (see `src/shared/types/pagination.ts`) so every response includes `data` alongside `pagination { page, pageSize, totalItems, hasNextPage }`. Use `createPaginatedRequestSchema` to normalize inputs and `buildPaginatedResponse` to hydrate responses.
 - `ReleaseVersionDto` exposes a `releaseTrack` field derived from the enum `ReleaseTrack = "Future" | "Beta" | "Rollout" | "Active" | "Archived"`. New releases default to `"Future"`; defaults for both name and track are exposed via `GET /api/v1/release-versions/new-values` (authenticated). `POST /api/v1/release-versions` accepts optional `releaseTrack` to override the default at creation.
 - Release updates consolidate into `PATCH /api/v1/release-versions/{releaseId}` with payload `{ name?, releaseTrack? }` (at least one field). Name changes do **not** retroactively rename existing patches (their names remain immutable historical artifacts).
+- Default suggestions for new releases derive from the latest release version: numeric names increment by one (e.g., `179` → `180`), dotted names bump the minor segment while keeping any leading `v` prefix (e.g., `179.1` → `179.2`, `v180.34` → `v180.35`), and other patterns fall back to the static name `"New Release"`. The release track suggestion always stays at the default `"Future"`.
 - For build and component versioning, we store a `tokenValues` JSON object alongside records. Shape is defined by `TokenValues`:
 
 ```ts

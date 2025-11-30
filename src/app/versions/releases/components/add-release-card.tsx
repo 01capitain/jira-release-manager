@@ -105,7 +105,7 @@ export default function AddReleaseCard({
       setReleaseTrack((prev) =>
         prev !== DEFAULT_RELEASE_TRACK
           ? prev
-          : (defaultsQuery.data.releaseTrack ?? DEFAULT_RELEASE_TRACK)
+          : (defaultsQuery.data.releaseTrack ?? DEFAULT_RELEASE_TRACK),
       );
     }
   }, [defaultsQuery.data]);
@@ -346,6 +346,7 @@ export default function AddReleaseCard({
                     >
                       Loading suggestions…
                     </output>
+                  ) : null}
                   {defaultsQuery.isError ? (
                     <p className="text-xs text-amber-600 dark:text-amber-400">
                       Defaults unavailable, using fallback values.

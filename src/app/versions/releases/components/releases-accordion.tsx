@@ -89,6 +89,15 @@ const TRACK_STYLE_MAP: Record<
   },
 };
 
+type DraftReleaseData = {
+  name: string;
+  releaseTrack: ReleaseTrack;
+  error: string | null;
+  isSaving: boolean;
+  isLoadingDefaults: boolean;
+  defaultsError?: string | null;
+};
+
 const ReleaseNameEditor = ({
   releaseId,
   name,
@@ -198,8 +207,8 @@ const ReleaseNameEditor = ({
         <XIcon className="h-4 w-4" aria-hidden="true" />
       </Button>
       {mutation.isPending ? (
-        <output 
-          role="status" 
+        <output
+          role="status"
           aria-atomic="true"
           className="text-xs text-neutral-500 dark:text-neutral-400"
         >
@@ -207,8 +216,8 @@ const ReleaseNameEditor = ({
         </output>
       ) : null}
       {error ? (
-        <output 
-          role="alert" 
+        <output
+          role="alert"
           aria-atomic="true"
           className="text-xs text-red-600 dark:text-red-400"
         >
@@ -350,12 +359,202 @@ const ReleaseTrackSelector = ({
   );
 };
 
+const DraftReleaseTrackSelector = ({
+  value,
+  onChange,
+  disabled,
+}: {
+  value: ReleaseTrack;
+  onChange: (track: ReleaseTrack) => void;
+  disabled?: boolean;
+}) => {
+  const [open, setOpen] = React.useState(false);
+  const styles = TRACK_STYLE_MAP[value] ?? TRACK_STYLE_MAP.Future;
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          aria-label={`Release track: ${value}. Click to change.`}
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            setOpen((prev) => !prev);
+          }}
+          className={`mr-3 flex w-6 flex-shrink-0 items-stretch self-stretch overflow-hidden rounded-l-md border-y ${styles.border} min-h-[2.75rem] bg-white/40 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:outline-none dark:bg-neutral-900 dark:ring-offset-neutral-900`}
+        >
+          <span className={`flex-1 rounded-l-md ${styles.swatch}`} />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        side="bottom"
+        align="start"
+        className="w-52 space-y-2 p-3 text-sm"
+      >
+        <p className="text-xs font-medium text-neutral-500 dark:text-neutral-300">
+          Select release track
+        </p>
+        <div className="space-y-1">
+          {RELEASE_TRACK_VALUES.map((track) => {
+            const optionStyles = TRACK_STYLE_MAP[track];
+            const isSelected = track === value;
+            return (
+              <button
+                key={track}
+                type="button"
+                onClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  onChange(track);
+                  setOpen(false);
+                }}
+                disabled={disabled}
+                aria-pressed={isSelected}
+                className={`flex w-full items-center justify-between rounded-md px-2 py-1 text-left transition ${optionStyles.optionHover} ${
+                  isSelected
+                    ? "ring-2 ring-offset-1 ring-offset-white dark:ring-offset-neutral-900"
+                    : ""
+                }`}
+              >
+                <span className="flex items-center gap-2">
+                  <span
+                    aria-hidden="true"
+                    className={`h-3 w-3 rounded-full ${optionStyles.optionDot}`}
+                  />
+                  {track}
+                </span>
+                {isSelected ? (
+                  <Check
+                    className="h-4 w-4 text-neutral-600 dark:text-neutral-300"
+                    aria-hidden="true"
+                  />
+                ) : (
+                  <span className="h-4 w-4" aria-hidden="true" />
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+};
+
+const DraftReleaseRow = ({
+  draft,
+  onNameChange,
+  onTrackChange,
+  onSave,
+  onCancel,
+}: {
+  draft: DraftReleaseData;
+  onNameChange?: (value: string) => void;
+  onTrackChange?: (value: ReleaseTrack) => void;
+  onSave?: () => void;
+  onCancel?: () => void;
+}) => {
+  return (
+    <details
+      open
+      className="group rounded-md border border-neutral-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900"
+      onToggle={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+      }}
+    >
+      <summary className="flex cursor-default list-none items-stretch gap-3 rounded-md bg-neutral-50 pr-4 text-neutral-800 dark:bg-neutral-900 dark:text-neutral-100">
+        <DraftReleaseTrackSelector
+          value={draft.releaseTrack}
+          onChange={(next) => onTrackChange?.(next)}
+          disabled={draft.isSaving}
+        />
+        <div className="flex flex-1 flex-wrap items-center justify-between gap-3 py-2 pr-4 pl-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex min-h-[2.4rem] items-center gap-2">
+              <Input
+                value={draft.name}
+                onChange={(e) => onNameChange?.(e.target.value)}
+                onClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                }}
+                aria-label="Release name"
+                className="h-9 w-48"
+                disabled={draft.isSaving}
+              />
+              <Button
+                type="button"
+                size="sm"
+                onClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  onSave?.();
+                }}
+                disabled={draft.isSaving}
+                className="h-9"
+              >
+                Save
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                aria-label="Cancel new release"
+                onClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  onCancel?.();
+                }}
+                disabled={draft.isSaving}
+              >
+                <XIcon className="h-4 w-4" aria-hidden="true" />
+              </Button>
+              {draft.isSaving ? (
+                <output
+                  role="status"
+                  aria-atomic="true"
+                  className="text-xs text-neutral-500 dark:text-neutral-400"
+                >
+                  Saving…
+                </output>
+              ) : null}
+              {draft.error ? (
+                <output
+                  role="alert"
+                  aria-atomic="true"
+                  className="text-xs text-red-600 dark:text-red-400"
+                >
+                  {draft.error}
+                </output>
+              ) : null}
+            </div>
+          </div>
+          <div className="flex items-center gap-2 text-xs text-neutral-500 dark:text-neutral-400">
+            {draft.isLoadingDefaults ? <span>Loading defaults…</span> : null}
+          </div>
+        </div>
+      </summary>
+    </details>
+  );
+};
+
 type ReleasesAccordionProps = {
   releaseComponentLookup: Record<string, { color?: string }>;
+  draftRelease?: DraftReleaseData | null;
+  onDraftNameChange?: (value: string) => void;
+  onDraftTrackChange?: (track: ReleaseTrack) => void;
+  onDraftSave?: () => void;
+  onDraftCancel?: () => void;
 };
 
 export default function ReleasesAccordion({
   releaseComponentLookup,
+  draftRelease,
+  onDraftNameChange,
+  onDraftTrackChange,
+  onDraftSave,
+  onDraftCancel,
 }: ReleasesAccordionProps) {
   const [hydrated, setHydrated] = React.useState(false);
   React.useEffect(() => setHydrated(true), []);
@@ -365,7 +564,8 @@ export default function ReleasesAccordion({
   const [openReleaseIds, setOpenReleaseIds] = React.useState<
     Record<string, boolean>
   >({});
-  const anyOpen = Object.values(openReleaseIds).some(Boolean);
+  const anyOpen =
+    Object.values(openReleaseIds).some(Boolean) || Boolean(draftRelease);
 
   const { releases, isFetching, patchStatusById } = useReleaseEntities({
     enabled: true,
@@ -378,6 +578,15 @@ export default function ReleasesAccordion({
 
   return (
     <div className="space-y-5">
+      {draftRelease ? (
+        <DraftReleaseRow
+          draft={draftRelease}
+          onNameChange={onDraftNameChange}
+          onTrackChange={onDraftTrackChange}
+          onSave={onDraftSave}
+          onCancel={onDraftCancel}
+        />
+      ) : null}
       {normalizedReleases.map((rel) => {
         const ids = rel.patches.map((b) => b.id);
         const names = rel.patches.map((b) => b.name);

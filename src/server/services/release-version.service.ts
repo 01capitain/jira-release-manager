@@ -10,6 +10,7 @@ import type {
   ActionLogger,
   SubactionInput,
 } from "~/server/services/action-history.service";
+import { ReleaseVersionDefaultsService } from "~/server/services/release-version-defaults.service";
 import {
   buildReleaseVersionRelationState,
   type ReleaseVersionRelationState,
@@ -40,47 +41,15 @@ export class ReleaseVersionService {
   constructor(
     private readonly db: PrismaClient,
     private readonly patchService: PatchService = new PatchService(db),
+    private readonly defaultsService = new ReleaseVersionDefaultsService(),
   ) {}
 
-  private buildDefaultName(existingNames: string[]): string {
-    const taken = new Set(existingNames);
-    let maxNumeric = -1;
-    for (const name of existingNames) {
-      if (/^\d+$/.test(name)) {
-        const value = Number.parseInt(name, 10);
-        if (Number.isFinite(value) && value > maxNumeric) {
-          maxNumeric = value;
-        }
-      }
-    }
-    let candidate = maxNumeric >= 0 ? maxNumeric + 1 : 1;
-    for (let attempts = 0; attempts < 1000; attempts += 1) {
-      const next = String(candidate);
-      if (!taken.has(next)) {
-        return next;
-      }
-      candidate += 1;
-    }
-    throw new RestError(
-      500,
-      "DEFAULT_NAME_UNAVAILABLE",
-      "Unable to generate a unique default release name",
-    );
-  }
-
   async proposeDefaults(): Promise<ReleaseVersionDefaultsDto> {
-    const names = await this.db.releaseVersion.findMany({
-      select: { name: true },
+    const [latest] = await this.db.releaseVersion.findMany({
       orderBy: { createdAt: "desc" },
-      take: 200,
+      take: 1,
     });
-    const proposedName = this.buildDefaultName(
-      names.map((entry) => entry.name),
-    );
-    return {
-      name: proposedName,
-      releaseTrack: DEFAULT_RELEASE_TRACK,
-    };
+    return this.defaultsService.calculateValues(latest ?? null);
   }
 
   private buildRelationsInclude(
