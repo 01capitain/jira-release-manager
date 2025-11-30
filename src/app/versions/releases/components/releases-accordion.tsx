@@ -286,17 +286,15 @@ const DraftReleaseRow = ({
     <details
       open
       className="group rounded-md border border-neutral-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900"
-      onToggle={(event) => {
-        event.preventDefault();
-        event.stopPropagation();
-      }}
     >
-      <summary className="flex cursor-default list-none items-stretch gap-3 rounded-md bg-neutral-50 pr-4 text-neutral-800 dark:bg-neutral-900 dark:text-neutral-100">
-        <DraftReleaseTrackSelector
-          value={draft.releaseTrack}
-          onChange={(next) => onTrackChange?.(next)}
-          disabled={isDisabled}
-        />
+      <summary className="pointer-events-none flex cursor-default list-none items-stretch gap-3 rounded-md bg-neutral-50 pr-4 text-neutral-800 dark:bg-neutral-900 dark:text-neutral-100">
+        <div className="pointer-events-auto">
+          <DraftReleaseTrackSelector
+            value={draft.releaseTrack}
+            onChange={(next) => onTrackChange?.(next)}
+            disabled={isDisabled}
+          />
+        </div>
         <div className="flex flex-1 flex-wrap items-center justify-between gap-3 py-2 pr-4 pl-1">
           <div className="flex flex-wrap items-center gap-2">
             {!isSuccess ? (
@@ -309,7 +307,7 @@ const DraftReleaseRow = ({
                     event.stopPropagation();
                   }}
                   aria-label="Release name"
-                  className="h-9 w-48"
+                  className="pointer-events-auto h-9 w-48"
                   disabled={isDisabled}
                 />
                 <Button
@@ -321,7 +319,7 @@ const DraftReleaseRow = ({
                     onSave?.();
                   }}
                   disabled={isDisabled}
-                  className="h-9"
+                  className="pointer-events-auto h-9"
                 >
                   Save
                 </Button>
@@ -336,6 +334,7 @@ const DraftReleaseRow = ({
                     onCancel?.();
                   }}
                   disabled={isDisabled}
+                  className="pointer-events-auto"
                 >
                   <XIcon className="h-4 w-4" aria-hidden="true" />
                 </Button>
