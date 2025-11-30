@@ -23,6 +23,11 @@ type DbPatchStatus =
   | "active"
   | "deprecated";
 
+type TransitionRule = {
+  from: PatchStatus;
+  to: PatchStatus;
+};
+
 // Map API action (camelCase) to DB enum (snake_case)
 const ActionToPrisma: Record<ApiAction, DbPatchAction> = {
   startDeployment: "start_deployment",
@@ -31,11 +36,6 @@ const ActionToPrisma: Record<ApiAction, DbPatchAction> = {
   revertToDeployment: "revert_to_deployment",
   deprecate: "deprecate",
   reactivate: "reactivate",
-};
-
-type TransitionRule = {
-  from: DbPatchStatus;
-  to: DbPatchStatus;
 };
 
 const Rules = {
@@ -52,11 +52,51 @@ type PatchSummary = {
   name: string;
   versionId: string;
   createdAt: Date;
-  currentStatus: DbPatchStatus;
+  currentStatus: PatchStatus;
 };
 
 export class PatchStatusService {
   constructor(private readonly db: PrismaClient) {}
+
+  getTransitionRule(action: ApiAction): TransitionRule {
+    const prismaAction = ActionToPrisma[action];
+    const rule = Rules[prismaAction];
+    if (!rule) {
+      throw new Error(`Unsupported action: ${action}`);
+    }
+    return {
+      from: rule.from,
+      to: rule.to,
+    };
+  }
+
+  validateTransition(
+    currentStatus: PatchStatus,
+    action: ApiAction,
+  ): {
+    allowed: boolean;
+    blockers: string[];
+    warnings: string[];
+    targetStatus: PatchStatus;
+  } {
+    const rule = this.getTransitionRule(action);
+    if (currentStatus !== rule.from) {
+      return {
+        allowed: false,
+        blockers: [
+          `Patch is currently ${currentStatus}; expected ${rule.from} for ${action}`,
+        ],
+        warnings: [],
+        targetStatus: rule.to,
+      };
+    }
+    return {
+      allowed: true,
+      blockers: [],
+      warnings: [],
+      targetStatus: rule.to,
+    };
+  }
 
   async getHistory(patchId: string) {
     return this.db.patchTransition.findMany({
@@ -64,6 +104,7 @@ export class PatchStatusService {
       orderBy: { createdAt: "asc" },
       select: {
         id: true,
+        patchId: true,
         fromStatus: true,
         toStatus: true,
         action: true,
@@ -92,9 +133,7 @@ export class PatchStatusService {
   }> {
     const prismaAction = ActionToPrisma[action];
     const rule = Rules[prismaAction];
-    if (!rule) {
-      throw new Error(`Unsupported action: ${action}`);
-    }
+    const targetRule = this.getTransitionRule(action);
 
     const auditTrail: SubactionInput[] = [];
 
@@ -116,9 +155,11 @@ export class PatchStatusService {
         metadata: { patchId, action: prismaAction },
       });
 
-      const currentStatus = patchRecord.currentStatus ?? "in_development";
+      const currentStatus = (patchRecord.currentStatus ??
+        "in_development") as PatchStatus;
+      const validation = this.validateTransition(currentStatus, action);
 
-      if (currentStatus !== rule.from) {
+      if (!validation.allowed) {
         // Provide a precise error for clients
         throw Object.assign(
           new Error(
@@ -126,7 +167,11 @@ export class PatchStatusService {
           ),
           {
             code: "INVALID_TRANSITION",
-            details: { from: currentStatus, expected: rule.from, action },
+            details: {
+              from: currentStatus,
+              expected: rule.from,
+              action,
+            },
           },
         );
       }
@@ -148,7 +193,7 @@ export class PatchStatusService {
 
       // Hook: onEnter. Intentionally placed after write.
       // When entering a new status, perform side effects.
-      const onEnter = async (s: DbPatchStatus) => {
+      const onEnter = async (s: PatchStatus) => {
         // When a patch moves to in_deployment, auto-create a successor
         if (s !== "in_deployment") return;
         // Fetch the patch to obtain its release version
@@ -228,7 +273,7 @@ export class PatchStatusService {
       });
 
       return {
-        status: rule.to as PatchStatus,
+        status: targetRule.to,
         patch,
       };
     });

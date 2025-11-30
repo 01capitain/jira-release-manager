@@ -1,13 +1,21 @@
 import { z } from "zod";
 
 import { ActionHistoryService } from "~/server/services/action-history.service";
+import {
+  PATCH_TRANSITION_SIDE_EFFECTS,
+  PatchTransitionPreflightService,
+} from "~/server/services/patch-transition-preflight.service";
 import { PatchStatusService } from "~/server/services/patch-status.service";
 import {
   PatchDtoSchema,
   PatchIdSchema,
   toPatchDto,
 } from "~/server/zod/dto/patch.dto";
-import { PatchTransitionDtoSchema } from "~/server/zod/dto/patch-transition.dto";
+import {
+  PatchTransitionDtoSchema,
+  mapToPatchTransitionDtos,
+} from "~/server/zod/dto/patch-transition.dto";
+import { PatchTransitionPreflightDtoSchema } from "~/server/zod/dto/patch-transition-preflight.dto";
 import type { RestContext } from "~/server/rest/context";
 import { ensureAuthenticated } from "~/server/rest/auth";
 import { RestError } from "~/server/rest/errors";
@@ -30,7 +38,8 @@ export const PatchTransitionResponseSchema = z
   .meta({
     id: "PatchTransitionResult",
     title: "Patch Transition Result",
-    description: "Patch transition response including current status and history.",
+    description:
+      "Patch transition response including current status and history.",
   });
 
 const transitions = [
@@ -122,15 +131,20 @@ const performTransition = async (
         logger: actionLog,
       },
     );
+    const workflowSteps = PATCH_TRANSITION_SIDE_EFFECTS[action] ?? [];
+    for (const step of workflowSteps) {
+      await actionLog.subaction({
+        subactionType: `patch.workflow.${action}`,
+        message: step,
+        metadata: {
+          patchId: params.patchId,
+          releaseId: params.releaseId,
+          action,
+        },
+      });
+    }
     const history = await statusService.getHistory(params.patchId);
-    const mappedHistory = history.map((entry) => ({
-      id: entry.id,
-      fromStatus: entry.fromStatus,
-      toStatus: entry.toStatus,
-      action: entry.action,
-      createdAt: entry.createdAt.toISOString(),
-      createdById: entry.createdById,
-    }));
+    const mappedHistory = mapToPatchTransitionDtos(history);
 
     await actionLog.complete("success", {
       message: `Patch ${params.patchId} transitioned to ${result.status}`,
@@ -187,7 +201,67 @@ export const reactivatePatch = (
   params: TransitionParams,
 ) => performTransition(context, params, "reactivate");
 
+const performPreflight = async (
+  context: RestContext,
+  params: TransitionParams,
+  action: PatchAction,
+) => {
+  ensureAuthenticated(context);
+  const preflight = new PatchTransitionPreflightService(context.db);
+  return preflight.getPreflight(params.releaseId, params.patchId, action);
+};
+
+export const startDeploymentPreflight = (
+  context: RestContext,
+  params: TransitionParams,
+) => performPreflight(context, params, "startDeployment");
+
+export const cancelDeploymentPreflight = (
+  context: RestContext,
+  params: TransitionParams,
+) => performPreflight(context, params, "cancelDeployment");
+
+export const markActivePreflight = (
+  context: RestContext,
+  params: TransitionParams,
+) => performPreflight(context, params, "markActive");
+
+export const revertToDeploymentPreflight = (
+  context: RestContext,
+  params: TransitionParams,
+) => performPreflight(context, params, "revertToDeployment");
+
+export const deprecatePreflight = (
+  context: RestContext,
+  params: TransitionParams,
+) => performPreflight(context, params, "deprecate");
+
+export const reactivatePreflight = (
+  context: RestContext,
+  params: TransitionParams,
+) => performPreflight(context, params, "reactivate");
+
 const createPathItem = (action: PatchAction, summary: string) => ({
+  get: {
+    operationId: `${action}PatchPreflight`,
+    summary: `${summary} patch (preflight)`,
+    tags: ["Release Versions"],
+    requestParams: {
+      path: PatchTransitionParamSchema,
+    },
+    responses: {
+      200: {
+        description: "Preflight result",
+        content: {
+          "application/json": {
+            schema: PatchTransitionPreflightDtoSchema,
+          },
+        },
+      },
+      401: jsonErrorResponse("Authentication required"),
+      404: jsonErrorResponse("Patch not found"),
+    },
+  },
   post: {
     operationId: `${action}Patch`,
     summary: `${summary} patch`,
