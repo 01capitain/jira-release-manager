@@ -174,7 +174,6 @@ const ReleaseNameEditor = ({
         value={value}
         onChange={(e) => setValue(e.target.value)}
         onClick={(event) => {
-          event.preventDefault();
           event.stopPropagation();
         }}
         aria-label="Release name"
@@ -512,7 +511,6 @@ const DraftReleaseRow = ({
               </Button>
               {draft.isSaving ? (
                 <output
-                  role="status"
                   aria-atomic="true"
                   className="text-xs text-neutral-500 dark:text-neutral-400"
                 >
