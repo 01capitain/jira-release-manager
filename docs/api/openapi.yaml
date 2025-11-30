@@ -86,13 +86,7 @@ paths:
                         id:
                           $ref: "#/components/schemas/uuidv7"
                         releaseTrack:
-                          type: string
-                          enum:
-                            - Future
-                            - Beta
-                            - Rollout
-                            - Active
-                            - Archived
+                          $ref: "#/components/schemas/ReleaseVersionTrack"
                         createdAt:
                           $ref: "#/components/schemas/iso8601Timestamp"
                         creater:
@@ -237,13 +231,7 @@ paths:
                   id:
                     $ref: "#/components/schemas/uuidv7"
                   releaseTrack:
-                    type: string
-                    enum:
-                      - Future
-                      - Beta
-                      - Rollout
-                      - Active
-                      - Archived
+                    $ref: "#/components/schemas/ReleaseVersionTrack"
                   createdAt:
                     $ref: "#/components/schemas/iso8601Timestamp"
                   creater:
@@ -1162,17 +1150,21 @@ components:
         name:
           type: string
         releaseTrack:
-          type: string
-          enum:
-            - Future
-            - Beta
-            - Rollout
-            - Active
-            - Archived
+          $ref: "#/components/schemas/ReleaseVersionTrack"
       required:
         - name
         - releaseTrack
       additionalProperties: false
+    ReleaseVersionTrack:
+      title: Release Version Track
+      description: Lifecycle track for a release version.
+      type: string
+      enum:
+        - Future
+        - Beta
+        - Rollout
+        - Active
+        - Archived
     RestError:
       title: REST Error
       description: Standard envelope for REST error responses.
@@ -1329,13 +1321,7 @@ components:
         id:
           $ref: "#/components/schemas/uuidv7"
         releaseTrack:
-          type: string
-          enum:
-            - Future
-            - Beta
-            - Rollout
-            - Active
-            - Archived
+          $ref: "#/components/schemas/ReleaseVersionTrack"
         createdAt:
           $ref: "#/components/schemas/iso8601Timestamp"
       required:

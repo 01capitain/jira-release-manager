@@ -19,6 +19,12 @@ const ReleaseVersionModelFieldsSchema = ReleaseVersionModelSchemaWithTrack.pick(
   },
 ).strip();
 
+export const ReleaseVersionTrackSchema = ReleaseTrackSchema.meta({
+  id: "ReleaseVersionTrack",
+  title: "Release Version Track",
+  description: "Lifecycle track for a release version.",
+});
+
 // Public DTO schema (explicitly controls fields exposed to clients)
 export const ReleaseVersionDtoSchema = ReleaseVersionModelFieldsSchema.omit({
   id: true,
@@ -27,7 +33,7 @@ export const ReleaseVersionDtoSchema = ReleaseVersionModelFieldsSchema.omit({
 })
   .extend({
     id: UuidV7Schema,
-    releaseTrack: ReleaseTrackSchema,
+    releaseTrack: ReleaseVersionTrackSchema,
     createdAt: IsoTimestampSchema,
   })
   .meta({
@@ -39,7 +45,7 @@ export const ReleaseVersionDtoSchema = ReleaseVersionModelFieldsSchema.omit({
 export const ReleaseVersionDefaultsDtoSchema = z
   .object({
     name: z.string(),
-    releaseTrack: ReleaseTrackSchema,
+    releaseTrack: ReleaseVersionTrackSchema,
   })
   .meta({
     id: "ReleaseVersionDefaults",
