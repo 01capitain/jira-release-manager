@@ -19,6 +19,12 @@ const ReleaseVersionModelFieldsSchema = ReleaseVersionModelSchemaWithTrack.pick(
   },
 ).strip();
 
+export const ReleaseVersionTrackSchema = ReleaseTrackSchema.meta({
+  id: "ReleaseVersionTrack",
+  title: "Release Version Track",
+  description: "Lifecycle track for a release version.",
+});
+
 // Public DTO schema (explicitly controls fields exposed to clients)
 export const ReleaseVersionDtoSchema = ReleaseVersionModelFieldsSchema.omit({
   id: true,
@@ -27,7 +33,7 @@ export const ReleaseVersionDtoSchema = ReleaseVersionModelFieldsSchema.omit({
 })
   .extend({
     id: UuidV7Schema,
-    releaseTrack: ReleaseTrackSchema,
+    releaseTrack: ReleaseVersionTrackSchema,
     createdAt: IsoTimestampSchema,
   })
   .meta({
@@ -35,6 +41,15 @@ export const ReleaseVersionDtoSchema = ReleaseVersionModelFieldsSchema.omit({
     title: "Release Version",
     description: "Release version summary information.",
   });
+
+export const ReleaseVersionDefaultsDtoSchema = ReleaseVersionDtoSchema.pick({
+  name: true,
+  releaseTrack: true,
+}).meta({
+  id: "ReleaseVersionDefaults",
+  title: "Release Version Defaults",
+  description: "Suggested values for a new release version.",
+});
 
 export const ReleaseVersionIdSchema = ReleaseVersionDtoSchema.shape.id;
 
@@ -44,7 +59,7 @@ export function toReleaseVersionDto(model: unknown): ReleaseVersionDto {
   const dto: ReleaseVersionDto = {
     id: UuidV7Schema.parse(parsed.id),
     name: parsed.name,
-    releaseTrack: ReleaseTrackSchema.parse(parsed.releaseTrack),
+    releaseTrack: ReleaseVersionTrackSchema.parse(parsed.releaseTrack),
     createdAt: parsed.createdAt.toISOString() as ReleaseVersionDto["createdAt"],
   };
   // Validate the DTO we constructed to ensure the shape remains consistent

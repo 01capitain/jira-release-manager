@@ -2,7 +2,6 @@ import { z } from "zod";
 
 import { PatchService } from "~/server/services/patch.service";
 import type { RestContext } from "~/server/rest/context";
-import { PatchDtoSchema } from "~/server/zod/dto/patch.dto";
 import { PatchDefaultSelectionSchema } from "~/shared/schemas/patch-selection";
 import { jsonErrorResponse } from "~/server/rest/openapi";
 import {
