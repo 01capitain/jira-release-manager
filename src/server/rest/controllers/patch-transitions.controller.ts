@@ -1,28 +1,28 @@
 import { z } from "zod";
 
+import { ensureAuthenticated } from "~/server/rest/auth";
+import type { RestContext } from "~/server/rest/context";
+import { RestError } from "~/server/rest/errors";
+import { jsonErrorResponse } from "~/server/rest/openapi";
 import { ActionHistoryService } from "~/server/services/action-history.service";
-import {
-  PATCH_TRANSITION_SIDE_EFFECTS,
-  PatchTransitionPreflightService,
-} from "~/server/services/patch-transition-preflight.service";
 import { PatchStatusService } from "~/server/services/patch-status.service";
+import { PatchTransitionPreflightService } from "~/server/services/patch-transition-preflight.service";
+import { ActionWorkflowDispatcher } from "~/server/workflows/patch-transition.dispatcher";
+import { NoOpWorkflowService } from "~/server/workflows/services/noop.workflow";
+import { StartDeploymentWorkflowService } from "~/server/workflows/services/start-deployment.workflow";
+import { PatchTransitionPreflightDtoSchema } from "~/server/zod/dto/patch-transition-preflight.dto";
+import {
+  PatchTransitionDtoSchema,
+  mapToPatchTransitionDtos,
+} from "~/server/zod/dto/patch-transition.dto";
 import {
   PatchDtoSchema,
   PatchIdSchema,
   toPatchDto,
 } from "~/server/zod/dto/patch.dto";
-import {
-  PatchTransitionDtoSchema,
-  mapToPatchTransitionDtos,
-} from "~/server/zod/dto/patch-transition.dto";
-import { PatchTransitionPreflightDtoSchema } from "~/server/zod/dto/patch-transition-preflight.dto";
-import type { RestContext } from "~/server/rest/context";
-import { ensureAuthenticated } from "~/server/rest/auth";
-import { RestError } from "~/server/rest/errors";
-import { jsonErrorResponse } from "~/server/rest/openapi";
-import { PatchStatusSchema } from "~/shared/types/patch-status";
-import type { PatchAction } from "~/shared/types/patch-status";
 import { ReleaseVersionIdSchema } from "~/server/zod/dto/release-version.dto";
+import type { PatchAction } from "~/shared/types/patch-status";
+import { PatchStatusSchema } from "~/shared/types/patch-status";
 
 export const PatchTransitionParamSchema = z.object({
   releaseId: ReleaseVersionIdSchema,
@@ -131,18 +131,24 @@ const performTransition = async (
         logger: actionLog,
       },
     );
-    const workflowSteps = PATCH_TRANSITION_SIDE_EFFECTS[action] ?? [];
-    for (const step of workflowSteps) {
-      await actionLog.subaction({
-        subactionType: `patch.workflow.${action}`,
-        message: step,
-        metadata: {
-          patchId: params.patchId,
-          releaseId: params.releaseId,
-          action,
-        },
-      });
-    }
+    const dispatcher = new ActionWorkflowDispatcher({
+      startDeployment: new StartDeploymentWorkflowService(context.db),
+      cancelDeployment: new NoOpWorkflowService(),
+      markActive: new NoOpWorkflowService(),
+      revertToDeployment: new NoOpWorkflowService(),
+      deprecate: new NoOpWorkflowService(),
+      reactivate: new NoOpWorkflowService(),
+    });
+
+    await dispatcher.dispatch(
+      {
+        patchId: params.patchId,
+        userId,
+        transitionId: result.transitionId,
+        action,
+      },
+      actionLog,
+    );
     const history = await statusService.getHistory(params.patchId);
     const mappedHistory = mapToPatchTransitionDtos(history);
 

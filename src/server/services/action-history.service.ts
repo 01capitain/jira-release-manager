@@ -29,10 +29,12 @@ export type SubactionInput = {
 export interface ActionLogger {
   readonly id: string | null;
   subaction(
+    this: void,
     input: SubactionInput,
     client?: Prisma.TransactionClient,
   ): Promise<void>;
   complete(
+    this: void,
     status: ActionStatus,
     options?: { message?: string; metadata?: Record<string, unknown> | null },
   ): Promise<void>;

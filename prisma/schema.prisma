@@ -98,6 +98,7 @@ model User {
     PatchTransition        PatchTransition[]
     jiraCredential         JiraCredential?
     actionLogs             ActionLog[]
+    transitionWork         PatchTransitionWork[]
 
     @@schema("app")
 }
@@ -160,6 +161,7 @@ model Patch {
     createdBy              User                     @relation(fields: [createdById], references: [id])
     createdById            String                   @db.Uuid
     PatchTransition        PatchTransition[]
+    actionWorkItems        PatchTransitionWork[]
 
     @@index([versionId, createdAt])
     @@index([createdById])
@@ -224,6 +226,7 @@ model PatchTransition {
     updatedAt   DateTime @updatedAt
     createdBy   User     @relation(fields: [createdById], references: [id])
     createdById String   @db.Uuid
+    transitionWork PatchTransitionWork[]
 
     @@index([patchId, createdAt])
     @@schema("app")
@@ -305,5 +308,36 @@ model JiraVersion {
     @@unique([jiraId])
     @@index([releaseStatus])
     @@index([releaseStatus, name])
+    @@schema("app")
+}
+
+model PatchTransitionWork {
+    id           String          @id @default(dbgenerated("uuidv7()")) @db.Uuid
+    patch        Patch           @relation(fields: [patchId], references: [id])
+    patchId      String          @db.Uuid
+    transition   PatchTransition @relation(fields: [transitionId], references: [id])
+    transitionId String          @db.Uuid
+    action       PatchAction
+    payload      Json?
+    processingState ProcessingState @default(queued)
+    processedAt  DateTime?
+    error        String?
+
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @updatedAt
+    createdBy   User     @relation(fields: [createdById], references: [id])
+    createdById String   @db.Uuid
+
+    @@index([patchId])
+    @@index([processingState])
+    @@schema("app")
+}
+
+enum ProcessingState {
+    queued
+    pending
+    successful
+    error
+
     @@schema("app")
 }
