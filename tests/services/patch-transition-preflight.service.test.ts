@@ -105,6 +105,7 @@ describe("PatchTransitionPreflightService", () => {
     "deprecate",
     "reactivate",
     "revertToDeployment",
+    "cancelDeployment",
   ])(
     "marks transition as blocked when current status does not allow %s",
     async (action) => {
