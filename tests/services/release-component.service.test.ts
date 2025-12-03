@@ -77,11 +77,7 @@ describe("ReleaseComponentService", () => {
         createdAt: true,
       },
     });
-    expect(res).toEqual([
-      {
-        ...iosFixture,
-      },
-    ]);
+    expect(res).toEqual([toReleaseComponentDbRow(iosFixture)]);
   });
 
   test("create trims fields and returns DTO", async () => {
@@ -133,11 +129,12 @@ describe("ReleaseComponentService", () => {
       },
     });
 
-    expect(res).toEqual({
-      ...androidFixture,
-      name: "Android App",
-      color: "emerald",
-      namingPattern: "app.android.{patch}",
-    });
+    expect(res).toEqual(
+      toReleaseComponentDbRow(androidFixture, {
+        name: "Android App",
+        color: "emerald",
+        namingPattern: "app.android.{patch}",
+      }),
+    );
   });
 });

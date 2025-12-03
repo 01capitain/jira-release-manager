@@ -2,7 +2,11 @@ import { z } from "zod";
 
 import { ActionHistoryService } from "~/server/services/action-history.service";
 import { ReleaseComponentService } from "~/server/services/release-component.service";
-import { ReleaseComponentDtoSchema } from "~/server/zod/dto/release-component.dto";
+import {
+  mapToReleaseComponentDtos,
+  ReleaseComponentDtoSchema,
+  toReleaseComponentDto,
+} from "~/server/zod/dto/release-component.dto";
 import type { RestContext } from "~/server/rest/context";
 import { ensureAuthenticated } from "~/server/rest/auth";
 import { jsonErrorResponse } from "~/server/rest/openapi";
@@ -44,12 +48,13 @@ export const listReleaseComponents = async (
     search: search && search.length > 0 ? search : undefined,
     releaseId: query.releaseId,
   });
-  return {
+  const items = mapToReleaseComponentDtos(result.items);
+  return ReleaseComponentListResponseSchema.parse({
     total: result.total,
     page,
     pageSize,
-    items: result.items,
-  } satisfies z.infer<typeof ReleaseComponentListResponseSchema>;
+    items,
+  });
 };
 
 export const getReleaseComponent = async (
@@ -57,7 +62,8 @@ export const getReleaseComponent = async (
   componentId: string,
 ) => {
   const svc = new ReleaseComponentService(context.db);
-  return svc.getById(componentId);
+  const component = await svc.getById(componentId);
+  return ReleaseComponentDtoSchema.parse(toReleaseComponentDto(component));
 };
 
 export const createReleaseComponent = async (
@@ -81,7 +87,7 @@ export const createReleaseComponent = async (
       message: `Release component ${result.name} created`,
       metadata: { id: result.id },
     });
-    return result;
+    return ReleaseComponentDtoSchema.parse(toReleaseComponentDto(result));
   } catch (error: unknown) {
     await action.complete("failed", {
       message: `Failed to create release component ${trimmedName}`,

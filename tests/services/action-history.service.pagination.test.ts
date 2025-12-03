@@ -4,11 +4,13 @@ import {
   ActionHistoryListInputSchema,
   DEFAULT_ACTION_HISTORY_LIST_INPUT,
 } from "~/server/api/schemas";
-import { ActionHistoryService } from "~/server/services/action-history.service";
-import type { ActionHistoryEntryDto } from "~/shared/types/action-history";
+import {
+  ActionHistoryService,
+  type ActionHistoryRow,
+} from "~/server/services/action-history.service";
 import { registerPaginationBehaviorTests } from "../shared/pagination.behavior";
 
-type ActionStatus = ActionHistoryEntryDto["status"];
+type ActionStatus = ActionHistoryRow["status"];
 
 type MockSubaction = {
   id: string;
@@ -187,7 +189,7 @@ describe("ActionHistoryService.listBySession pagination", () => {
   const db = createMockDb(records);
   const service = new ActionHistoryService(db as unknown as PrismaClient);
 
-  registerPaginationBehaviorTests<ActionHistoryEntryDto, "createdAt">({
+  registerPaginationBehaviorTests<ActionHistoryRow, "createdAt">({
     suiteName: "Action history list",
     scenario: { totalItems: records.length, pageSize: 5 },
     maxPageSize: 50,

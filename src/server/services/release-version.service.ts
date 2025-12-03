@@ -15,27 +15,57 @@ import {
   buildReleaseVersionRelationState,
   type ReleaseVersionRelationState,
 } from "~/server/services/release-version.relations";
-import { mapToPatchTransitionDtos } from "~/server/zod/dto/patch-transition.dto";
-import { toPatchDto } from "~/server/zod/dto/patch.dto";
-import { mapToComponentVersionDtos } from "~/server/zod/dto/component-version.dto";
-import { toReleaseVersionDto } from "~/server/zod/dto/release-version.dto";
-import { toUserSummaryDto } from "~/server/zod/dto/user.dto";
 import type {
   NormalizedPaginatedRequest,
   PaginatedResponse,
 } from "~/shared/types/pagination";
-import type {
-  ReleaseVersionDefaultsDto,
-  ReleaseVersionDto,
-} from "~/shared/types/release-version";
+import type { ReleaseVersionDefaultsDto } from "~/shared/types/release-version";
 import type { ReleaseTrack } from "~/shared/types/release-track";
 import { DEFAULT_RELEASE_TRACK } from "~/shared/types/release-track";
-import type {
-  PatchWithRelationsDto,
-  ReleaseVersionRelationKey,
-  ReleaseVersionWithRelationsDto,
-} from "~/shared/types/release-version-relations";
+import type { ReleaseVersionRelationKey } from "~/shared/types/release-version-relations";
 import { PatchService } from "~/server/services/patch.service";
+
+type PatchTransitionRow = {
+  id: string;
+  patchId: string;
+  fromStatus: string;
+  toStatus: string;
+  action: string;
+  createdAt: Date;
+  createdById: string;
+};
+
+type ComponentVersionRow = {
+  id: string;
+  releaseComponentId: string;
+  patchId: string;
+  name: string;
+  increment: number;
+  createdAt: Date;
+};
+
+type PatchRow = {
+  id: string;
+  name: string;
+  versionId: string;
+  createdAt: Date;
+  currentStatus: string;
+  componentVersions?: ComponentVersionRow[];
+  PatchTransition?: PatchTransitionRow[];
+};
+
+export type ReleaseVersionRow = {
+  id: string;
+  name: string;
+  releaseTrack: ReleaseTrack;
+  createdAt: Date;
+  createdBy?: {
+    id: string;
+    name: string | null;
+    email: string | null;
+  };
+  patches?: PatchRow[];
+};
 
 export class ReleaseVersionService {
   constructor(
@@ -108,55 +138,10 @@ export class ReleaseVersionService {
     return Object.keys(include).length > 0 ? include : undefined;
   }
 
-  private mapPatch(
-    row: unknown,
-    state: ReleaseVersionRelationState,
-  ): PatchWithRelationsDto {
-    const base = toPatchDto(row);
-    const typed = row as {
-      componentVersions?: unknown[];
-      PatchTransition?: unknown[];
-    };
-    const result: PatchWithRelationsDto = { ...base };
-    if (
-      state.includePatchComponents &&
-      Array.isArray(typed.componentVersions)
-    ) {
-      result.deployedComponents = mapToComponentVersionDtos(
-        typed.componentVersions,
-      );
-    }
-    if (state.includePatchTransitions && Array.isArray(typed.PatchTransition)) {
-      result.transitions = mapToPatchTransitionDtos(typed.PatchTransition);
-    }
-    return result;
-  }
-
-  private mapReleaseVersion(
-    row: unknown,
-    state: ReleaseVersionRelationState,
-  ): ReleaseVersionWithRelationsDto {
-    const base = toReleaseVersionDto(row);
-    const typed = row as {
-      createdBy?: unknown;
-      patches?: unknown[];
-    };
-    const result: ReleaseVersionWithRelationsDto = { ...base };
-    if (state.includeCreater && typed.createdBy) {
-      result.creater = toUserSummaryDto(typed.createdBy);
-    }
-    if (state.includePatches && Array.isArray(typed.patches)) {
-      result.patches = typed.patches.map((patch) =>
-        this.mapPatch(patch, state),
-      );
-    }
-    return result;
-  }
-
   async list(
     params: NormalizedPaginatedRequest<"createdAt" | "name">,
     options?: { relations?: ReleaseVersionRelationKey[] },
-  ): Promise<PaginatedResponse<ReleaseVersionWithRelationsDto>> {
+  ): Promise<PaginatedResponse<ReleaseVersionRow>> {
     const { page, pageSize, sortBy } = params;
     const isDescending = sortBy.startsWith("-");
     const sortField = (isDescending ? sortBy.slice(1) : sortBy) as
@@ -187,15 +172,19 @@ export class ReleaseVersionService {
       this.db.releaseVersion.count(),
       this.db.releaseVersion.findMany(findManyArgs),
     ]);
-    const items = rows.map((row) => this.mapReleaseVersion(row, state));
-    return buildPaginatedResponse(items, page, pageSize, total);
+    return buildPaginatedResponse(
+      rows as ReleaseVersionRow[],
+      page,
+      pageSize,
+      total,
+    );
   }
 
   async create(
     userId: User["id"],
     nameOrInput: string | { name?: string; releaseTrack?: ReleaseTrack },
     options?: { logger?: ActionLogger },
-  ): Promise<ReleaseVersionDto> {
+  ): Promise<ReleaseVersionRow> {
     const input =
       typeof nameOrInput === "string"
         ? { name: nameOrInput }
@@ -257,7 +246,7 @@ export class ReleaseVersionService {
           await options.logger.subaction(entry);
         }
       }
-      return toReleaseVersionDto(release);
+      return release;
     } catch (error) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -274,7 +263,7 @@ export class ReleaseVersionService {
   async getById(
     releaseId: ReleaseVersion["id"],
     options?: { relations?: ReleaseVersionRelationKey[] },
-  ): Promise<ReleaseVersionWithRelationsDto> {
+  ): Promise<ReleaseVersionRow> {
     const state = buildReleaseVersionRelationState(options?.relations ?? []);
     const include = this.buildRelationsInclude(state);
     const findUniqueArgs: Prisma.ReleaseVersionFindUniqueArgs = {
@@ -303,7 +292,7 @@ export class ReleaseVersionService {
       );
     }
 
-    return this.mapReleaseVersion(row, state);
+    return row as ReleaseVersionRow;
   }
 
   async updateReleaseTrack(
@@ -311,7 +300,7 @@ export class ReleaseVersionService {
     track: ReleaseTrack,
     userId: User["id"],
     options?: { logger?: ActionLogger },
-  ): Promise<ReleaseVersionDto> {
+  ): Promise<ReleaseVersionRow> {
     return this.updateRelease(
       releaseId,
       { releaseTrack: track },
@@ -325,7 +314,7 @@ export class ReleaseVersionService {
     input: { name?: string; releaseTrack?: ReleaseTrack },
     userId: User["id"],
     options?: { logger?: ActionLogger },
-  ): Promise<ReleaseVersionDto> {
+  ): Promise<ReleaseVersionRow> {
     const existing = await this.db.releaseVersion.findUnique({
       where: { id: releaseId },
       select: { id: true, name: true, releaseTrack: true, createdAt: true },
@@ -353,7 +342,7 @@ export class ReleaseVersionService {
     }
 
     if (Object.keys(updates).length === 0) {
-      return toReleaseVersionDto(existing);
+      return existing;
     }
 
     try {
@@ -390,7 +379,7 @@ export class ReleaseVersionService {
         }
       }
 
-      return toReleaseVersionDto(updated);
+      return updated;
     } catch (error) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&

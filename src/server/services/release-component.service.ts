@@ -6,17 +6,12 @@ import {
   type User,
 } from "@prisma/client";
 import type { ReleaseComponentCreateInput } from "~/shared/schemas/release-component";
-import type { ReleaseComponentDto } from "~/shared/types/release-component";
-import {
-  mapToReleaseComponentDtos,
-  toReleaseComponentDto,
-} from "~/server/zod/dto/release-component.dto";
 import type { ActionLogger } from "~/server/services/action-history.service";
 import { RestError } from "~/server/rest/errors";
 
 type ReleaseComponentScopeDb = "global" | "version_bound";
 
-type ReleaseComponentRow = {
+export type ReleaseComponentRow = {
   id: string;
   name: string;
   color: string;
@@ -37,7 +32,7 @@ const releaseComponentSelect = {
 export class ReleaseComponentService {
   constructor(private readonly db: PrismaClient) {}
 
-  async list(): Promise<ReleaseComponentDto[]> {
+  async list(): Promise<ReleaseComponentRow[]> {
     const delegate = this.db.releaseComponent as unknown as {
       findMany(args?: unknown): Promise<ReleaseComponentRow[]>;
     };
@@ -45,7 +40,7 @@ export class ReleaseComponentService {
       orderBy: { createdAt: "desc" },
       select: releaseComponentSelect,
     });
-    return mapToReleaseComponentDtos(rows);
+    return rows;
   }
 
   async paginate(
@@ -55,7 +50,7 @@ export class ReleaseComponentService {
       search?: string | null;
       releaseId?: ReleaseVersion["id"];
     },
-  ): Promise<{ total: number; items: ReleaseComponentDto[] }> {
+  ): Promise<{ total: number; items: ReleaseComponentRow[] }> {
     const where: Prisma.ReleaseComponentWhereInput = {};
     if (filters?.search) {
       where.name = {
@@ -81,15 +76,12 @@ export class ReleaseComponentService {
         take: pageSize,
       }),
     ]);
-    return {
-      total,
-      items: mapToReleaseComponentDtos(rows),
-    };
+    return { total, items: rows };
   }
 
   async getById(
     componentId: ReleaseComponent["id"],
-  ): Promise<ReleaseComponentDto> {
+  ): Promise<ReleaseComponentRow> {
     const delegate = this.db.releaseComponent as unknown as {
       findUnique(args: unknown): Promise<ReleaseComponentRow | null>;
     };
@@ -106,14 +98,14 @@ export class ReleaseComponentService {
         },
       );
     }
-    return toReleaseComponentDto(row);
+    return row;
   }
 
   async create(
     userId: User["id"],
     input: ReleaseComponentCreateInput,
     options?: { logger?: ActionLogger },
-  ): Promise<ReleaseComponentDto> {
+  ): Promise<ReleaseComponentRow> {
     const trimmedName = input.name.trim();
     try {
       const scopeKey = input.releaseScope;
@@ -142,7 +134,7 @@ export class ReleaseComponentService {
         message: `Component ${created.name} stored`,
         metadata: { id: created.id, color: created.color },
       });
-      return toReleaseComponentDto(created);
+      return created;
     } catch (error: unknown) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
