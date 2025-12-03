@@ -5,10 +5,7 @@ import type {
   ReleaseVersion,
   Patch,
 } from "@prisma/client";
-import { PatchDefaultSelectionSchema } from "~/shared/schemas/patch-selection";
-import type { PatchDto } from "~/shared/types/patch";
 import type { PatchDefaultSelectionDto } from "~/shared/types/patch-selection";
-import { mapToPatchDtos, toPatchDto } from "~/server/zod/dto/patch.dto";
 import {
   validatePattern,
   expandPattern,
@@ -39,14 +36,16 @@ type InternalCreateOptions = {
   releaseNameOverride?: string;
 };
 
+export type PatchRow = {
+  id: string;
+  name: string;
+  versionId: string;
+  currentStatus: string;
+  createdAt: Date;
+};
+
 type InternalCreateResult = {
-  patch: {
-    id: string;
-    name: string;
-    versionId: string;
-    currentStatus: string;
-    createdAt: Date;
-  };
+  patch: PatchRow;
   auditTrail: SubactionInput[];
   releaseName: string;
 };
@@ -237,7 +236,7 @@ export class PatchService {
     versionId: ReleaseVersion["id"],
     name: string,
     options?: { logger?: ActionLogger },
-  ): Promise<PatchDto> {
+  ): Promise<PatchRow> {
     const { patch, auditTrail } = await this.db.$transaction((tx) =>
       this.createWithTransaction({
         tx,
@@ -254,7 +253,7 @@ export class PatchService {
         await options.logger.subaction(entry);
       }
     }
-    return toPatchDto(patch);
+    return patch;
   }
 
   async createInitialForRelease(
@@ -266,13 +265,7 @@ export class PatchService {
       patchName: string;
     },
   ): Promise<{
-    patch: {
-      id: string;
-      name: string;
-      versionId: string;
-      currentStatus: string;
-      createdAt: Date;
-    };
+    patch: PatchRow;
     auditTrail: SubactionInput[];
   }> {
     const result = await this.createWithTransaction({
@@ -288,7 +281,7 @@ export class PatchService {
     return { patch: result.patch, auditTrail: result.auditTrail };
   }
 
-  async listByRelease(versionId: ReleaseVersion["id"]): Promise<PatchDto[]> {
+  async listByRelease(versionId: ReleaseVersion["id"]): Promise<PatchRow[]> {
     const rows = await this.db.patch.findMany({
       where: { versionId },
       orderBy: { createdAt: "desc" },
@@ -300,7 +293,7 @@ export class PatchService {
         createdAt: true,
       },
     });
-    return mapToPatchDtos(rows);
+    return rows;
   }
 
   async getDefaultSelection(
@@ -332,9 +325,9 @@ export class PatchService {
       patches.find((entry) => entry.currentStatus === "active")?.id ?? null;
 
     if (!activePatchId) {
-      return PatchDefaultSelectionSchema.parse({
+      return {
         selectedReleaseComponentIds: Array.from(globalComponentIds),
-      });
+      };
     }
 
     const selectedRows = await this.db.componentVersion.findMany({
@@ -350,8 +343,8 @@ export class PatchService {
       }
     }
 
-    return PatchDefaultSelectionSchema.parse({
+    return {
       selectedReleaseComponentIds: uniqueComponentIds,
-    });
+    };
   }
 }

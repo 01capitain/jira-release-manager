@@ -1019,6 +1019,59 @@ paths:
       responses:
         "200":
           description: Stored Jira versions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total:
+                    type: integer
+                    minimum: -9007199254740991
+                    maximum: 9007199254740991
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          format: uuid
+                          pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$
+                        jiraId:
+                          type: string
+                        name:
+                          type: string
+                        description:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        releaseStatus:
+                          type: string
+                          enum:
+                            - Released
+                            - Unreleased
+                            - Archived
+                        releaseDate:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                        startDate:
+                          anyOf:
+                            - type: string
+                            - type: "null"
+                      required:
+                        - id
+                        - jiraId
+                        - name
+                        - description
+                        - releaseStatus
+                        - releaseDate
+                        - startDate
+                      additionalProperties: false
+                required:
+                  - total
+                  - items
+                additionalProperties: false
         "401":
           description: Authentication required
           content:
@@ -1051,6 +1104,18 @@ paths:
       responses:
         "200":
           description: Sync result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  saved:
+                    type: integer
+                    minimum: -9007199254740991
+                    maximum: 9007199254740991
+                required:
+                  - saved
+                additionalProperties: false
         "401":
           description: Authentication required
           content:

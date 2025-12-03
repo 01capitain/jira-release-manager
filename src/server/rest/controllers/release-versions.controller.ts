@@ -10,15 +10,28 @@ import { RestError } from "~/server/rest/errors";
 import { jsonErrorResponse } from "~/server/rest/openapi";
 import { ActionHistoryService } from "~/server/services/action-history.service";
 import { ReleaseVersionDefaultsService } from "~/server/services/release-version-defaults.service";
-import { ReleaseVersionService } from "~/server/services/release-version.service";
-import { PatchDtoSchema } from "~/server/zod/dto/patch.dto";
-import { PatchTransitionDtoSchema } from "~/server/zod/dto/patch-transition.dto";
-import { ComponentVersionDtoSchema } from "~/server/zod/dto/component-version.dto";
+import {
+  ReleaseVersionService,
+  type ReleaseVersionRow,
+} from "~/server/services/release-version.service";
+import { PatchDtoSchema, toPatchDto } from "~/server/zod/dto/patch.dto";
+import {
+  PatchTransitionDtoSchema,
+  mapToPatchTransitionDtos,
+} from "~/server/zod/dto/patch-transition.dto";
+import {
+  ComponentVersionDtoSchema,
+  mapToComponentVersionDtos,
+} from "~/server/zod/dto/component-version.dto";
 import {
   ReleaseVersionDefaultsDtoSchema,
   ReleaseVersionDtoSchema,
+  toReleaseVersionDto,
 } from "~/server/zod/dto/release-version.dto";
-import { UserSummaryDtoSchema } from "~/server/zod/dto/user.dto";
+import {
+  UserSummaryDtoSchema,
+  toUserSummaryDto,
+} from "~/server/zod/dto/user.dto";
 import {
   createPaginatedQueryDocSchema,
   createPaginatedRequestSchema,
@@ -31,6 +44,8 @@ import {
 import type { ReleaseVersionRelationKey } from "~/shared/types/release-version-relations";
 import {
   RELEASE_VERSION_RELATION_ALLOW_LIST,
+  buildReleaseVersionRelationState,
+  type ReleaseVersionRelationState,
   validateReleaseVersionRelations,
 } from "~/server/services/release-version.relations";
 
@@ -84,18 +99,18 @@ const ReleaseVersionPatchWithRelationsSchema = PatchDtoSchema.extend({
   transitions: z.array(PatchTransitionDtoSchema).optional(),
 });
 
-export const ReleaseVersionWithRelationsSchema = ReleaseVersionDtoSchema.extend(
-  {
+export const ReleaseVersionWithRelationsResponseSchema =
+  ReleaseVersionDtoSchema.extend({
     creater: UserSummaryDtoSchema.optional(),
     patches: z.array(ReleaseVersionPatchWithRelationsSchema).optional(),
-  },
-);
+  });
 
 export const ReleaseVersionListResponseSchema = createPaginatedResponseSchema(
-  ReleaseVersionWithRelationsSchema,
+  ReleaseVersionWithRelationsResponseSchema,
 );
 
-export const ReleaseVersionDetailSchema = ReleaseVersionWithRelationsSchema;
+export const ReleaseVersionDetailSchema =
+  ReleaseVersionWithRelationsResponseSchema;
 
 export const ReleaseVersionIdParamSchema = z.object({
   releaseId: z.uuidv7(),
@@ -104,6 +119,7 @@ export const ReleaseVersionIdParamSchema = z.object({
 export const ReleaseVersionCreateResponseSchema = ReleaseVersionDtoSchema;
 
 const releaseVersionDefaultsService = new ReleaseVersionDefaultsService();
+type ReleaseVersionPatchRow = NonNullable<ReleaseVersionRow["patches"]>[number];
 
 export const parseReleaseVersionRelations = (
   searchParams: URLSearchParams,
@@ -132,6 +148,52 @@ export const parseReleaseVersionRelations = (
   return valid;
 };
 
+const toPatchWithRelationsDto = (
+  patch: ReleaseVersionPatchRow,
+  state: ReleaseVersionRelationState,
+) => {
+  const base = toPatchDto(patch);
+  const result: Record<string, unknown> = { ...base };
+  if (state.includePatchComponents && Array.isArray(patch.componentVersions)) {
+    result.deployedComponents = mapToComponentVersionDtos(
+      patch.componentVersions,
+    );
+  }
+  if (state.includePatchTransitions && Array.isArray(patch.PatchTransition)) {
+    result.transitions = mapToPatchTransitionDtos(patch.PatchTransition);
+  }
+  return PatchDtoSchema.merge(
+    z.object({
+      deployedComponents: z
+        .array(ComponentVersionDtoSchema)
+        .optional()
+        .transform((value) => value ?? undefined),
+      transitions: z
+        .array(PatchTransitionDtoSchema)
+        .optional()
+        .transform((value) => value ?? undefined),
+    }),
+  ).parse(result);
+};
+
+const toReleaseVersionWithRelationsDto = (
+  row: ReleaseVersionRow,
+  state: ReleaseVersionRelationState,
+) => {
+  const base = toReleaseVersionDto(row);
+  const result: Record<string, unknown> = { ...base };
+  if (state.includeCreater && row.createdBy) {
+    result.creater = toUserSummaryDto(row.createdBy);
+  }
+  if (state.includePatches && Array.isArray(row.patches)) {
+    const patches: ReleaseVersionPatchRow[] = row.patches;
+    result.patches = patches.map((patch) =>
+      toPatchWithRelationsDto(patch, state),
+    );
+  }
+  return ReleaseVersionWithRelationsResponseSchema.parse(result);
+};
+
 export const listReleaseVersions = async (
   context: RestContext,
   query: ReleaseVersionListQuery,
@@ -141,7 +203,15 @@ export const listReleaseVersions = async (
   const svc = new ReleaseVersionService(context.db);
   const options =
     relations.length > 0 ? { relations: [...relations] } : undefined;
-  return svc.list(query, options);
+  const state = buildReleaseVersionRelationState(relations);
+  const page = await svc.list(query, options);
+  const data = page.data.map((row) =>
+    toReleaseVersionWithRelationsDto(row, state),
+  );
+  return ReleaseVersionListResponseSchema.parse({
+    data,
+    pagination: page.pagination,
+  });
 };
 
 export const getReleaseVersion = async (
@@ -153,7 +223,11 @@ export const getReleaseVersion = async (
   const svc = new ReleaseVersionService(context.db);
   const options =
     relations.length > 0 ? { relations: [...relations] } : undefined;
-  return svc.getById(releaseId, options);
+  const state = buildReleaseVersionRelationState(relations);
+  const result = await svc.getById(releaseId, options);
+  return ReleaseVersionDetailSchema.parse(
+    toReleaseVersionWithRelationsDto(result, state),
+  );
 };
 
 export const createReleaseVersion = async (
@@ -175,7 +249,7 @@ export const createReleaseVersion = async (
       message: `Release ${result.name} created`,
       metadata: { id: result.id },
     });
-    return result;
+    return ReleaseVersionDtoSchema.parse(toReleaseVersionDto(result));
   } catch (error: unknown) {
     await action.complete("failed", {
       message: `Failed to create release ${input.name ?? "(auto)"}`,
@@ -190,7 +264,9 @@ export const createReleaseVersion = async (
 export const getReleaseVersionDefaults = async (context: RestContext) => {
   ensureAuthenticated(context);
   const svc = new ReleaseVersionService(context.db);
-  return releaseVersionDefaultsService.calculateDefaultsForLatest(svc);
+  const defaults =
+    await releaseVersionDefaultsService.calculateDefaultsForLatest(svc);
+  return ReleaseVersionDefaultsDtoSchema.parse(defaults);
 };
 
 export const updateReleaseVersion = async (
@@ -224,7 +300,7 @@ export const updateReleaseVersion = async (
         releaseTrack: result.releaseTrack,
       },
     });
-    return result;
+    return ReleaseVersionDtoSchema.parse(toReleaseVersionDto(result));
   } catch (error) {
     await action.complete("failed", {
       message: `Failed to update release ${releaseId}`,

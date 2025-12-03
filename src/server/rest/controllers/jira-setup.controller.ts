@@ -2,13 +2,13 @@ import { z } from "zod";
 
 import type { RestContext } from "~/server/rest/context";
 import { ensureAuthenticated } from "~/server/rest/auth";
-import { RestError } from "~/server/rest/errors";
 import { jsonErrorResponse } from "~/server/rest/openapi";
 import { env } from "~/env";
 import {
   JiraCredentialsSchema,
   JiraVerifyConnectionSchema,
 } from "~/server/api/schemas";
+import { JiraReleaseStoreService } from "~/server/services/jira-release-store.service";
 
 const JiraSetupCredentialsResponseSchema = z.object({
   email: z.string().nullable(),
@@ -25,27 +25,10 @@ export const getJiraConfig = async () => {
 
 export const getJiraCredentials = async (context: RestContext) => {
   const userId = ensureAuthenticated(context);
-  const credentialModel = context.db.jiraCredential;
-  if (!credentialModel?.findUnique) {
-    return JiraSetupCredentialsResponseSchema.parse({
-      email: null,
-      hasToken: false,
-    });
-  }
-  const row = await credentialModel
-    .findUnique({
-      where: { userId },
-      select: { email: true, apiToken: true },
-    })
-    .catch(() => null);
-  if (!row) {
-    return JiraSetupCredentialsResponseSchema.parse({
-      email: null,
-      hasToken: false,
-    });
-  }
-  const email = typeof row.email === "string" ? row.email : null;
-  const hasToken = typeof row.apiToken === "string" && row.apiToken.length > 0;
+  const store = new JiraReleaseStoreService(context.db);
+  const creds = await store.getCredentials(userId);
+  const email = creds?.email ?? null;
+  const hasToken = Boolean(creds?.apiToken);
   return JiraSetupCredentialsResponseSchema.parse({ email, hasToken });
 };
 
@@ -54,26 +37,11 @@ export const saveJiraCredentials = async (
   input: z.infer<typeof JiraCredentialsSchema>,
 ) => {
   const userId = ensureAuthenticated(context);
-  const credentialModel = context.db.jiraCredential;
-  if (!credentialModel?.upsert) {
-    throw new RestError(
-      412,
-      "PRECONDITION_FAILED",
-      "JiraCredential model not available",
-    );
-  }
-  const updateData: Record<string, unknown> = { email: input.email };
-  if (typeof input.apiToken === "string" && input.apiToken.length > 0) {
-    updateData.apiToken = input.apiToken;
-  }
-  await credentialModel.upsert({
-    where: { userId },
-    update: updateData,
-    create: {
-      userId,
-      email: input.email,
-      apiToken: input.apiToken ?? "",
-    },
+  const store = new JiraReleaseStoreService(context.db);
+  await store.saveCredentials({
+    userId,
+    email: input.email,
+    apiToken: input.apiToken ?? null,
   });
   return { saved: true } as const;
 };
@@ -100,20 +68,9 @@ export const verifyJiraConnection = async (
 
   let token = input.apiToken;
   if (!token) {
-    const credentialModel = context.db.jiraCredential;
-    if (credentialModel?.findUnique) {
-      const row = await credentialModel
-        .findUnique({
-          where: { userId },
-          select: { apiToken: true },
-        })
-        .catch(() => null);
-      const storedToken =
-        typeof row?.apiToken === "string" && row.apiToken.length > 0
-          ? row.apiToken
-          : undefined;
-      token = storedToken;
-    }
+    const store = new JiraReleaseStoreService(context.db);
+    const creds = await store.getCredentials(userId);
+    token = creds?.apiToken ?? undefined;
   }
 
   if (!token) {
@@ -176,27 +133,20 @@ export const verifyJiraConnection = async (
 export const getJiraSetupStatus = async (context: RestContext) => {
   const baseUrl = env.JIRA_BASE_URL;
   const projectKey = env.JIRA_PROJECT_KEY;
-  const credentialModel = context.db.jiraCredential;
   const userId = ensureAuthenticated(context);
   let email: string | undefined;
   let token: string | undefined;
-  if (credentialModel?.findUnique) {
-    const row = await credentialModel
-      .findUnique({
-        where: { userId },
-        select: { email: true, apiToken: true },
-      })
-      .catch(() => null);
-    if (row) {
-      email =
-        typeof row.email === "string" && row.email.length > 0
-          ? row.email
-          : undefined;
-      token =
-        typeof row.apiToken === "string" && row.apiToken.length > 0
-          ? row.apiToken
-          : undefined;
-    }
+  const store = new JiraReleaseStoreService(context.db);
+  const creds = await store.getCredentials(userId);
+  if (creds) {
+    email =
+      typeof creds.email === "string" && creds.email.length > 0
+        ? creds.email
+        : undefined;
+    token =
+      typeof creds.apiToken === "string" && creds.apiToken.length > 0
+        ? creds.apiToken
+        : undefined;
   }
 
   if (!baseUrl) return { ok: false as const, reason: "Missing JIRA_BASE_URL" };

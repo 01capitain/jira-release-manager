@@ -43,7 +43,7 @@ const ThingWithRelationsSchema = ThingDtoSchema.extend({
 
 | Step | File | Notes |
 | --- | --- | --- |
-| Return DTOs | `src/server/services/<entity>.service.ts` | Map Prisma results to DTOs before returning. Never leak raw Prisma objects. |
+| Return domain data | `src/server/services/<entity>.service.ts` | Return plain domain objects (Prisma selects with `Date` values). Do **not** call DTO parsers here; controllers own transport parsing. Never leak raw Prisma clients from controllers. |
 | Normalise relations | `src/server/services/<entity>.relations.ts` | Keep relation allow-lists small and explicit. Cross-check with REST controllers. |
 | Emit audit logs | `src/server/services/<entity>.service.ts` | If a write touches domain state, use `ActionHistoryService` just as `PatchService` does. |
 
@@ -67,6 +67,8 @@ Files live under `src/server/rest/controllers`. For a new entity, provide the fo
    - `list<Entity>`: validate auth, call the service, return DTOs.
    - `get<Entity>`: same pattern, honour requested relations.
    - When applicable, implement create/update endpoints that return the DTO schema.
+
+Controllers own the transport boundary: validate/normalise inputs, call services, and parse service outputs into DTO schemas before returning. Services should not perform `…DtoSchema.parse`—they should return raw domain objects that controllers convert with DTO helpers.
 
 Always consume the exported ID schemas (`<Entity>IdSchema`, `<Entity>IdParamSchema`, etc.) to keep OpenAPI consistent.
 
