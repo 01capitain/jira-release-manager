@@ -1,7 +1,7 @@
+import { PatchStatusService } from "~/server/services/patch-status.service";
 import { releaseComponentFixtureList } from "../fixtures/release-components";
 import { releaseVersionFixtures } from "../fixtures/release-versions";
 import { userFixtures } from "../fixtures/users";
-import { PatchStatusService } from "~/server/services/patch-status.service";
 
 const REL_MAIN_ID = releaseVersionFixtures.version177.id;
 const PATCH_LIST_ID = "018f1a50-0000-7000-8000-00000000000e";
@@ -128,6 +128,13 @@ function makeMockDb() {
       create: jest.fn(async (args: any) => ({ id: "t1", ...args.data })),
       findMany: jest.fn(),
     },
+    // PatchTransitionWork
+    patchTransitionWork: {
+      create: jest.fn(async (args: any) => {
+        record("patchTransitionWork.create", args);
+        return { id: "wi1", ...args.data };
+      }),
+    },
     // Users not needed beyond connect
   };
 
@@ -136,8 +143,8 @@ function makeMockDb() {
 
 describe("PatchStatusService", () => {
   describe("transition()", () => {
-    test("transition to in_deployment creates a successor with higher increment", async () => {
-      const { db, calls } = makeMockDb();
+    test("transition to in_deployment creates a work item", async () => {
+      const { db } = makeMockDb();
       const createdAt = new Date("2024-01-01T00:00:00Z");
       const currentPatch = {
         id: PATCH_LIST_ID,
@@ -173,14 +180,18 @@ describe("PatchStatusService", () => {
         data: { currentStatus: "in_deployment" },
       });
 
-      // Successor created with next increment (1)
-      const successorCalls = calls["patch.create"] ?? [];
-      const succ = successorCalls[0] as any;
-      expect(succ).toBeDefined();
-      expect(succ?.data?.name).toBe("version 300.1");
+      // Work item created
+      expect(db.patchTransitionWork.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            patchId: PATCH_LIST_ID,
+            action: "start_deployment",
+          }),
+        }),
+      );
     });
 
-    test("no successor is created if a newer patch already exists", async () => {
+    test("transition creates work item even if newer patch exists", async () => {
       const { db } = makeMockDb();
       const createdAt = new Date("2024-01-01T00:00:00Z");
       const currentPatch = {
@@ -206,10 +217,8 @@ describe("PatchStatusService", () => {
         "startDeployment",
         USER_1_ID,
       );
-      // ensure patch.create was NOT called
-      expect(db.patch.create).not.toHaveBeenCalled();
-      // ensure no component versions were created either
-      expect(db.componentVersion.create).not.toHaveBeenCalled();
+
+      expect(db.patchTransitionWork.create).toHaveBeenCalled();
     });
   });
 });
