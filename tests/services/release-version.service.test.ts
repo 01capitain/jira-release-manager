@@ -486,7 +486,7 @@ describe("ReleaseVersion and Patch behavior", () => {
                   patchId: PATCH_LIST_ID,
                   fromStatus: "in_development",
                   toStatus: "in_deployment",
-                  action: "start_deployment",
+                  action: "startDeployment",
                   createdAt: patchCreatedAt,
                   createdById: USER_2_ID,
                 },

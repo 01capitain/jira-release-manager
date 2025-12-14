@@ -15,6 +15,7 @@ import { jsonErrorResponse } from "~/server/rest/openapi";
 import { PatchStatusSchema } from "~/shared/types/patch-status";
 import type { PatchAction } from "~/shared/types/patch-status";
 import { ReleaseVersionIdSchema } from "~/server/zod/dto/release-version.dto";
+import { ValidatePatchTransitionService } from "~/server/services/validate-patch-transition.service";
 
 export const PatchTransitionParamSchema = z.object({
   releaseId: ReleaseVersionIdSchema,
@@ -30,7 +31,8 @@ export const PatchTransitionResponseSchema = z
   .meta({
     id: "PatchTransitionResult",
     title: "Patch Transition Result",
-    description: "Patch transition response including current status and history.",
+    description:
+      "Patch transition response including current status and history.",
   });
 
 const transitions = [
@@ -71,6 +73,7 @@ const transitions = [
 }[];
 
 type TransitionParams = z.infer<typeof PatchTransitionParamSchema>;
+const validator = new ValidatePatchTransitionService();
 
 const performTransition = async (
   context: RestContext,
@@ -85,6 +88,7 @@ const performTransition = async (
       name: true,
       versionId: true,
       createdAt: true,
+      currentStatus: true,
     },
   });
   if (!patchRecord) {
@@ -102,6 +106,31 @@ const performTransition = async (
         patchId: params.patchId,
       },
     );
+  }
+
+  try {
+    validator.validate(
+      { id: patchRecord.id, currentStatus: patchRecord.currentStatus },
+      action,
+    );
+  } catch (error) {
+    if (
+      typeof error === "object" &&
+      error &&
+      "code" in error &&
+      (error as { code?: string }).code === "INVALID_TRANSITION"
+    ) {
+      throw new RestError(
+        400,
+        "INVALID_TRANSITION",
+        "Transition not allowed from current status",
+        {
+          patchId: params.patchId,
+          action,
+        },
+      );
+    }
+    throw error;
   }
 
   const statusService = new PatchStatusService(context.db);

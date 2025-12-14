@@ -1271,11 +1271,13 @@ components:
           type: string
           enum:
             - startDeployment
-            - cancelDeployment
-            - markActive
-            - revertToDeployment
-            - deprecate
+            - setActive
+            - archive
             - reactivate
+            - cancelDeployment
+            - revertToDeployment
+            - markActive
+            - deprecate
         createdAt:
           $ref: "#/components/schemas/iso8601Timestamp"
         createdById:

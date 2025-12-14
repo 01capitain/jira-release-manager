@@ -1,62 +1,27 @@
-import type { PrismaClient } from "@prisma/client";
-import type {
-  PatchAction as ApiAction,
-  PatchStatus,
-} from "~/shared/types/patch-status";
+import type { Prisma, PrismaClient } from "@prisma/client";
+import type { PatchAction, PatchStatus } from "~/shared/types/patch-status";
 import type {
   ActionLogger,
   SubactionInput,
 } from "~/server/services/action-history.service";
+import { ValidatePatchTransitionService } from "./validate-patch-transition.service";
 
-// Local copies of DB enum shapes to avoid Prisma type dependency during lint/type analysis
-type DbPatchAction =
-  | "start_deployment"
-  | "cancel_deployment"
-  | "mark_active"
-  | "revert_to_deployment"
-  | "deprecate"
-  | "reactivate";
-
-type DbPatchStatus =
-  | "in_development"
-  | "in_deployment"
-  | "active"
-  | "deprecated";
-
-// Map API action (camelCase) to DB enum (snake_case)
-const ActionToPrisma: Record<ApiAction, DbPatchAction> = {
-  startDeployment: "start_deployment",
-  cancelDeployment: "cancel_deployment",
-  markActive: "mark_active",
-  revertToDeployment: "revert_to_deployment",
-  deprecate: "deprecate",
-  reactivate: "reactivate",
-};
-
-type TransitionRule = {
-  from: DbPatchStatus;
-  to: DbPatchStatus;
-};
-
-const Rules = {
-  start_deployment: { from: "in_development", to: "in_deployment" },
-  cancel_deployment: { from: "in_deployment", to: "in_development" },
-  mark_active: { from: "in_deployment", to: "active" },
-  revert_to_deployment: { from: "active", to: "in_deployment" },
-  deprecate: { from: "active", to: "deprecated" },
-  reactivate: { from: "deprecated", to: "active" },
-} satisfies Record<DbPatchAction, TransitionRule>;
+type DbPatchTransitionAction =
+  Prisma.PatchTransitionUncheckedCreateInput["action"];
 
 type PatchSummary = {
   id: string;
   name: string;
   versionId: string;
   createdAt: Date;
-  currentStatus: DbPatchStatus;
+  currentStatus: PatchStatus;
 };
 
 export class PatchStatusService {
-  constructor(private readonly db: PrismaClient) {}
+  constructor(
+    private readonly db: PrismaClient,
+    private readonly validator = new ValidatePatchTransitionService(),
+  ) {}
 
   async getHistory(patchId: string) {
     return this.db.patchTransition.findMany({
@@ -83,18 +48,14 @@ export class PatchStatusService {
 
   async transition(
     patchId: string,
-    action: ApiAction,
+    action: PatchAction,
     userId: string,
     options?: { logger?: ActionLogger },
   ): Promise<{
     status: PatchStatus;
     patch: PatchSummary;
   }> {
-    const prismaAction = ActionToPrisma[action];
-    const rule = Rules[prismaAction];
-    if (!rule) {
-      throw new Error(`Unsupported action: ${action}`);
-    }
+    const rule = this.validator.getRule(action);
 
     const auditTrail: SubactionInput[] = [];
 
@@ -112,21 +73,23 @@ export class PatchStatusService {
       });
       auditTrail.push({
         subactionType: "patch.transition.verify",
-        message: `Transition ${patchRecord.name} via ${prismaAction}`,
-        metadata: { patchId, action: prismaAction },
+        message: `Transition ${patchRecord.name} via ${action}`,
+        metadata: { patchId, action },
       });
 
       const currentStatus = patchRecord.currentStatus ?? "in_development";
 
-      if (currentStatus !== rule.from) {
+      if (currentStatus !== rule.fromStatus) {
         // Provide a precise error for clients
         throw Object.assign(
-          new Error(
-            `Invalid transition from ${currentStatus} via ${prismaAction}`,
-          ),
+          new Error(`Invalid transition from ${currentStatus} via ${action}`),
           {
             code: "INVALID_TRANSITION",
-            details: { from: currentStatus, expected: rule.from, action },
+            details: {
+              from: currentStatus,
+              expected: rule.fromStatus,
+              action,
+            },
           },
         );
       }
@@ -134,21 +97,21 @@ export class PatchStatusService {
       await tx.patchTransition.create({
         data: {
           patchId,
-          fromStatus: rule.from,
-          toStatus: rule.to,
-          action: prismaAction,
+          fromStatus: rule.fromStatus,
+          toStatus: rule.toStatus,
+          action: action as unknown as DbPatchTransitionAction,
           createdById: userId,
         },
       });
       auditTrail.push({
         subactionType: "patch.transition.persist",
-        message: `Recorded transition ${prismaAction}`,
-        metadata: { from: rule.from, to: rule.to, patchId },
+        message: `Recorded transition ${action}`,
+        metadata: { from: rule.fromStatus, to: rule.toStatus, patchId },
       });
 
       // Hook: onEnter. Intentionally placed after write.
       // When entering a new status, perform side effects.
-      const onEnter = async (s: DbPatchStatus) => {
+      const onEnter = async (s: PatchStatus) => {
         // When a patch moves to in_deployment, auto-create a successor
         if (s !== "in_deployment") return;
         // Fetch the patch to obtain its release version
@@ -209,11 +172,11 @@ export class PatchStatusService {
         // ComponentVersions will now be created/moved during deployment finalization
         // based on user-selected components (see DeploymentService).
       };
-      await onEnter(rule.to);
+      await onEnter(rule.toStatus);
 
       await tx.patch.update({
         where: { id: patchId },
-        data: { currentStatus: rule.to },
+        data: { currentStatus: rule.toStatus },
       });
 
       const patch = await tx.patch.findUniqueOrThrow({
@@ -228,7 +191,7 @@ export class PatchStatusService {
       });
 
       return {
-        status: rule.to as PatchStatus,
+        status: rule.toStatus,
         patch,
       };
     });

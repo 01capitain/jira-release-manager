@@ -22,11 +22,13 @@ export type PatchTransitionResponse = {
 
 const transitionSegments: Record<PatchAction, string> = {
   startDeployment: "start-deployment",
+  setActive: "mark-active",
+  archive: "deprecate",
+  reactivate: "reactivate",
   cancelDeployment: "cancel-deployment",
   markActive: "mark-active",
   revertToDeployment: "revert-to-deployment",
   deprecate: "deprecate",
-  reactivate: "reactivate",
 };
 
 export const transitionPatch = async ({

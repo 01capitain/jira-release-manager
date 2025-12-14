@@ -25,12 +25,16 @@ type DbPatchStatus =
   | "deprecated";
 type DbReleaseTrack = PrismaReleaseTrack;
 type DbPatchAction =
-  | "start_deployment"
-  | "mark_active"
+  | "startDeployment"
+  | "markActive"
   | "deprecate"
-  | "cancel_deployment"
+  | "cancelDeployment"
   | "reactivate"
-  | "revert_to_deployment";
+  | "revertToDeployment"
+  | "setActive"
+  | "archive";
+type DbPatchTransitionAction =
+  Prisma.PatchTransitionUncheckedCreateInput["action"];
 
 const RELEASE_COMPONENT_IDS = releaseComponentFixtureList.map(
   (fixture) => fixture.id,
@@ -50,26 +54,26 @@ const TransitionChains: Record<
   in_development: [],
   in_deployment: [
     {
-      action: "start_deployment",
+      action: "startDeployment",
       from: "in_development",
       to: "in_deployment",
     },
   ],
   active: [
     {
-      action: "start_deployment",
+      action: "startDeployment",
       from: "in_development",
       to: "in_deployment",
     },
-    { action: "mark_active", from: "in_deployment", to: "active" },
+    { action: "markActive", from: "in_deployment", to: "active" },
   ],
   deprecated: [
     {
-      action: "start_deployment",
+      action: "startDeployment",
       from: "in_development",
       to: "in_deployment",
     },
-    { action: "mark_active", from: "in_deployment", to: "active" },
+    { action: "markActive", from: "in_deployment", to: "active" },
     { action: "deprecate", from: "active", to: "deprecated" },
   ],
 };
@@ -253,7 +257,7 @@ async function seedReleaseVersions(tx: SeedClient) {
             patchId: patchRow.id,
             fromStatus: transition.from,
             toStatus: transition.to,
-            action: transition.action,
+            action: transition.action as unknown as DbPatchTransitionAction,
             createdAt: new Date(
               new Date(patch.createdAt).getTime() + (index + 1) * 1000,
             ),

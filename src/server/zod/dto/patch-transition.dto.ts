@@ -10,24 +10,15 @@ import {
 import type { PatchAction } from "~/shared/types/patch-status";
 import { UuidV7Schema } from "~/shared/types/uuid";
 const DbPatchTransitionActionSchema = z.enum([
-  "start_deployment",
-  "cancel_deployment",
-  "mark_active",
-  "revert_to_deployment",
-  "deprecate",
+  "startDeployment",
+  "setActive",
+  "archive",
   "reactivate",
+  "cancelDeployment",
+  "revertToDeployment",
+  "markActive",
+  "deprecate",
 ] as const);
-const DbToApiActionMap: Record<
-  z.infer<typeof DbPatchTransitionActionSchema>,
-  PatchAction
-> = {
-  start_deployment: "startDeployment",
-  cancel_deployment: "cancelDeployment",
-  mark_active: "markActive",
-  revert_to_deployment: "revertToDeployment",
-  deprecate: "deprecate",
-  reactivate: "reactivate",
-};
 const PatchTransitionModelSchema = z.object({
   id: UuidV7Schema,
   patchId: UuidV7Schema,
@@ -61,7 +52,7 @@ export function toPatchTransitionDto(model: unknown): PatchTransitionDto {
     patchId: parsed.patchId,
     fromStatus: parsed.fromStatus,
     toStatus: parsed.toStatus,
-    action: DbToApiActionMap[parsed.action],
+    action: parsed.action,
     createdAt:
       parsed.createdAt.toISOString() as PatchTransitionDto["createdAt"],
     createdById: parsed.createdById,
