@@ -1,9 +1,17 @@
 #!/usr/bin/env tsx
+import "dotenv/config";
+import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
 
 import { claimSeedOwnership } from "~/server/seed/claim-seed-ownership";
 
-const prisma = new PrismaClient();
+const adapter = new PrismaPg({
+  connectionString:
+    process.env.DATABASE_URL ??
+    "postgresql://postgres:postgres@localhost:5432/postgres",
+});
+
+const prisma = new PrismaClient({ adapter });
 
 async function main() {
   const identifier = process.argv[2];

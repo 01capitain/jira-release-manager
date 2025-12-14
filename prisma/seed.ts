@@ -1,4 +1,6 @@
+import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
 import type {
   Prisma,
   ReleaseTrack as PrismaReleaseTrack,
@@ -14,7 +16,13 @@ import { userFixtureList } from "../tests/fixtures/users";
 import { expandPattern } from "~/server/services/component-version-naming.service";
 import { SEED_PLACEHOLDER_USER } from "~/server/seed/constants";
 
-const prisma = new PrismaClient();
+const adapter = new PrismaPg({
+  connectionString:
+    process.env.DATABASE_URL ??
+    "postgresql://postgres:postgres@localhost:5432/postgres",
+});
+
+const prisma = new PrismaClient({ adapter });
 type SeedClient = PrismaClient | Prisma.TransactionClient;
 
 type DbReleaseComponentScope = "global" | "version_bound";
