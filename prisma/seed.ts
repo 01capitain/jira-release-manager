@@ -31,15 +31,7 @@ type DbPatchStatus =
   | "active"
   | "deprecated";
 type DbReleaseTrack = PrismaReleaseTrack;
-type DbPatchAction =
-  | "startDeployment"
-  | "markActive"
-  | "deprecate"
-  | "cancelDeployment"
-  | "reactivate"
-  | "revertToDeployment"
-  | "setActive"
-  | "archive";
+type DbPatchAction = Prisma.PatchTransitionUncheckedCreateInput["action"];
 type DbPatchTransitionAction =
   Prisma.PatchTransitionUncheckedCreateInput["action"];
 
@@ -61,27 +53,39 @@ const TransitionChains: Record<
   in_development: [],
   in_deployment: [
     {
-      action: "startDeployment",
+      action: "startDeployment" as DbPatchAction,
       from: "in_development",
       to: "in_deployment",
     },
   ],
   active: [
     {
-      action: "startDeployment",
+      action: "startDeployment" as DbPatchAction,
       from: "in_development",
       to: "in_deployment",
     },
-    { action: "markActive", from: "in_deployment", to: "active" },
+    {
+      action: "markActive" as DbPatchAction,
+      from: "in_deployment",
+      to: "active",
+    },
   ],
   deprecated: [
     {
-      action: "startDeployment",
+      action: "startDeployment" as DbPatchAction,
       from: "in_development",
       to: "in_deployment",
     },
-    { action: "markActive", from: "in_deployment", to: "active" },
-    { action: "deprecate", from: "active", to: "deprecated" },
+    {
+      action: "markActive" as DbPatchAction,
+      from: "in_deployment",
+      to: "active",
+    },
+    {
+      action: "deprecate" as DbPatchAction,
+      from: "active",
+      to: "deprecated",
+    },
   ],
 };
 
