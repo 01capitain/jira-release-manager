@@ -271,7 +271,7 @@ async function seedReleaseVersions(tx: SeedClient) {
             patchId: patchRow.id,
             fromStatus: transition.from,
             toStatus: transition.to,
-            action: transition.action as unknown as DbPatchTransitionAction,
+            action: transition.action,
             createdAt: new Date(
               new Date(patch.createdAt).getTime() + (index + 1) * 1000,
             ),
