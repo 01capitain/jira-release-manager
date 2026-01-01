@@ -72,39 +72,66 @@ if ! "${COMPOSE_CMD[@]}" ps --status running --services | grep -qx postgres; the
   exit 1
 fi
 
-ROLE_SQL=$(cat <<EOF
-DO \$\$
+ROLE_SQL=$(cat <<'EOF'
+DO $$
 BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = '${DB_USER}') THEN
-    EXECUTE format('CREATE ROLE %I WITH LOGIN PASSWORD %L;', '${DB_USER}', '${DB_PASSWORD}');
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = :'DB_USER') THEN
+    EXECUTE format('CREATE ROLE %I WITH LOGIN PASSWORD %L;', :'DB_USER', :'DB_PASSWORD');
   ELSE
-    EXECUTE format('ALTER ROLE %I WITH LOGIN PASSWORD %L;', '${DB_USER}', '${DB_PASSWORD}');
+    EXECUTE format('ALTER ROLE %I WITH LOGIN PASSWORD %L;', :'DB_USER', :'DB_PASSWORD');
   END IF;
 END
-\$\$;
+$$;
 EOF
 )
 
-DB_EXISTS_SQL="SELECT 1 FROM pg_database WHERE datname='${DB_NAME}'"
-CREATE_DB_SQL="CREATE DATABASE \"${DB_NAME}\" OWNER \"${DB_USER}\";"
-GRANT_SQL="GRANT ALL PRIVILEGES ON DATABASE \"${DB_NAME}\" TO \"${DB_USER}\";"
+DB_EXISTS_SQL=$(cat <<'EOF'
+SELECT 1 FROM pg_database WHERE datname = :'DB_NAME';
+EOF
+)
+
+CREATE_DB_SQL=$(cat <<'EOF'
+DO $$
+BEGIN
+  EXECUTE format('CREATE DATABASE %I OWNER %I;', :'DB_NAME', :'DB_USER');
+END
+$$;
+EOF
+)
+
+GRANT_SQL=$(cat <<'EOF'
+DO $$
+BEGIN
+  EXECUTE format('GRANT ALL PRIVILEGES ON DATABASE %I TO %I;', :'DB_NAME', :'DB_USER');
+END
+$$;
+EOF
+)
 
 echo "Ensuring role '${DB_USER}' and database '${DB_NAME}' exist on shared Postgres..."
 
 # Create/alter role
 PGPASSWORD="$POSTGRES_SUPERPASS" "${COMPOSE_CMD[@]}" exec -T postgres \
-  psql -U "$POSTGRES_SUPERUSER" -v ON_ERROR_STOP=1 -c "$ROLE_SQL" >/dev/null
+  psql -U "$POSTGRES_SUPERUSER" -v ON_ERROR_STOP=1 \
+  --set DB_USER="$DB_USER" --set DB_PASSWORD="$DB_PASSWORD" --set DB_NAME="$DB_NAME" \
+  -c "$ROLE_SQL" >/dev/null
 
 # Create DB if missing
 if ! PGPASSWORD="$POSTGRES_SUPERPASS" "${COMPOSE_CMD[@]}" exec -T postgres \
-  psql -U "$POSTGRES_SUPERUSER" -tAc "$DB_EXISTS_SQL" | grep -q 1; then
+  psql -U "$POSTGRES_SUPERUSER" -tA \
+  --set DB_USER="$DB_USER" --set DB_PASSWORD="$DB_PASSWORD" --set DB_NAME="$DB_NAME" \
+  -c "$DB_EXISTS_SQL" | grep -q 1; then
   PGPASSWORD="$POSTGRES_SUPERPASS" "${COMPOSE_CMD[@]}" exec -T postgres \
-    psql -U "$POSTGRES_SUPERUSER" -v ON_ERROR_STOP=1 -c "$CREATE_DB_SQL" >/dev/null
+    psql -U "$POSTGRES_SUPERUSER" -v ON_ERROR_STOP=1 \
+    --set DB_USER="$DB_USER" --set DB_PASSWORD="$DB_PASSWORD" --set DB_NAME="$DB_NAME" \
+    -c "$CREATE_DB_SQL" >/dev/null
 fi
 
 # Grant privileges
 PGPASSWORD="$POSTGRES_SUPERPASS" "${COMPOSE_CMD[@]}" exec -T postgres \
-  psql -U "$POSTGRES_SUPERUSER" -v ON_ERROR_STOP=1 -c "$GRANT_SQL" >/dev/null
+  psql -U "$POSTGRES_SUPERUSER" -v ON_ERROR_STOP=1 \
+  --set DB_USER="$DB_USER" --set DB_PASSWORD="$DB_PASSWORD" --set DB_NAME="$DB_NAME" \
+  -c "$GRANT_SQL" >/dev/null
 
 echo "Done. Update DATABASE_URL in .env if needed:"
 echo "postgresql://${DB_USER}:${DB_PASSWORD:-<set_password>}@${DB_HOST}:${DB_PORT}/${DB_NAME}"
