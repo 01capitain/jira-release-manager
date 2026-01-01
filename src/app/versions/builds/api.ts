@@ -22,8 +22,6 @@ export type PatchTransitionResponse = {
 
 const transitionSegments: Record<PatchAction, string> = {
   startDeployment: "start-deployment",
-  setActive: "mark-active",
-  archive: "deprecate",
   reactivate: "reactivate",
   cancelDeployment: "cancel-deployment",
   markActive: "mark-active",

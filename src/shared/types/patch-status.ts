@@ -15,8 +15,6 @@ export type PatchStatus =
 
 export type PatchAction =
   | "startDeployment"
-  | "setActive"
-  | "archive"
   | "reactivate"
   | "cancelDeployment"
   | "revertToDeployment"
@@ -25,8 +23,6 @@ export type PatchAction =
 
 export const PatchActionSchema = z.enum([
   "startDeployment",
-  "setActive",
-  "archive",
   "reactivate",
   "cancelDeployment",
   "revertToDeployment",
@@ -116,10 +112,6 @@ export function labelForAction(a: PatchAction): string {
   switch (a) {
     case "startDeployment":
       return "Start Deployment";
-    case "setActive":
-      return "Set Active";
-    case "archive":
-      return "Archive";
     case "cancelDeployment":
       return "Cancel Deployment";
     case "revertToDeployment":
@@ -154,10 +146,6 @@ export function targetStatusForAction(a: PatchAction): PatchStatus {
   switch (a) {
     case "startDeployment":
       return "in_deployment";
-    case "setActive":
-      return "active";
-    case "archive":
-      return "deprecated";
     case "cancelDeployment":
       return "in_development";
     case "revertToDeployment":

@@ -9,10 +9,8 @@ const Rules: Record<PatchAction, TransitionRule> = {
   startDeployment: { fromStatus: "in_development", toStatus: "in_deployment" },
   cancelDeployment: { fromStatus: "in_deployment", toStatus: "in_development" },
   markActive: { fromStatus: "in_deployment", toStatus: "active" },
-  setActive: { fromStatus: "in_deployment", toStatus: "active" },
   revertToDeployment: { fromStatus: "active", toStatus: "in_deployment" },
   deprecate: { fromStatus: "active", toStatus: "deprecated" },
-  archive: { fromStatus: "active", toStatus: "deprecated" },
   reactivate: { fromStatus: "deprecated", toStatus: "active" },
 };
 

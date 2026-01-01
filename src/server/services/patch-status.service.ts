@@ -25,13 +25,9 @@ function toDbPatchAction(action: PatchAction): DbPatchTransitionAction {
       return "cancel_deployment";
     case "markActive":
       return "mark_active";
-    case "setActive":
-      return "mark_active";
     case "revertToDeployment":
       return "revert_to_deployment";
     case "deprecate":
-      return "deprecate";
-    case "archive":
       return "deprecate";
     case "reactivate":
       return "reactivate";

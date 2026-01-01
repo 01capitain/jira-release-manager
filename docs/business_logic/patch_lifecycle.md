@@ -45,6 +45,6 @@ stateDiagram-v2
 - REST endpoints under `/release-versions/{releaseId}/patches/{patchId}/{action}` call the corresponding action IDs listed above.
 - `PatchStatusService` enforces both the from/to states and any side effects (e.g., successor creation on *Start Deployment*).
 - The UI (e.g., `PatchCard`) surfaces the transition names shown in the table so operators see consistent wording.
-- Transition validation is centralized in `ValidatePatchTransitionService`, which holds the `{ fromStatus, toStatus }` map keyed by the Prisma `PatchTransitionAction` enum (aliases such as `markActive`/`setActive` and `deprecate`/`archive` share the same rule). A transition is persisted to `PatchTransition` only after the validator allows it and records the triggering `createdById` (consistent with all other entities).
+- Transition validation is centralized in `ValidatePatchTransitionService`, which holds the `{ fromStatus, toStatus }` map keyed by the Prisma `PatchTransitionAction` enum. A transition is persisted to `PatchTransition` only after the validator allows it and records the triggering `createdById` (consistent with all other entities).
 
 Refer back to this document whenever a new status or transition is proposed; any addition must be reflected in both the table and the state diagram.

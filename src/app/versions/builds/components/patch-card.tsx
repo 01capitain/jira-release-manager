@@ -205,8 +205,6 @@ export default function PatchCard({
     deprecate: deprecate.mutateAsync,
     reactivate: reactivate.mutateAsync,
     startDeployment: startDeployment.mutateAsync,
-    setActive: markActive.mutateAsync,
-    archive: deprecate.mutateAsync,
   } as const;
 
   const [lastMessage, setLastMessage] = React.useState<string>("");

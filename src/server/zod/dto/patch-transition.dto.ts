@@ -11,8 +11,6 @@ import type { PatchAction } from "~/shared/types/patch-status";
 import { UuidV7Schema } from "~/shared/types/uuid";
 const DbPatchTransitionActionSchema = z.enum([
   "startDeployment",
-  "setActive",
-  "archive",
   "reactivate",
   "cancelDeployment",
   "revertToDeployment",

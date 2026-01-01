@@ -1271,8 +1271,6 @@ components:
           type: string
           enum:
             - startDeployment
-            - setActive
-            - archive
             - reactivate
             - cancelDeployment
             - revertToDeployment
