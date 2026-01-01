@@ -55,8 +55,6 @@ export class PatchStatusService {
     status: PatchStatus;
     patch: PatchSummary;
   }> {
-    const rule = this.validator.getRule(action);
-
     const auditTrail: SubactionInput[] = [];
 
     const result = await this.db.$transaction(async (tx) => {
@@ -77,22 +75,7 @@ export class PatchStatusService {
         metadata: { patchId, action },
       });
 
-      const currentStatus = patchRecord.currentStatus ?? "in_development";
-
-      if (currentStatus !== rule.fromStatus) {
-        // Provide a precise error for clients
-        throw Object.assign(
-          new Error(`Invalid transition from ${currentStatus} via ${action}`),
-          {
-            code: "INVALID_TRANSITION",
-            details: {
-              from: currentStatus,
-              expected: rule.fromStatus,
-              action,
-            },
-          },
-        );
-      }
+      const rule = this.validator.validate(patchRecord, action);
 
       await tx.patchTransition.create({
         data: {
