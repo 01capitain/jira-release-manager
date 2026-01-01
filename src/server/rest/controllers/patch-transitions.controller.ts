@@ -127,6 +127,9 @@ const performTransition = async (
         {
           patchId: params.patchId,
           action,
+          ...(typeof error === "object" && error && "details" in error
+            ? (error as { details?: Record<string, unknown> }).details
+            : {}),
         },
       );
     }
