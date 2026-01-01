@@ -17,6 +17,29 @@ type PatchSummary = {
   currentStatus: PatchStatus;
 };
 
+function toDbPatchAction(action: PatchAction): DbPatchTransitionAction {
+  switch (action) {
+    case "startDeployment":
+      return "start_deployment";
+    case "cancelDeployment":
+      return "cancel_deployment";
+    case "markActive":
+      return "mark_active";
+    case "setActive":
+      return "mark_active";
+    case "revertToDeployment":
+      return "revert_to_deployment";
+    case "deprecate":
+      return "deprecate";
+    case "archive":
+      return "deprecate";
+    case "reactivate":
+      return "reactivate";
+  }
+  const _exhaustive: never = action;
+  return _exhaustive;
+}
+
 export class PatchStatusService {
   constructor(
     private readonly db: PrismaClient,
@@ -82,7 +105,7 @@ export class PatchStatusService {
           patchId,
           fromStatus: rule.fromStatus,
           toStatus: rule.toStatus,
-          action: action as unknown as DbPatchTransitionAction,
+          action: toDbPatchAction(action),
           createdById: userId,
         },
       });
