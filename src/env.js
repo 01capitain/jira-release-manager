@@ -14,7 +14,10 @@ const serverSchema = {
   // Jira integration
   JIRA_BASE_URL: z.string().url().optional(),
   JIRA_PROJECT_KEY: z.string().optional(),
-  NEXTAUTH_URL: z.string().url().optional(),
+  NEXTAUTH_URL:
+    process.env.NODE_ENV === "production"
+      ? z.string().url()
+      : z.string().url().optional(),
   NODE_ENV: z.enum(["development", "test", "production"]),
   OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: z.string().url().optional(),
   OTEL_EXPORTER_OTLP_METRICS_ENDPOINT: z.string().url().optional(),
