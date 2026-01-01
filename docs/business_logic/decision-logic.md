@@ -1,6 +1,7 @@
 # Decision logic
-This documents lists actions that need to be taken in order to achieve a specific action.
-They are structred in a WHEN, THEN policy so that it gets clear what is the requirement and what is the resulting action.
+
+This document lists actions that need to be taken to achieve a specific action.
+They are structured in a WHEN/THEN policy so that it gets clear what is the requirement and what is the resulting action.
 
 -  WHEN I start the deployment of a Built 
    -  THEN I check for every Release components whether it has changed issues
