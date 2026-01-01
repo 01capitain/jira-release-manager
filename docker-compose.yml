@@ -2,6 +2,7 @@ services:
   postgres:
     image: postgres:18
     container_name: jira-release-manager-postgres
+    profiles: ["local-db"]
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${DB_USER:-postgres}
@@ -25,6 +26,7 @@ services:
       dockerfile: observability/otel-sandbox/Dockerfile
     image: jira-release-manager-otel
     container_name: jira-release-manager-telemetry
+    profiles: ["local-db"]
     restart: unless-stopped
     environment:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}

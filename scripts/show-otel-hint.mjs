@@ -38,8 +38,8 @@ loadEnvFiles();
 
 const printObservabilityHint = () => {
   const lines = [
-    `${HEADING_INDENT}${color("ⓘ Observability Sandbox")}`,
-    `${BULLET_INDENT}Grafana:      http://localhost:3001`,
+    `${HEADING_INDENT}${color("ⓘ Observability (shared infra)")}`,
+    `${BULLET_INDENT}Logs/Grafana: http://logs.localhost`,
     `${BULLET_INDENT}Docs:         README.md#local-telemetry-sandbox`,
     "",
   ];
@@ -134,17 +134,15 @@ const runCollectorTest = async () => {
     )}`,
   );
   console.error(
-    `${MESSAGE_PREFIX}Start the Jira Release Manager containers before running \`pnpm dev\`.`,
+    `${MESSAGE_PREFIX}If you need OTLP traces/metrics locally, start your collector first (or update OTEL_* endpoints).`,
   );
   console.error(
-    `${MESSAGE_PREFIX}Use \`./start-database.sh\` or \`docker compose up -d postgres observability\` to boot them.`,
+    `${MESSAGE_PREFIX}Shared infra (logs/local Postgres) lives at ../../infrastructure → ./start-development-environment.`,
   );
   console.error("");
-  return false;
+  // Don’t block dev server; just warn.
+  return true;
 };
 
 const connectivityOk = await runCollectorTest();
 printObservabilityHint();
-if (!connectivityOk) {
-  process.exit(1);
-}

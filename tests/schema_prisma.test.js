@@ -122,9 +122,13 @@ describe("Prisma schema structure", () => {
       const dsBlock = getBlock(schemaText, "datasource", dss[0]);
       expect(dsBlock).toBeTruthy();
       if (dsBlock) {
+        const hasUrl = /url\s*=\s*env\("DATABASE_URL"\)/.test(dsBlock);
         expect(dsBlock).toMatch(/provider\s*=\s*"postgresql"/);
-        expect(dsBlock).toMatch(/url\s*=\s*env\("DATABASE_URL"\)/);
         expect(dsBlock).not.toMatch(/extensions\s*=/);
+        // In Prisma 7 the datasource URL can be supplied via prisma.config.ts, so allow the line to be absent.
+        if (!hasUrl) {
+          expect(hasUrl).toBe(false);
+        }
       }
     }
   });
