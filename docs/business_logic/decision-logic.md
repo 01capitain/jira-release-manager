@@ -16,6 +16,6 @@ They are structured in a WHEN/THEN policy so that it gets clear what is the requ
   - THEN I create a new Jira version with the "Next marker" for the successing built.
   - THEN I set all issues of the Jira Release to "Staged For Release"
 
--  WHEN I want to deploy a version bound Release component
+-  WHEN I want to deploy a version-bound Release component
 
 -  WHEN I want to deploy a global Release component
