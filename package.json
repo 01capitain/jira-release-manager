@@ -10,7 +10,7 @@
     "postinstall": "prisma generate",
     "build": "next build",
     "clean": "rm -rf .next tsconfig.tsbuildinfo",
-    "db:init": "prisma db execute --file ./init.sql --schema prisma/schema.prisma",
+    "db:init": "prisma db execute --file ./init.sql",
     "db:reset": "node scripts/dev-db-reset.mjs",
     "db:generate": "prisma migrate dev",
     "db:lint": "node scripts/disallow-boolean-fields.mjs",
@@ -18,8 +18,8 @@
     "db:push": "prisma db push",
     "db:seed": "prisma db seed",
     "db:validate": "prisma validate",
-    "db:studio": "prisma studio",
-    "dev": "node scripts/show-otel-hint.mjs && next dev --turbo",
+    "db:studio": "dotenv -e .env -- prisma studio",
+    "dev": "node scripts/show-otel-hint.mjs && next dev --hostname 0.0.0.0 --port ${PORT:-3000} --turbo",
     "lint": "eslint .",
     "lint:a11y": "eslint . --ext .ts,.tsx",
     "lint:fix": "eslint --fix .",
@@ -56,7 +56,8 @@
     "@opentelemetry/sdk-trace-base": "^2.2.0",
     "@opentelemetry/sdk-trace-web": "^2.2.0",
     "@opentelemetry/semantic-conventions": "^1.38.0",
-    "@prisma/client": "^6.19.0",
+    "@prisma/adapter-pg": "^7.1.0",
+    "@prisma/client": "^7.1.0",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-popover": "^1.1.15",
     "@radix-ui/react-scroll-area": "^1.2.10",
@@ -74,6 +75,7 @@
     "next": "^15.5.7",
     "next-auth": "5.0.0-beta.25",
     "next-themes": "^0.4.6",
+    "pg": "^8.16.3",
     "react": "19.1.1",
     "react-day-picker": "^9.11.1",
     "react-dom": "19.1.1",
@@ -95,6 +97,7 @@
     "@types/react-dom": "^19.2.3",
     "cookie": "^1.0.2",
     "dotenv": "^16.6.1",
+    "dotenv-cli": "^11.0.0",
     "esbuild": "^0.25.12",
     "esbuild-register": "^3.6.0",
     "eslint": "^9.39.1",
@@ -107,8 +110,8 @@
     "postcss": "^8.5.6",
     "prettier": "^3.6.2",
     "prettier-plugin-tailwindcss": "^0.6.14",
-    "prisma": "^6.19.0",
-    "prisma-zod-generator": "^1.31.8",
+    "prisma": "^7.1.0",
+    "prisma-zod-generator": "^2.1.2",
     "tailwindcss": "^4.1.17",
     "ts-jest": "^29.4.5",
     "ts-node": "^10.9.2",
@@ -133,8 +136,5 @@
   "ct3aMetadata": {
     "initVersion": "7.39.3"
   },
-  "packageManager": "pnpm@10.20.0",
-  "prisma": {
-    "seed": "tsx prisma/seed.ts"
-  }
+  "packageManager": "pnpm@10.27.0"
 }

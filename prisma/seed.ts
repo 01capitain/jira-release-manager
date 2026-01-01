@@ -1,4 +1,6 @@
+import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
 import type {
   Prisma,
   ReleaseTrack as PrismaReleaseTrack,
@@ -11,10 +13,15 @@ import {
 import { releaseVersionFixtureList } from "../tests/fixtures/release-versions";
 import type { ReleaseVersionFixtureStub } from "../tests/fixtures/release-versions";
 import { userFixtureList } from "../tests/fixtures/users";
+import { DEFAULT_DATABASE_URL } from "../src/config/database";
 import { expandPattern } from "~/server/services/component-version-naming.service";
 import { SEED_PLACEHOLDER_USER } from "~/server/seed/constants";
 
-const prisma = new PrismaClient();
+const adapter = new PrismaPg({
+  connectionString: process.env.DATABASE_URL ?? DEFAULT_DATABASE_URL,
+});
+
+const prisma = new PrismaClient({ adapter });
 type SeedClient = PrismaClient | Prisma.TransactionClient;
 
 type DbReleaseComponentScope = "global" | "version_bound";
