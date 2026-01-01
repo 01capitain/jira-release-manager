@@ -107,4 +107,4 @@ PGPASSWORD="$POSTGRES_SUPERPASS" "${COMPOSE_CMD[@]}" exec -T postgres \
   psql -U "$POSTGRES_SUPERUSER" -v ON_ERROR_STOP=1 -c "$GRANT_SQL" >/dev/null
 
 echo "Done. Update DATABASE_URL in .env if needed:"
-echo "postgresql://${DB_USER}:${DB_PASSWORD:-<set_password>}@${DB_HOST}:${DB_PORT}/${DB_NAME}"
+echo "postgresql://${DB_USER}:<password>@${DB_HOST}:${DB_PORT}/${DB_NAME}"
