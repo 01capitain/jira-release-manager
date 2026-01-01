@@ -5,10 +5,13 @@ import { PrismaClient } from "@prisma/client";
 
 import { claimSeedOwnership } from "~/server/seed/claim-seed-ownership";
 
+const connectionString = process.env.DATABASE_URL;
+if (!connectionString) {
+  throw new Error("DATABASE_URL environment variable is required");
+}
+
 const adapter = new PrismaPg({
-  connectionString:
-    process.env.DATABASE_URL ??
-    "postgresql://postgres:postgres@localhost:5432/postgres",
+  connectionString,
 });
 
 const prisma = new PrismaClient({ adapter });
