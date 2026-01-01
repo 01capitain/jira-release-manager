@@ -6,24 +6,10 @@ import {
   type User,
 } from "@prisma/client";
 import type { ReleaseComponentCreateInput } from "~/shared/schemas/release-component";
-import type { ReleaseComponentDto } from "~/shared/types/release-component";
-import {
-  mapToReleaseComponentDtos,
-  toReleaseComponentDto,
-} from "~/server/zod/dto/release-component.dto";
 import type { ActionLogger } from "~/server/services/action-history.service";
 import { RestError } from "~/server/rest/errors";
 
 type ReleaseComponentScopeDb = "global" | "version_bound";
-
-type ReleaseComponentRow = {
-  id: string;
-  name: string;
-  color: string;
-  namingPattern: string;
-  releaseScope: ReleaseComponentScopeDb;
-  createdAt: Date;
-};
 
 const releaseComponentSelect = {
   id: true,
@@ -32,20 +18,21 @@ const releaseComponentSelect = {
   namingPattern: true,
   releaseScope: true,
   createdAt: true,
-} as const;
+} as const satisfies Prisma.ReleaseComponentSelect;
+
+export type ReleaseComponentRow = Prisma.ReleaseComponentGetPayload<{
+  select: typeof releaseComponentSelect;
+}>;
 
 export class ReleaseComponentService {
   constructor(private readonly db: PrismaClient) {}
 
-  async list(): Promise<ReleaseComponentDto[]> {
-    const delegate = this.db.releaseComponent as unknown as {
-      findMany(args?: unknown): Promise<ReleaseComponentRow[]>;
-    };
-    const rows = await delegate.findMany({
+  async list(): Promise<ReleaseComponentRow[]> {
+    const rows = await this.db.releaseComponent.findMany({
       orderBy: { createdAt: "desc" },
       select: releaseComponentSelect,
     });
-    return mapToReleaseComponentDtos(rows);
+    return rows;
   }
 
   async paginate(
@@ -55,7 +42,7 @@ export class ReleaseComponentService {
       search?: string | null;
       releaseId?: ReleaseVersion["id"];
     },
-  ): Promise<{ total: number; items: ReleaseComponentDto[] }> {
+  ): Promise<{ total: number; items: ReleaseComponentRow[] }> {
     const where: Prisma.ReleaseComponentWhereInput = {};
     if (filters?.search) {
       where.name = {
@@ -68,12 +55,9 @@ export class ReleaseComponentService {
         some: { patch: { versionId: filters.releaseId } },
       };
     }
-    const delegate = this.db.releaseComponent as unknown as {
-      findMany(args?: unknown): Promise<ReleaseComponentRow[]>;
-    };
     const [total, rows] = await Promise.all([
       this.db.releaseComponent.count({ where }),
-      delegate.findMany({
+      this.db.releaseComponent.findMany({
         where,
         orderBy: { createdAt: "desc" },
         select: releaseComponentSelect,
@@ -81,19 +65,13 @@ export class ReleaseComponentService {
         take: pageSize,
       }),
     ]);
-    return {
-      total,
-      items: mapToReleaseComponentDtos(rows),
-    };
+    return { total, items: rows };
   }
 
   async getById(
     componentId: ReleaseComponent["id"],
-  ): Promise<ReleaseComponentDto> {
-    const delegate = this.db.releaseComponent as unknown as {
-      findUnique(args: unknown): Promise<ReleaseComponentRow | null>;
-    };
-    const row = await delegate.findUnique({
+  ): Promise<ReleaseComponentRow> {
+    const row = await this.db.releaseComponent.findUnique({
       where: { id: componentId },
       select: releaseComponentSelect,
     });
@@ -106,14 +84,14 @@ export class ReleaseComponentService {
         },
       );
     }
-    return toReleaseComponentDto(row);
+    return row;
   }
 
   async create(
     userId: User["id"],
     input: ReleaseComponentCreateInput,
     options?: { logger?: ActionLogger },
-  ): Promise<ReleaseComponentDto> {
+  ): Promise<ReleaseComponentRow> {
     const trimmedName = input.name.trim();
     try {
       const scopeKey = input.releaseScope;
@@ -124,10 +102,7 @@ export class ReleaseComponentService {
       }
       const prismaScope: ReleaseComponentScopeDb =
         scopeKey === "global" ? "global" : "version_bound";
-      const delegate = this.db.releaseComponent as unknown as {
-        create(args: unknown): Promise<ReleaseComponentRow>;
-      };
-      const created = await delegate.create({
+      const created = await this.db.releaseComponent.create({
         data: {
           name: trimmedName,
           color: input.color,
@@ -142,7 +117,7 @@ export class ReleaseComponentService {
         message: `Component ${created.name} stored`,
         metadata: { id: created.id, color: created.color },
       });
-      return toReleaseComponentDto(created);
+      return created;
     } catch (error: unknown) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&

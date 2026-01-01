@@ -3,7 +3,8 @@
 Goal: Keep a strict, reusable API contract across REST handlers and clients without exposing server-only types.
 
 - Define DTO types in `src/shared/types/*`. These are safe to import on both server and client and represent the public contract.
-- REST controllers must map database results to DTOs (via `select` and object mapping) before returning a response. Do not return Prisma entities directly.
+- REST controllers must map database or service results to DTOs (via `select` and object mapping) before returning a response. Do not return Prisma entities directly.
+- Services return domain structs (Prisma selects with `Date` values). Keep DTO parsing at the controller boundary so transport formatting stays in one place.
 - Validate transport payloads with shared Zod schemas (`src/shared/schemas/*`) so both server and client enforce the same rules.
 - JSON fields (e.g., `tokenValues`) should be typed with a shared DTO and cast only at Prisma boundaries using `Prisma.InputJsonValue`.
 - When you need pagination, reuse the helpers in `src/shared/types/pagination.ts` plus the REST helpers in `src/server/rest/pagination.ts` to keep `{ data, pagination }` responses consistent.

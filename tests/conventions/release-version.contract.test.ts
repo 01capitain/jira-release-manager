@@ -5,7 +5,7 @@ import {
   ReleaseVersionListQuerySchema,
   ReleaseVersionListResponseSchema,
   ReleaseVersionRelationsQueryDocSchema,
-  ReleaseVersionWithRelationsSchema,
+  ReleaseVersionWithRelationsResponseSchema,
   releaseVersionPaths,
 } from "~/server/rest/controllers/release-versions.controller";
 import {
@@ -117,8 +117,12 @@ describe("ReleaseVersion REST contract", () => {
       createdAt: "2024-01-01T00:00:00.000Z",
     };
     expect(() => ReleaseVersionDetailSchema.parse(sample)).not.toThrow();
-    expect(() => ReleaseVersionWithRelationsSchema.parse(sample)).not.toThrow();
-    expect(ReleaseVersionDetailSchema).toBe(ReleaseVersionWithRelationsSchema);
+    expect(() =>
+      ReleaseVersionWithRelationsResponseSchema.parse(sample),
+    ).not.toThrow();
+    expect(ReleaseVersionDetailSchema).toBe(
+      ReleaseVersionWithRelationsResponseSchema,
+    );
   });
 
   it("OpenAPI paths reference the exported schemas", () => {

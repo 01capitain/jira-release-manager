@@ -2,7 +2,10 @@ import { type z } from "zod";
 
 import { ActionHistoryListInputSchema } from "~/server/api/schemas";
 import { ActionHistoryService } from "~/server/services/action-history.service";
-import { ActionHistoryEntryDtoSchema } from "~/server/zod/dto/action-history.dto";
+import {
+  ActionHistoryEntryDtoSchema,
+  mapToActionHistoryEntryDtos,
+} from "~/server/zod/dto/action-history.dto";
 import type { RestContext } from "~/server/rest/context";
 import { ensureAuthenticated } from "~/server/rest/auth";
 import { jsonErrorResponse } from "~/server/rest/openapi";
@@ -27,7 +30,12 @@ export const listActionHistory = async (
   const svc = new ActionHistoryService(context.db);
   const userId = ensureAuthenticated(context);
   const sessionToken = context.sessionToken ?? null;
-  return svc.listBySession(sessionToken, userId, query);
+  const page = await svc.listBySession(sessionToken, userId, query);
+  const data = mapToActionHistoryEntryDtos(page.data);
+  return ActionHistoryListResponseSchema.parse({
+    data,
+    pagination: page.pagination,
+  });
 };
 
 export const actionHistoryPaths = {

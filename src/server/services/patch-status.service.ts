@@ -1,4 +1,5 @@
 import type { PrismaClient } from "@prisma/client";
+import { RestError } from "~/server/rest/errors";
 import type {
   PatchAction as ApiAction,
   PatchStatus,
@@ -79,6 +80,34 @@ export class PatchStatusService {
       select: { currentStatus: true },
     });
     return (patch?.currentStatus ?? "in_development") as PatchStatus;
+  }
+
+  async requirePatchForRelease(
+    patchId: string,
+    releaseId: string,
+  ): Promise<PatchSummary> {
+    const patchRecord = await this.db.patch.findUnique({
+      where: { id: patchId },
+      select: {
+        id: true,
+        name: true,
+        versionId: true,
+        createdAt: true,
+        currentStatus: true,
+      },
+    });
+    if (!patchRecord) {
+      throw new RestError(404, "NOT_FOUND", "Patch not found", { patchId });
+    }
+    if (patchRecord.versionId !== releaseId) {
+      throw new RestError(
+        404,
+        "NOT_FOUND",
+        "Patch does not belong to the release",
+        { releaseId, patchId },
+      );
+    }
+    return patchRecord as PatchSummary;
   }
 
   async transition(

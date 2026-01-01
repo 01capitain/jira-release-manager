@@ -1,6 +1,7 @@
 # API Contracts and Token Values
 
 - API endpoints return DTOs from `src/shared/types`. This ensures the same contract is reused across clients.
+- Services return domain structs and controllers apply DTO parsing at the REST boundary. Controllers should not call Prisma delegates directly.
 - REST GET endpoints expose optional relation data through the `relations` query parameter. Each entity maintains an allowlist (e.g., release versions permit `creater`, `patches`, `patches.deployedComponents`, `patches.transitions`). Unknown keys or nested relations without their parent must raise `RestError(400, "INVALID_RELATION")`.
 - List endpoints return `PaginatedResponse<T>` (see `src/shared/types/pagination.ts`) so every response includes `data` alongside `pagination { page, pageSize, totalItems, hasNextPage }`. Use `createPaginatedRequestSchema` to normalize inputs and `buildPaginatedResponse` to hydrate responses.
 - `ReleaseVersionDto` exposes a `releaseTrack` field derived from the enum `ReleaseTrack = "Future" | "Beta" | "Rollout" | "Active" | "Archived"`. New releases default to `"Future"`; defaults for both name and track are exposed via `GET /api/v1/release-versions/new-values` (authenticated). `POST /api/v1/release-versions` accepts optional `releaseTrack` to override the default at creation.
