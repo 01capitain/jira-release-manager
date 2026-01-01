@@ -1,9 +1,20 @@
 #!/usr/bin/env tsx
+import "dotenv/config";
+import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
 
 import { claimSeedOwnership } from "~/server/seed/claim-seed-ownership";
 
-const prisma = new PrismaClient();
+const connectionString = process.env.DATABASE_URL;
+if (!connectionString) {
+  throw new Error("DATABASE_URL environment variable is required");
+}
+
+const adapter = new PrismaPg({
+  connectionString,
+});
+
+const prisma = new PrismaClient({ adapter });
 
 async function main() {
   const identifier = process.argv[2];

@@ -24,9 +24,14 @@
 
 ### Database
 
-PostgreSQL 18, running inside the shared Docker Compose project.
+PostgreSQL 18 (from the shared `../../infrastructure` stack, reachable at `postgres.localhost`).
 
-Set up with `./start-database.sh`, which now boots Postgres and the telemetry stack together under the `jira-release-manager` project.
+- Start the shared infra once: `(cd ../../infrastructure && ./start-development-environment)`
+- Create the dedicated DB/user on that shared Postgres: `./scripts/setup-shared-postgres.sh`  
+  (parses `DATABASE_URL` from your `.env` and upserts the role + database)
+- Use a dedicated connection string, e.g.  
+  `DATABASE_URL=postgresql://jira_release_manager:<password>@postgres.localhost/jira_release_manager`
+- Tracking card: [#14](http://fizzy.localhost/0000001/cards/14)
 
 ### ORM
 
@@ -56,44 +61,7 @@ If that port is changed you need to also update the webhook within the [Discord 
 Follow our deployment guides for [Docker](https://create.t3.gg/en/deployment/docker) for more information.
 
 ## Local Telemetry Sandbox
-
-Run the entire Grafana Alloy + Tempo + Loki + Prometheus + Grafana stack from the single Dockerfile. Credentials are configurable via `GRAFANA_ADMIN_USER` / `GRAFANA_ADMIN_PASSWORD` (defaults: `admin` / `hotelkit123`).
-
-```bash
-# optional: override defaults in your shell or .env
-export GRAFANA_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
-export GRAFANA_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-hotelkit123}
-
-docker build -f observability/otel-sandbox/Dockerfile -t jira-release-manager-otel .
-docker run --rm \
-  -e GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin} \
-  -e GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-hotelkit123} \
-  -p 4318:4318 \
-  -p 4317:4317 \
-  -p 3001:3001 \
-  -p 3200:3200 \
-  -p 3100:3100 \
-  -p 9090:9090 \
-  -p 9464:9464 \
-  jira-release-manager-otel
-```
-
-Grafana (<http://localhost:3001>, default `admin` / `hotelkit123`) comes pre-provisioned with datasources and the _OTel Sandbox_ dashboard. Because the container writes everything to `/tmp`, telemetry persists only for the container's lifetime.
-
-Set the application exporters to send data to the sandbox:
-
-```bash
-export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
-export OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://localhost:4318/v1/traces
-export OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=http://localhost:4318/v1/metrics
-export NEXT_PUBLIC_OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://localhost:4318/v1/traces
-export NEXT_PUBLIC_OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=http://localhost:4318/v1/metrics
-```
-
-Need Postgres too? `./start-database.sh` (or `docker compose up -d postgres observability`) still boots both services under the shared `jira-release-manager` project in Docker Desktop / Podman Desktop by reusing the same Dockerfile. These helpers automatically pass the Grafana credentials using the same `GRAFANA_ADMIN_*` environment variables.
-If port `5432` is occupied locally, set `DB_PORT` in your `.env` (and match the port in `DATABASE_URL`) before starting the containers so Postgres binds to the custom host port.
-
-Upgrading note: the Postgres 18 image expects its data directory under `/var/lib/postgresql/<major>/main`. The compose file now mounts the volume at `/var/lib/postgresql`; if you used an older mount path, remove the old volume with `docker volume rm jira-release-manager_postgres-data` (or prune volumes) before starting fresh.
+The shared infra stack already provides Grafana + Loki (reachable at `http://logs.localhost`). Promtail in that stack scrapes Docker container logs, so any containers you run (including this project if containerized) will be visible there. OTLP exporters remain configurable via `OTEL_*` env vars in `.env`; point them to your chosen collector if you need traces/metrics beyond container logs.
 
 ## Scripts
 

@@ -1,7 +1,7 @@
-import { readFileSync } from "node:fs";
 import { createEnv } from "@t3-oss/env-nextjs";
-import { z } from "zod";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { z } from "zod";
 
 const serverSchema = {
   AUTH_SECRET:
@@ -14,6 +14,10 @@ const serverSchema = {
   // Jira integration
   JIRA_BASE_URL: z.string().url().optional(),
   JIRA_PROJECT_KEY: z.string().optional(),
+  NEXTAUTH_URL:
+    process.env.NODE_ENV === "production"
+      ? z.string().url()
+      : z.string().url().optional(),
   NODE_ENV: z.enum(["development", "test", "production"]),
   OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: z.string().url().optional(),
   OTEL_EXPORTER_OTLP_METRICS_ENDPOINT: z.string().url().optional(),
@@ -67,6 +71,7 @@ const runtimeEnv = {
   CONTEXT7_API_KEY: process.env.CONTEXT7_API_KEY,
   JIRA_BASE_URL: process.env.JIRA_BASE_URL,
   JIRA_PROJECT_KEY: process.env.JIRA_PROJECT_KEY,
+  NEXTAUTH_URL: process.env.NEXTAUTH_URL,
   NODE_ENV: process.env.NODE_ENV,
   OTEL_EXPORTER_OTLP_TRACES_ENDPOINT:
     process.env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT,
