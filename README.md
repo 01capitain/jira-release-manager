@@ -31,7 +31,7 @@ PostgreSQL 18 (from the shared `../../infrastructure` stack, reachable at `postg
   (parses `DATABASE_URL` from your `.env` and upserts the role + database)
 - Use a dedicated connection string, e.g.  
   `DATABASE_URL=postgresql://jira_release_manager:<password>@postgres.localhost/jira_release_manager`
- - Tracking card: http://fizzy.localhost/0000001/cards/14
+- Tracking card: [#14](http://fizzy.localhost/0000001/cards/14)
 
 ### ORM
 
