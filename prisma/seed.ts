@@ -31,13 +31,8 @@ type DbPatchStatus =
   | "active"
   | "deprecated";
 type DbReleaseTrack = PrismaReleaseTrack;
-type DbPatchAction =
-  | "start_deployment"
-  | "mark_active"
-  | "deprecate"
-  | "cancel_deployment"
-  | "reactivate"
-  | "revert_to_deployment";
+type DbPatchTransitionAction =
+  Prisma.PatchTransitionUncheckedCreateInput["action"];
 
 const RELEASE_COMPONENT_IDS = releaseComponentFixtureList.map(
   (fixture) => fixture.id,
@@ -52,32 +47,48 @@ const USER_IDS = [
 
 const TransitionChains: Record<
   DbPatchStatus,
-  Array<{ action: DbPatchAction; from: DbPatchStatus; to: DbPatchStatus }>
+  Array<{
+    action: DbPatchTransitionAction;
+    from: DbPatchStatus;
+    to: DbPatchStatus;
+  }>
 > = {
   in_development: [],
   in_deployment: [
     {
-      action: "start_deployment",
+      action: "startDeployment" as DbPatchTransitionAction,
       from: "in_development",
       to: "in_deployment",
     },
   ],
   active: [
     {
-      action: "start_deployment",
+      action: "startDeployment" as DbPatchTransitionAction,
       from: "in_development",
       to: "in_deployment",
     },
-    { action: "mark_active", from: "in_deployment", to: "active" },
+    {
+      action: "markActive" as DbPatchTransitionAction,
+      from: "in_deployment",
+      to: "active",
+    },
   ],
   deprecated: [
     {
-      action: "start_deployment",
+      action: "startDeployment" as DbPatchTransitionAction,
       from: "in_development",
       to: "in_deployment",
     },
-    { action: "mark_active", from: "in_deployment", to: "active" },
-    { action: "deprecate", from: "active", to: "deprecated" },
+    {
+      action: "markActive" as DbPatchTransitionAction,
+      from: "in_deployment",
+      to: "active",
+    },
+    {
+      action: "deprecate" as DbPatchTransitionAction,
+      from: "active",
+      to: "deprecated",
+    },
   ],
 };
 
