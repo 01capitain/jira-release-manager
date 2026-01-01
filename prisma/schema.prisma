@@ -46,8 +46,6 @@ enum PatchAction {
 
 enum PatchTransitionAction {
     startDeployment
-    setActive
-    archive
     reactivate
     cancelDeployment
     revertToDeployment
