@@ -1,8 +1,6 @@
 import { Prisma, type PrismaClient } from "@prisma/client";
 
 import { buildPaginatedResponse } from "~/server/rest/pagination";
-import { mapToActionHistoryEntryDtos } from "~/server/zod/dto/action-history.dto";
-import type { ActionHistoryEntryDto } from "~/shared/types/action-history";
 import type {
   NormalizedPaginatedRequest,
   PaginatedResponse,
@@ -39,6 +37,30 @@ export interface ActionLogger {
     options?: { message?: string; metadata?: Record<string, unknown> | null },
   ): Promise<void>;
 }
+
+export type ActionSubactionRow = {
+  id: string;
+  subactionType: string;
+  message: string;
+  status: ActionStatus;
+  createdAt: Date;
+  metadata?: Record<string, unknown> | null;
+};
+
+export type ActionHistoryRow = {
+  id: string;
+  actionType: string;
+  message: string;
+  status: ActionStatus;
+  createdAt: Date;
+  metadata?: Record<string, unknown> | null;
+  createdBy?: {
+    id: string;
+    name: string | null;
+    email: string | null;
+  };
+  subactions: ActionSubactionRow[];
+};
 
 type PrismaClientOrTx = PrismaClient | Prisma.TransactionClient;
 
@@ -198,7 +220,7 @@ export class ActionHistoryService {
     sessionToken: string | null | undefined,
     userId: string | null | undefined,
     params: NormalizedPaginatedRequest<"createdAt">,
-  ): Promise<PaginatedResponse<ActionHistoryEntryDto>> {
+  ): Promise<PaginatedResponse<ActionHistoryRow>> {
     const delegates = getDelegates(this.db);
     const { page, pageSize, sortBy } = params;
     if (!delegates || (!sessionToken && !userId)) {
@@ -238,7 +260,11 @@ export class ActionHistoryService {
       }),
     ]);
 
-    const items = mapToActionHistoryEntryDtos(rows);
-    return buildPaginatedResponse(items, page, pageSize, total);
+    return buildPaginatedResponse(
+      rows as ActionHistoryRow[],
+      page,
+      pageSize,
+      total,
+    );
   }
 }

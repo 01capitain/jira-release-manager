@@ -2,7 +2,6 @@ import { z } from "zod";
 
 import { ensureAuthenticated } from "~/server/rest/auth";
 import type { RestContext } from "~/server/rest/context";
-import { RestError } from "~/server/rest/errors";
 import { jsonErrorResponse } from "~/server/rest/openapi";
 import { ActionHistoryService } from "~/server/services/action-history.service";
 import { PatchStatusService } from "~/server/services/patch-status.service";
@@ -20,9 +19,10 @@ import {
   PatchIdSchema,
   toPatchDto,
 } from "~/server/zod/dto/patch.dto";
-import { ReleaseVersionIdSchema } from "~/server/zod/dto/release-version.dto";
-import type { PatchAction } from "~/shared/types/patch-status";
+
 import { PatchStatusSchema } from "~/shared/types/patch-status";
+import type { PatchAction } from "~/shared/types/patch-status";
+import { ReleaseVersionIdSchema } from "~/server/zod/dto/release-version.dto";
 
 export const PatchTransitionParamSchema = z.object({
   releaseId: ReleaseVersionIdSchema,
@@ -87,34 +87,10 @@ const performTransition = async (
   action: PatchAction,
 ) => {
   const userId = ensureAuthenticated(context);
-  const patchRecord = await context.db.patch.findUnique({
-    where: { id: params.patchId },
-    select: {
-      id: true,
-      name: true,
-      versionId: true,
-      createdAt: true,
-    },
-  });
-  if (!patchRecord) {
-    throw new RestError(404, "NOT_FOUND", "Patch not found", {
-      patchId: params.patchId,
-    });
-  }
-  if (patchRecord.versionId !== params.releaseId) {
-    throw new RestError(
-      404,
-      "NOT_FOUND",
-      "Patch does not belong to the release",
-      {
-        releaseId: params.releaseId,
-        patchId: params.patchId,
-      },
-    );
-  }
 
   const statusService = new PatchStatusService(context.db);
   const historyService = new ActionHistoryService(context.db);
+  await statusService.requirePatchForRelease(params.patchId, params.releaseId);
   const actionLog = await historyService.startAction({
     actionType: `patch.transition.${action}`,
     message: `Transition patch ${params.patchId} via ${action}`,

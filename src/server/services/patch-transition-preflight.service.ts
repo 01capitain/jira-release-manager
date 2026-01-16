@@ -62,11 +62,7 @@ export class PatchTransitionPreflightService {
         { patchId, releaseId },
       );
     }
-    const currentStatus = patch.currentStatus ?? "in_development";
-    const validation = this.statusService.validateTransition(
-      currentStatus,
-      action,
-    );
+    const parsedAction = PatchActionSchema.parse(action);
     const currentStatus = patch.currentStatus ?? "in_development";
     const validation = this.statusService.validateTransition(
       currentStatus,
