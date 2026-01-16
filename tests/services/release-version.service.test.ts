@@ -438,12 +438,13 @@ describe("ReleaseVersion and Patch behavior", () => {
       });
 
       expect(page.data).toHaveLength(1);
-      expect(page.data[0]).toEqual({
+      expect(page.data[0]).toMatchObject({
         id: REL_MAIN_ID,
         name: "Release 100",
         releaseTrack: DEFAULT_RELEASE_TRACK,
-        createdAt: createdAt.toISOString(),
       });
+      expect(page.data[0]?.createdAt).toBeInstanceOf(Date);
+      expect(page.data[0]?.createdAt.getTime()).toBe(createdAt.getTime());
       const args = db.releaseVersion.findMany.mock.calls[0]?.[0] ?? {};
       expect(args.include).toBeUndefined();
     });
@@ -511,39 +512,40 @@ describe("ReleaseVersion and Patch behavior", () => {
 
       const [item] = page.data;
       expect(item?.releaseTrack).toBe("Beta");
-      expect(item?.creater).toEqual({
+      expect(item?.createdBy).toEqual({
         id: USER_1_ID,
         name: "Test User",
         email: "user@example.com",
       });
-      expect(item?.patches).toEqual([
+      expect(item?.patches?.[0]).toMatchObject({
+        id: PATCH_LIST_ID,
+        name: "Release 200.0",
+        versionId: REL_MAIN_ID,
+        currentStatus: "in_development",
+      });
+      expect(item?.patches?.[0]?.createdAt).toBeInstanceOf(Date);
+      expect(
+        item?.patches?.[0]?.componentVersions?.[0]?.createdAt,
+      ).toBeInstanceOf(Date);
+      expect(item?.patches?.[0]?.componentVersions).toEqual([
         {
-          id: PATCH_LIST_ID,
-          name: "Release 200.0",
-          versionId: REL_MAIN_ID,
-          createdAt: patchCreatedAt.toISOString(),
-          currentStatus: "in_development",
-          deployedComponents: [
-            {
-              id: COMPONENT_VERSION_ID,
-              releaseComponentId: COMPONENT_A_ID,
-              patchId: PATCH_LIST_ID,
-              name: "component-a",
-              increment: 0,
-              createdAt: patchCreatedAt.toISOString(),
-            },
-          ],
-          transitions: [
-            {
-              id: TRANSITION_ID,
-              patchId: PATCH_LIST_ID,
-              fromStatus: "in_development",
-              toStatus: "in_deployment",
-              action: "startDeployment",
-              createdAt: patchCreatedAt.toISOString(),
-              createdById: USER_2_ID,
-            },
-          ],
+          id: COMPONENT_VERSION_ID,
+          releaseComponentId: COMPONENT_A_ID,
+          patchId: PATCH_LIST_ID,
+          name: "component-a",
+          increment: 0,
+          createdAt: patchCreatedAt,
+        },
+      ]);
+      expect(item?.patches?.[0]?.PatchTransition).toEqual([
+        {
+          id: TRANSITION_ID,
+          patchId: PATCH_LIST_ID,
+          fromStatus: "in_development",
+          toStatus: "in_deployment",
+          action: "startDeployment",
+          createdAt: patchCreatedAt,
+          createdById: USER_2_ID,
         },
       ]);
       const findManyCalls = (db.releaseVersion.findMany as jest.Mock).mock
@@ -596,12 +598,12 @@ describe("ReleaseVersion and Patch behavior", () => {
 
       const svc = new ReleaseVersionService(db);
       const base = await svc.getById(REL_MAIN_ID, { relations: [] });
-      expect(base).toEqual({
+      expect(base).toMatchObject({
         id: REL_MAIN_ID,
         name: "Release 300",
         releaseTrack: "Rollout",
-        createdAt: createdAt.toISOString(),
       });
+      expect(base.createdAt).toBeInstanceOf(Date);
 
       const enriched = await svc.getById(REL_MAIN_ID, {
         relations: [
@@ -611,7 +613,7 @@ describe("ReleaseVersion and Patch behavior", () => {
           "patches.transitions",
         ],
       });
-      expect(enriched.creater).toEqual({
+      expect(enriched.createdBy).toEqual({
         id: USER_1_ID,
         name: "Release Owner",
         email: null,
@@ -621,10 +623,10 @@ describe("ReleaseVersion and Patch behavior", () => {
           id: PATCH_LIST_ID,
           name: "Release 300.0",
           versionId: REL_MAIN_ID,
-          createdAt: patchCreatedAt.toISOString(),
+          createdAt: patchCreatedAt,
           currentStatus: "in_development",
-          deployedComponents: [],
-          transitions: [],
+          componentVersions: [],
+          PatchTransition: [],
         },
       ]);
       const findUniqueCalls = (db.releaseVersion.findUnique as jest.Mock).mock
@@ -699,7 +701,8 @@ describe("ReleaseVersion and Patch behavior", () => {
         name: "v100.1",
         versionId,
       });
-      expect(rows[0]?.createdAt).toBe(createdAt.toISOString());
+      expect(rows[0]?.createdAt).toBeInstanceOf(Date);
+      expect(rows[0]?.createdAt.getTime()).toBe(createdAt.getTime());
       expect(rows[0]?.currentStatus).toBe("in_development");
     });
     //TODO: move to PatchService Test Suite

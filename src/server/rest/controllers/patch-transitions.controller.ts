@@ -7,7 +7,10 @@ import {
   PatchIdSchema,
   toPatchDto,
 } from "~/server/zod/dto/patch.dto";
-import { PatchTransitionDtoSchema } from "~/server/zod/dto/patch-transition.dto";
+import {
+  PatchTransitionDtoSchema,
+  mapToPatchTransitionDtos,
+} from "~/server/zod/dto/patch-transition.dto";
 import type { RestContext } from "~/server/rest/context";
 import { ensureAuthenticated } from "~/server/rest/auth";
 import { RestError } from "~/server/rest/errors";
@@ -81,32 +84,12 @@ const performTransition = async (
   action: PatchAction,
 ) => {
   const userId = ensureAuthenticated(context);
-  const patchRecord = await context.db.patch.findUnique({
-    where: { id: params.patchId },
-    select: {
-      id: true,
-      name: true,
-      versionId: true,
-      createdAt: true,
-      currentStatus: true,
-    },
-  });
-  if (!patchRecord) {
-    throw new RestError(404, "NOT_FOUND", "Patch not found", {
-      patchId: params.patchId,
-    });
-  }
-  if (patchRecord.versionId !== params.releaseId) {
-    throw new RestError(
-      404,
-      "NOT_FOUND",
-      "Patch does not belong to the release",
-      {
-        releaseId: params.releaseId,
-        patchId: params.patchId,
-      },
-    );
-  }
+  const statusService = new PatchStatusService(context.db);
+  const historyService = new ActionHistoryService(context.db);
+  const patchRecord = await statusService.requirePatchForRelease(
+    params.patchId,
+    params.releaseId,
+  );
 
   try {
     validator.validate(
@@ -136,8 +119,6 @@ const performTransition = async (
     throw error;
   }
 
-  const statusService = new PatchStatusService(context.db);
-  const historyService = new ActionHistoryService(context.db);
   const actionLog = await historyService.startAction({
     actionType: `patch.transition.${action}`,
     message: `Transition patch ${params.patchId} via ${action}`,
@@ -155,14 +136,7 @@ const performTransition = async (
       },
     );
     const history = await statusService.getHistory(params.patchId);
-    const mappedHistory = history.map((entry) => ({
-      id: entry.id,
-      fromStatus: entry.fromStatus,
-      toStatus: entry.toStatus,
-      action: entry.action,
-      createdAt: entry.createdAt.toISOString(),
-      createdById: entry.createdById,
-    }));
+    const mappedHistory = mapToPatchTransitionDtos(history);
 
     await actionLog.complete("success", {
       message: `Patch ${params.patchId} transitioned to ${result.status}`,

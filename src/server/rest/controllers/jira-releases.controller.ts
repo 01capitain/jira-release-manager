@@ -5,6 +5,7 @@ import { ensureAuthenticated } from "~/server/rest/auth";
 import type { RestContext } from "~/server/rest/context";
 import { RestError } from "~/server/rest/errors";
 import { jsonErrorResponse } from "~/server/rest/openapi";
+import { JiraReleaseStoreService } from "~/server/services/jira-release-store.service";
 import { JiraVersionService } from "~/server/services/jira-version.service";
 
 export const JiraStoredVersionsQuerySchema = z
@@ -21,6 +22,27 @@ export type JiraStoredVersionsQuery = z.infer<
   typeof JiraStoredVersionsQuerySchema
 >;
 
+const JiraReleaseStatusSchema = z.enum([
+  "Released",
+  "Unreleased",
+  "Archived",
+] as const);
+
+export const JiraStoredVersionSchema = z.object({
+  id: z.uuidv7(),
+  jiraId: z.string(),
+  name: z.string(),
+  description: z.string().nullable(),
+  releaseStatus: JiraReleaseStatusSchema,
+  releaseDate: z.string().nullable(),
+  startDate: z.string().nullable(),
+});
+
+export const JiraStoredVersionsResponseSchema = z.object({
+  total: z.number().int(),
+  items: z.array(JiraStoredVersionSchema),
+});
+
 export const listStoredJiraVersions = async (
   context: RestContext,
   query: JiraStoredVersionsQuery,
@@ -34,41 +56,22 @@ export const listStoredJiraVersions = async (
   const page = query?.page ?? 1;
   const pageSize = query?.pageSize ?? 50;
 
-  const jiraVersionModel = context.db.jiraVersion;
-  if (!jiraVersionModel?.findMany) {
-    return { total: 0, items: [] as const };
-  }
-
-  const statusFilters: (
-    | { releaseStatus: "Released" }
-    | { releaseStatus: "Archived" }
-    | { releaseStatus: "Unreleased" }
-  )[] = [];
-  if (includeReleased) statusFilters.push({ releaseStatus: "Released" });
-  if (includeArchived) statusFilters.push({ releaseStatus: "Archived" });
-  if (includeUnreleased) statusFilters.push({ releaseStatus: "Unreleased" });
-
-  const where = statusFilters.length ? { OR: statusFilters } : {};
-
-  const [total, rows] = await Promise.all([
-    jiraVersionModel.count({ where }),
-    jiraVersionModel.findMany({
-      where,
-      orderBy: [{ releaseStatus: "asc" }, { name: "asc" }],
-      skip: (page - 1) * pageSize,
-      take: pageSize,
-      select: {
-        id: true,
-        jiraId: true,
-        name: true,
-        releaseStatus: true,
-        releaseDate: true,
-        startDate: true,
-      },
+  const store = new JiraReleaseStoreService(context.db);
+  const result = await store.listStoredVersions({
+    includeReleased,
+    includeUnreleased,
+    includeArchived,
+    page,
+    pageSize,
+  });
+  const items = result.items.map((row) =>
+    JiraStoredVersionSchema.parse({
+      ...row,
+      releaseDate: row.releaseDate ? row.releaseDate.toISOString() : null,
+      startDate: row.startDate ? row.startDate.toISOString() : null,
     }),
-  ]);
-
-  return { total, items: rows } as const;
+  );
+  return JiraStoredVersionsResponseSchema.parse({ total: result.total, items });
 };
 
 export const JiraSyncVersionsInputSchema = z
@@ -82,23 +85,18 @@ export const JiraSyncVersionsInputSchema = z
 
 export type JiraSyncVersionsInput = z.infer<typeof JiraSyncVersionsInputSchema>;
 
+export const JiraSyncResultSchema = z.object({
+  saved: z.number().int(),
+});
+
 export const syncJiraVersions = async (
   context: RestContext,
   input: JiraSyncVersionsInput,
 ) => {
   const userId = ensureAuthenticated(context);
   const svc = new JiraVersionService();
-  const credentialModel = context.db.jiraCredential;
-  const versionModel = context.db.jiraVersion;
-
-  if (!credentialModel?.findUnique || !versionModel?.upsert) {
-    throw new RestError(412, "PRECONDITION_FAILED", "Database models missing");
-  }
-
-  const cred = await credentialModel.findUnique({
-    where: { userId },
-    select: { email: true, apiToken: true },
-  });
+  const store = new JiraReleaseStoreService(context.db);
+  const cred = await store.getCredentials(userId);
 
   let response;
   try {
@@ -110,10 +108,7 @@ export const syncJiraVersions = async (
       baseUrl: env.JIRA_BASE_URL ?? undefined,
       projectKey: env.JIRA_PROJECT_KEY ?? undefined,
       email: typeof cred?.email === "string" ? cred.email : undefined,
-      apiToken:
-        typeof cred?.apiToken === "string" && cred.apiToken.length > 0
-          ? cred.apiToken
-          : undefined,
+      apiToken: cred?.apiToken ?? undefined,
     });
   } catch (err) {
     const msg =
@@ -125,29 +120,9 @@ export const syncJiraVersions = async (
     throw new RestError(412, "PRECONDITION_FAILED", "Jira not configured");
   }
 
-  const ops = response.items.map((version) =>
-    versionModel.upsert({
-      where: { jiraId: version.id },
-      update: {
-        name: version.name,
-        description: version.description ?? null,
-        releaseStatus: version.releaseStatus,
-        releaseDate: version.releaseDate ? new Date(version.releaseDate) : null,
-        startDate: version.startDate ? new Date(version.startDate) : null,
-      },
-      create: {
-        jiraId: version.id,
-        name: version.name,
-        description: version.description ?? null,
-        releaseStatus: version.releaseStatus,
-        releaseDate: version.releaseDate ? new Date(version.releaseDate) : null,
-        startDate: version.startDate ? new Date(version.startDate) : null,
-      },
-    }),
-  );
-
-  const results = await context.db.$transaction(ops);
-  return { saved: results.length } as const;
+  const versions = response.items;
+  const saved = await store.upsertVersions(versions);
+  return JiraSyncResultSchema.parse({ saved });
 };
 
 export const jiraReleasesPaths = {
@@ -162,6 +137,11 @@ export const jiraReleasesPaths = {
       responses: {
         200: {
           description: "Stored Jira versions",
+          content: {
+            "application/json": {
+              schema: JiraStoredVersionsResponseSchema,
+            },
+          },
         },
         401: jsonErrorResponse("Authentication required"),
       },
@@ -183,6 +163,11 @@ export const jiraReleasesPaths = {
       responses: {
         200: {
           description: "Sync result",
+          content: {
+            "application/json": {
+              schema: JiraSyncResultSchema,
+            },
+          },
         },
         401: jsonErrorResponse("Authentication required"),
         412: jsonErrorResponse("Jira configuration missing"),

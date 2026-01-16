@@ -454,7 +454,9 @@ const parseFlags = (argv) => {
   return { flags, names };
 };
 
-if (process.argv[1] === __filename) {
+const invokedPath = process.argv[1] ? path.resolve(process.argv[1]) : undefined;
+
+if (invokedPath === __filename) {
   const [, , ...rest] = process.argv;
   const { flags, names } = parseFlags(rest);
   const [entityName] = names;
