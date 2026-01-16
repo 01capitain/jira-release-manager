@@ -150,4 +150,69 @@ describe("StartDeploymentWorkflowService", () => {
       }),
     );
   });
+
+  test("logs and exits when patch cannot be found", async () => {
+    const { db } = makeMockDb();
+    db.patch.findUnique = jest.fn(async () => null);
+
+    const service = new StartDeploymentWorkflowService(db);
+    await service.execute({
+      patchId: PATCH_LIST_ID,
+      userId: USER_1_ID,
+      transitionId: "t1",
+      logger: mockLogger,
+    });
+
+    expect(db.patch.create).not.toHaveBeenCalled();
+    expect(db.releaseVersion.update).not.toHaveBeenCalled();
+    expect(mockLogger.subaction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        subactionType: "patch.workflow.startDeployment.missingPatch",
+        metadata: { patchId: PATCH_LIST_ID },
+      }),
+    );
+  });
+
+  test("logs and exits when release version cannot be found", async () => {
+    const { db } = makeMockDb();
+    db.releaseVersion.findUnique = jest.fn(async () => null);
+
+    const service = new StartDeploymentWorkflowService(db);
+    await service.execute({
+      patchId: PATCH_LIST_ID,
+      userId: USER_1_ID,
+      transitionId: "t1",
+      logger: mockLogger,
+    });
+
+    expect(db.patch.create).not.toHaveBeenCalled();
+    expect(db.releaseVersion.update).not.toHaveBeenCalled();
+    expect(mockLogger.subaction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        subactionType: "patch.workflow.startDeployment.missingRelease",
+        metadata: { patchId: PATCH_LIST_ID, releaseId: expect.any(String) },
+      }),
+    );
+  });
+
+  test("bubbles errors if successor creation fails unexpectedly", async () => {
+    const { db } = makeMockDb();
+    const failure = new Error("database offline");
+    db.patch.create = jest.fn(async () => {
+      throw failure;
+    });
+
+    const service = new StartDeploymentWorkflowService(db);
+    await expect(
+      service.execute({
+        patchId: PATCH_LIST_ID,
+        userId: USER_1_ID,
+        transitionId: "t1",
+        logger: mockLogger,
+      }),
+    ).rejects.toThrow("database offline");
+
+    expect(db.releaseVersion.update).not.toHaveBeenCalled();
+    expect(db.patch.update).not.toHaveBeenCalled();
+  });
 });
