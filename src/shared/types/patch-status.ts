@@ -13,6 +13,8 @@ export type PatchStatus =
   | "active"
   | "deprecated";
 
+export const DEFAULT_PATCH_STATUS: PatchStatus = "in_development";
+
 export type PatchAction =
   | "startDeployment"
   | "reactivate"

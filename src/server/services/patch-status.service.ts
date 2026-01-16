@@ -1,6 +1,7 @@
 import type { Prisma, PrismaClient } from "@prisma/client";
 import { RestError } from "~/server/rest/errors";
 import type { PatchAction, PatchStatus } from "~/shared/types/patch-status";
+import { DEFAULT_PATCH_STATUS } from "~/shared/types/patch-status";
 import type {
   ActionLogger,
   SubactionInput,
@@ -21,12 +22,17 @@ type PatchSummary = {
 function toDbPatchAction(action: PatchAction): DbPatchTransitionAction {
   switch (action) {
     case "startDeployment":
+      return "start_deployment";
     case "cancelDeployment":
+      return "cancel_deployment";
     case "markActive":
+      return "mark_active";
     case "revertToDeployment":
+      return "revert_to_deployment";
     case "deprecate":
+      return "deprecate";
     case "reactivate":
-      return action;
+      return "reactivate";
   }
   const _exhaustive: never = action;
   return _exhaustive;
@@ -58,7 +64,7 @@ export class PatchStatusService {
       where: { id: patchId },
       select: { currentStatus: true },
     });
-    return (patch?.currentStatus ?? "in_development") as PatchStatus;
+    return patch?.currentStatus ?? DEFAULT_PATCH_STATUS;
   }
 
   async requirePatchForRelease(
@@ -88,8 +94,7 @@ export class PatchStatusService {
     }
     return {
       ...patchRecord,
-      currentStatus: (patchRecord.currentStatus ??
-        "in_development") as PatchStatus,
+      currentStatus: patchRecord.currentStatus ?? DEFAULT_PATCH_STATUS,
     };
   }
 

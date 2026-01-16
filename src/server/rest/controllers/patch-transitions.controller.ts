@@ -76,12 +76,19 @@ const transitions = [
 }[];
 
 type TransitionParams = z.infer<typeof PatchTransitionParamSchema>;
-const validator = new ValidatePatchTransitionService();
+
+const isInvalidTransitionError = (
+  error: unknown,
+): error is { code: "INVALID_TRANSITION" } =>
+  typeof error === "object" &&
+  error !== null &&
+  (error as { code?: string }).code === "INVALID_TRANSITION";
 
 const performTransition = async (
   context: RestContext,
   params: TransitionParams,
   action: PatchAction,
+  validator: ValidatePatchTransitionService = new ValidatePatchTransitionService(),
 ) => {
   const userId = ensureAuthenticated(context);
   const statusService = new PatchStatusService(context.db);
@@ -97,12 +104,7 @@ const performTransition = async (
       action,
     );
   } catch (error) {
-    if (
-      typeof error === "object" &&
-      error &&
-      "code" in error &&
-      (error as { code?: string }).code === "INVALID_TRANSITION"
-    ) {
+    if (isInvalidTransitionError(error)) {
       throw new RestError(
         400,
         "INVALID_TRANSITION",
