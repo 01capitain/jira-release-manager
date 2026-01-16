@@ -1,3 +1,4 @@
+import type { PrismaClient } from "@prisma/client";
 import { z } from "zod";
 
 import { ensureAuthenticated } from "~/server/rest/auth";
@@ -81,6 +82,23 @@ const transitions = [
 
 type TransitionParams = z.infer<typeof PatchTransitionParamSchema>;
 
+const buildDispatcher = (db: PrismaClient) =>
+  new ActionWorkflowDispatcher({
+    startDeployment: new StartDeploymentWorkflowService(db),
+    cancelDeployment: new NoOpWorkflowService(),
+    markActive: new NoOpWorkflowService(),
+    revertToDeployment: new NoOpWorkflowService(),
+    deprecate: new NoOpWorkflowService(),
+    reactivate: new NoOpWorkflowService(),
+  });
+
+let sharedDispatcher: ActionWorkflowDispatcher | null = null;
+
+const getDispatcher = (db: PrismaClient): ActionWorkflowDispatcher => {
+  sharedDispatcher ??= buildDispatcher(db);
+  return sharedDispatcher;
+};
+
 const performTransition = async (
   context: RestContext,
   params: TransitionParams,
@@ -107,14 +125,7 @@ const performTransition = async (
         logger: actionLog,
       },
     );
-    const dispatcher = new ActionWorkflowDispatcher({
-      startDeployment: new StartDeploymentWorkflowService(context.db),
-      cancelDeployment: new NoOpWorkflowService(),
-      markActive: new NoOpWorkflowService(),
-      revertToDeployment: new NoOpWorkflowService(),
-      deprecate: new NoOpWorkflowService(),
-      reactivate: new NoOpWorkflowService(),
-    });
+    const dispatcher = getDispatcher(context.db);
 
     await dispatcher.dispatch(
       {

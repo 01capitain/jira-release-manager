@@ -73,6 +73,10 @@ const mockLogger: ActionLogger = {
 };
 
 describe("StartDeploymentWorkflowService", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   test("creates successor with higher increment", async () => {
     const { db, calls } = makeMockDb();
     const service = new StartDeploymentWorkflowService(db);
@@ -89,6 +93,7 @@ describe("StartDeploymentWorkflowService", () => {
     expect(successorCalls).toHaveLength(1);
     const succ = successorCalls[0] as any;
     expect(succ.data.name).toBe("version 100.0.1"); // Based on mock release name "version 100.0" and increment 0 -> 1
+    expect(succ.data.increment).toBe(1);
 
     // Release increment updated
     expect(db.releaseVersion.update).toHaveBeenCalledWith(
@@ -99,6 +104,31 @@ describe("StartDeploymentWorkflowService", () => {
 
     // Logger called
     expect(mockLogger.subaction).toHaveBeenCalled();
+  });
+
+  test("logs and exits when unique constraint prevents successor creation", async () => {
+    const { db } = makeMockDb();
+    db.patch.create = jest.fn(async () => {
+      const error = new Error("P2002");
+      (error as { code?: string }).code = "P2002";
+      throw error;
+    });
+
+    const service = new StartDeploymentWorkflowService(db);
+    await service.execute({
+      patchId: PATCH_LIST_ID,
+      userId: USER_1_ID,
+      transitionId: "t1",
+      logger: mockLogger,
+    });
+
+    expect(db.releaseVersion.update).not.toHaveBeenCalled();
+    expect(mockLogger.subaction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        subactionType: "patch.workflow.startDeployment.successorExists",
+        message: "Successor patch already exists, skipping creation",
+      }),
+    );
   });
 
   test("skips creation if newer patch exists", async () => {

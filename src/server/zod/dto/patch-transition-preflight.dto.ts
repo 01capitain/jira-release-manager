@@ -9,34 +9,37 @@ import {
 } from "~/shared/types/patch-status";
 import type { PatchTransitionPreflightDto } from "~/shared/types/patch-transition";
 
-const PatchTransitionActionContextSchema = z.discriminatedUnion("action", [
-  z.object({
-    action: z.literal("startDeployment"),
-    nextPatchName: z.string(),
-    missingComponentSelections: z.number().int().min(0),
-    hasSuccessor: z.boolean(),
-  }),
-  z.object({
-    action: z.literal("cancelDeployment"),
-  }),
-  z.object({
-    action: z.literal("markActive"),
-    readyForProd: z.boolean(),
-    pendingApprovals: z.array(z.string()),
-  }),
-  z.object({
-    action: z.literal("revertToDeployment"),
-    activeSince: IsoTimestampSchema,
-  }),
-  z.object({
-    action: z.literal("deprecate"),
-    consumersImpacted: z.boolean(),
-  }),
-  z.object({
-    action: z.literal("reactivate"),
-    deprecatedSince: IsoTimestampSchema,
-  }),
-]);
+export const PatchTransitionActionContextSchema = z.discriminatedUnion(
+  "action",
+  [
+    z.object({
+      action: z.literal("startDeployment"),
+      nextPatchName: z.string(),
+      missingComponentSelections: z.number().int().min(0),
+      hasSuccessor: z.boolean(),
+    }),
+    z.object({
+      action: z.literal("cancelDeployment"),
+    }),
+    z.object({
+      action: z.literal("markActive"),
+      readyForProd: z.boolean(),
+      pendingApprovals: z.array(z.string()),
+    }),
+    z.object({
+      action: z.literal("revertToDeployment"),
+      activeSince: IsoTimestampSchema,
+    }),
+    z.object({
+      action: z.literal("deprecate"),
+      consumersImpacted: z.boolean(),
+    }),
+    z.object({
+      action: z.literal("reactivate"),
+      deprecatedSince: IsoTimestampSchema,
+    }),
+  ],
+);
 
 export const PatchTransitionPreflightDtoSchema = z
   .object({

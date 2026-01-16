@@ -45,6 +45,11 @@ const makeMockDb = (options: MockOptions = {}) => {
         name: releaseName,
         lastUsedIncrement,
       })),
+      findUniqueOrThrow: jest.fn(async () => ({
+        id: RELEASE_ID,
+        name: releaseName,
+        lastUsedIncrement,
+      })),
     },
     patchTransition: {
       findMany: jest.fn(async () => transitions),

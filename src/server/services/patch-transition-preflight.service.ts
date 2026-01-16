@@ -116,10 +116,16 @@ export class PatchTransitionPreflightService {
   ): Promise<PatchTransitionActionContext | undefined> {
     switch (action) {
       case "startDeployment": {
-        const release = await this.db.releaseVersion.findUnique({
-          where: { id: patch.versionId },
-          select: { name: true, lastUsedIncrement: true },
-        });
+        const release = await this.db.releaseVersion
+          .findUniqueOrThrow({
+            where: { id: patch.versionId },
+            select: { name: true, lastUsedIncrement: true },
+          })
+          .catch(() => {
+            throw new RestError(404, "NOT_FOUND", "Release not found", {
+              releaseId: patch.versionId,
+            });
+          });
         const nextIncrement = (release?.lastUsedIncrement ?? -1) + 1;
         const hasSuccessor =
           (await this.db.patch.findFirst({
@@ -131,7 +137,7 @@ export class PatchTransitionPreflightService {
           })) != null;
         return {
           action,
-          nextPatchName: `${release?.name ?? patch.name}.${nextIncrement}`,
+          nextPatchName: `${release.name}.${nextIncrement}`,
           missingComponentSelections: 0,
           hasSuccessor,
         };

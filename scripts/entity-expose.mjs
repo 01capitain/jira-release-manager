@@ -62,6 +62,13 @@ const writeIfAllowed = async (filePath, content, options) => {
   return { filePath, skipped: false };
 };
 
+const persistJsonOutput = async (result) => {
+  const outputPath = process.env.ENTITY_EXPOSE_OUTPUT;
+  if (!outputPath) return;
+  await ensureDir(path.dirname(outputPath));
+  await writeFile(outputPath, JSON.stringify(result, null, 2), "utf8");
+};
+
 const toWords = (value) =>
   value
     .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
@@ -454,7 +461,18 @@ const parseFlags = (argv) => {
   return { flags, names };
 };
 
-if (process.argv[1] === __filename) {
+const isCliInvocation = process.argv
+  .slice(1)
+  .some((arg) => {
+    if (!arg || arg.startsWith("-")) return false;
+    try {
+      return path.resolve(arg) === __filename;
+    } catch {
+      return false;
+    }
+  });
+
+if (isCliInvocation) {
   const [, , ...rest] = process.argv;
   const { flags, names } = parseFlags(rest);
   const [entityName] = names;
@@ -468,6 +486,7 @@ if (process.argv[1] === __filename) {
   const run = async () => {
     const result = await generateEntity(entityName, flags);
     if (flags.json) {
+      await persistJsonOutput(result);
       console.log(JSON.stringify(result, null, 2));
       return;
     }

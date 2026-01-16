@@ -66,6 +66,11 @@ To add side effects for a specific action (e.g., `markActive`):
     });
     ```
 
+### Successor uniqueness guards
+
+- Each `Patch` now stores a concrete `increment` column that is unique per release (`@@unique([versionId, increment])`). This mirrors `ReleaseVersion.lastUsedIncrement` and makes successor identity enforceable at the database level.
+- The `startDeployment` workflow always writes the computed increment to the successor and tolerates concurrent attempts: unique-constraint errors trigger a `patch.workflow.startDeployment.successorExists` subaction and abort further work so no duplicate successor can be created.
+
 ## Workflow Visualization
 
 The following sequence diagram illustrates the flow from API trigger to workflow execution.
