@@ -13,21 +13,23 @@ export type PatchStatus =
   | "active"
   | "deprecated";
 
+export const DEFAULT_PATCH_STATUS: PatchStatus = "in_development";
+
 export type PatchAction =
   | "startDeployment"
+  | "reactivate"
   | "cancelDeployment"
-  | "markActive"
   | "revertToDeployment"
-  | "deprecate"
-  | "reactivate";
+  | "markActive"
+  | "deprecate";
 
 export const PatchActionSchema = z.enum([
   "startDeployment",
-  "cancelDeployment",
-  "markActive",
-  "revertToDeployment",
-  "deprecate",
   "reactivate",
+  "cancelDeployment",
+  "revertToDeployment",
+  "markActive",
+  "deprecate",
 ] as const);
 
 export const StatusBadgeColor: Record<
@@ -114,14 +116,14 @@ export function labelForAction(a: PatchAction): string {
       return "Start Deployment";
     case "cancelDeployment":
       return "Cancel Deployment";
-    case "markActive":
-      return "Mark Active";
     case "revertToDeployment":
       return "Reopen Deployment";
-    case "deprecate":
-      return "Deprecate";
     case "reactivate":
       return "Reactivate";
+    case "markActive":
+      return "Mark Active";
+    case "deprecate":
+      return "Deprecate";
   }
   const _exhaustive: never = a;
   return _exhaustive;
@@ -148,14 +150,14 @@ export function targetStatusForAction(a: PatchAction): PatchStatus {
       return "in_deployment";
     case "cancelDeployment":
       return "in_development";
-    case "markActive":
-      return "active";
     case "revertToDeployment":
       return "in_deployment";
-    case "deprecate":
-      return "deprecated";
     case "reactivate":
       return "active";
+    case "markActive":
+      return "active";
+    case "deprecate":
+      return "deprecated";
   }
   const _exhaustive: never = a;
   return _exhaustive;

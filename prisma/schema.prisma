@@ -44,6 +44,17 @@ enum PatchAction {
     @@schema("app")
 }
 
+enum PatchTransitionAction {
+    startDeployment
+    reactivate
+    cancelDeployment
+    revertToDeployment
+    markActive
+    deprecate
+
+    @@schema("app")
+}
+
 enum ReleaseTrack {
     Future
     Beta
@@ -221,10 +232,9 @@ model PatchTransition {
     patchId        String             @db.Uuid
     fromStatus     PatchStatus
     toStatus       PatchStatus
-    action         PatchAction
+    action         PatchTransitionAction
 
     createdAt   DateTime @default(now())
-    updatedAt   DateTime @updatedAt
     createdBy   User     @relation(fields: [createdById], references: [id])
     createdById String   @db.Uuid
     transitionWork PatchTransitionWork[]

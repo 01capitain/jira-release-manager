@@ -75,7 +75,7 @@ describe("PatchTransitionPreflightService", () => {
     const transitions = [
       buildTransition({
         id: "018f1a50-0000-7000-8000-00000000ac01",
-        action: "start_deployment",
+        action: "startDeployment",
         fromStatus: "in_development",
         toStatus: "in_deployment",
       }),
@@ -132,7 +132,7 @@ describe("PatchTransitionPreflightService", () => {
     const transitions = [
       buildTransition({
         id: "018f1a50-0000-7000-8000-00000000ac02",
-        action: "mark_active",
+        action: "markActive",
         fromStatus: "in_deployment",
         toStatus: "active",
         createdAt: new Date("2024-02-01T00:00:00Z"),

@@ -1556,11 +1556,11 @@ components:
           type: string
           enum:
             - startDeployment
-            - cancelDeployment
-            - markActive
-            - revertToDeployment
-            - deprecate
             - reactivate
+            - cancelDeployment
+            - revertToDeployment
+            - markActive
+            - deprecate
         createdAt:
           $ref: "#/components/schemas/iso8601Timestamp"
         createdById:
@@ -1652,11 +1652,11 @@ components:
           type: string
           enum:
             - startDeployment
-            - cancelDeployment
-            - markActive
-            - revertToDeployment
-            - deprecate
             - reactivate
+            - cancelDeployment
+            - revertToDeployment
+            - markActive
+            - deprecate
         fromStatus:
           type: string
           enum:

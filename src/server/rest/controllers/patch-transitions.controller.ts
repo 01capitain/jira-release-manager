@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { ensureAuthenticated } from "~/server/rest/auth";
 import type { RestContext } from "~/server/rest/context";
+import { RestError } from "~/server/rest/errors";
 import { jsonErrorResponse } from "~/server/rest/openapi";
 import { ActionHistoryService } from "~/server/services/action-history.service";
 import { PatchStatusService } from "~/server/services/patch-status.service";
@@ -20,10 +21,10 @@ import {
   PatchIdSchema,
   toPatchDto,
 } from "~/server/zod/dto/patch.dto";
-
 import { PatchStatusSchema } from "~/shared/types/patch-status";
 import type { PatchAction } from "~/shared/types/patch-status";
 import { ReleaseVersionIdSchema } from "~/server/zod/dto/release-version.dto";
+import { ValidatePatchTransitionService } from "~/server/services/validate-patch-transition.service";
 
 export const PatchTransitionParamSchema = z.object({
   releaseId: ReleaseVersionIdSchema,
@@ -82,6 +83,12 @@ const transitions = [
 
 type TransitionParams = z.infer<typeof PatchTransitionParamSchema>;
 
+const isInvalidTransitionError = (
+  error: unknown,
+): error is { code: "INVALID_TRANSITION" } =>
+  typeof error === "object" &&
+  error !== null &&
+  (error as { code?: string }).code === "INVALID_TRANSITION";
 const buildDispatcher = (db: PrismaClient) =>
   new ActionWorkflowDispatcher({
     startDeployment: new StartDeploymentWorkflowService(db),
@@ -96,12 +103,39 @@ const performTransition = async (
   context: RestContext,
   params: TransitionParams,
   action: PatchAction,
+  validator: ValidatePatchTransitionService = new ValidatePatchTransitionService(),
 ) => {
   const userId = ensureAuthenticated(context);
-
   const statusService = new PatchStatusService(context.db);
   const historyService = new ActionHistoryService(context.db);
-  await statusService.requirePatchForRelease(params.patchId, params.releaseId);
+  const patchRecord = await statusService.requirePatchForRelease(
+    params.patchId,
+    params.releaseId,
+  );
+
+  try {
+    validator.validate(
+      { id: patchRecord.id, currentStatus: patchRecord.currentStatus },
+      action,
+    );
+  } catch (error) {
+    if (isInvalidTransitionError(error)) {
+      throw new RestError(
+        400,
+        "INVALID_TRANSITION",
+        "Transition not allowed from current status",
+        {
+          patchId: params.patchId,
+          action,
+          ...(typeof error === "object" && error && "details" in error
+            ? (error as { details?: Record<string, unknown> }).details
+            : {}),
+        },
+      );
+    }
+    throw error;
+  }
+
   const actionLog = await historyService.startAction({
     actionType: `patch.transition.${action}`,
     message: `Transition patch ${params.patchId} via ${action}`,
@@ -153,6 +187,20 @@ const performTransition = async (
         error: error instanceof Error ? error.message : String(error),
       },
     });
+    if (isInvalidTransitionError(error)) {
+      throw new RestError(
+        400,
+        "INVALID_TRANSITION",
+        "Transition not allowed from current status",
+        {
+          patchId: params.patchId,
+          action,
+          ...(typeof error === "object" && error && "details" in error
+            ? (error as { details?: Record<string, unknown> }).details
+            : {}),
+        },
+      );
+    }
     throw error;
   }
 };

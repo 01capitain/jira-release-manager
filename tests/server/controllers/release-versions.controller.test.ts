@@ -39,7 +39,7 @@ describe("release-versions controller DTO parsing", () => {
                 patchId,
                 fromStatus: "in_development",
                 toStatus: "in_deployment",
-                action: "start_deployment",
+                action: "startDeployment",
                 createdAt: patchCreatedAt,
                 createdById: userId,
               },
