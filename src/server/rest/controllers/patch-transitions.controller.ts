@@ -92,13 +92,6 @@ const buildDispatcher = (db: PrismaClient) =>
     reactivate: new NoOpWorkflowService(),
   });
 
-let sharedDispatcher: ActionWorkflowDispatcher | null = null;
-
-const getDispatcher = (db: PrismaClient): ActionWorkflowDispatcher => {
-  sharedDispatcher ??= buildDispatcher(db);
-  return sharedDispatcher;
-};
-
 const performTransition = async (
   context: RestContext,
   params: TransitionParams,
@@ -125,7 +118,7 @@ const performTransition = async (
         logger: actionLog,
       },
     );
-    const dispatcher = getDispatcher(context.db);
+    const dispatcher = buildDispatcher(context.db);
 
     await dispatcher.dispatch(
       {
