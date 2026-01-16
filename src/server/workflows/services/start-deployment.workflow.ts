@@ -48,7 +48,10 @@ export class StartDeploymentWorkflowService implements ActionWorkflowService {
         name: successorName,
         version: { connect: { id: release.id } },
         createdBy: { connect: { id: userId } },
-        tokenValues: {},
+        tokenValues: {
+          release_version: release.name,
+          increment: nextPatchIncrement,
+        },
       },
       select: { id: true, name: true },
     });
@@ -62,16 +65,6 @@ export class StartDeploymentWorkflowService implements ActionWorkflowService {
     await this.db.releaseVersion.update({
       where: { id: release.id },
       data: { lastUsedIncrement: nextPatchIncrement },
-    });
-
-    await this.db.patch.update({
-      where: { id: successor.id },
-      data: {
-        tokenValues: {
-          release_version: release.name,
-          increment: nextPatchIncrement,
-        },
-      },
     });
   }
 }
