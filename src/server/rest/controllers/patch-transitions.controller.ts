@@ -187,6 +187,20 @@ const performTransition = async (
         error: error instanceof Error ? error.message : String(error),
       },
     });
+    if (isInvalidTransitionError(error)) {
+      throw new RestError(
+        400,
+        "INVALID_TRANSITION",
+        "Transition not allowed from current status",
+        {
+          patchId: params.patchId,
+          action,
+          ...(typeof error === "object" && error && "details" in error
+            ? (error as { details?: Record<string, unknown> }).details
+            : {}),
+        },
+      );
+    }
     throw error;
   }
 };
