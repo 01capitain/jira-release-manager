@@ -80,7 +80,10 @@ describe("PatchTransitionPreflightService", () => {
         toStatus: "in_deployment",
       }),
     ];
-    const db = makeMockDb({ transitions });
+    const db = makeMockDb({
+      currentStatus: "in_development",
+      transitions,
+    });
     const service = new PatchTransitionPreflightService(db as any);
 
     const result = await service.getPreflight(
