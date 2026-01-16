@@ -79,7 +79,8 @@ const persistJsonOutput = async (result) => {
     );
   }
   const resolved = path.resolve(outputPath);
-  if (!resolved.startsWith(ROOT)) {
+  const relative = path.relative(ROOT, resolved);
+  if (relative === ".." || relative.startsWith("..") || path.isAbsolute(relative)) {
     throw new Error(
       `ENTITY_EXPOSE_OUTPUT must reside within the repo. Received: ${resolved}`,
     );
