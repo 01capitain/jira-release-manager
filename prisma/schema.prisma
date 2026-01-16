@@ -97,6 +97,7 @@ model User {
     PatchTransition        PatchTransition[]
     jiraCredential         JiraCredential?
     actionLogs             ActionLog[]
+    transitionWork         PatchTransitionWork[]
 
     @@schema("app")
 }
@@ -147,6 +148,7 @@ model VerificationToken {
 model Patch {
     id                String             @id @default(dbgenerated("uuidv7()")) @db.Uuid
     name              String
+    increment         Int?
     version           ReleaseVersion     @relation(fields: [versionId], references: [id])
     versionId         String             @db.Uuid
     /// Snapshot of tokens used to generate this patch's name
@@ -159,7 +161,9 @@ model Patch {
     createdBy              User                     @relation(fields: [createdById], references: [id])
     createdById            String                   @db.Uuid
     PatchTransition        PatchTransition[]
+    actionWorkItems        PatchTransitionWork[]
 
+    @@unique([versionId, increment])
     @@index([versionId, createdAt])
     @@index([createdById])
     @@schema("app")
@@ -223,6 +227,7 @@ model PatchTransition {
     updatedAt   DateTime @updatedAt
     createdBy   User     @relation(fields: [createdById], references: [id])
     createdById String   @db.Uuid
+    transitionWork PatchTransitionWork[]
 
     @@index([patchId, createdAt])
     @@schema("app")
@@ -304,5 +309,25 @@ model JiraVersion {
     @@unique([jiraId])
     @@index([releaseStatus])
     @@index([releaseStatus, name])
+    @@schema("app")
+}
+
+model PatchTransitionWork {
+    id           String          @id @default(dbgenerated("uuidv7()")) @db.Uuid
+    patch        Patch           @relation(fields: [patchId], references: [id])
+    patchId      String          @db.Uuid
+    transition   PatchTransition @relation(fields: [transitionId], references: [id])
+    transitionId String          @db.Uuid
+    action       PatchAction
+    payload      Json?
+    processedAt  DateTime?
+    error        String?
+
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @updatedAt
+    createdBy   User     @relation(fields: [createdById], references: [id])
+    createdById String   @db.Uuid
+
+    @@index([patchId])
     @@schema("app")
 }

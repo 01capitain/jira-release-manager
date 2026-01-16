@@ -217,6 +217,7 @@ async function seedReleaseVersions(tx: SeedClient) {
         data: {
           id: patch.id,
           name: patch.name,
+          increment: patch.increment,
           versionId: release.id,
           createdAt: new Date(patch.createdAt),
           createdById: SEED_PLACEHOLDER_USER.id,

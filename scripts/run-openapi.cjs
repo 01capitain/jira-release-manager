@@ -20,27 +20,37 @@ register({
   },
 });
 
+const path = require("path");
 const Module = require("module");
 const originalResolveFilename = Module._resolveFilename;
 
+const stubOverrides = new Map([
+  ["zod", { target: "zod/v4", passthrough: true }],
+  ["~/env", { target: path.join(__dirname, "openapi-stubs/env") }],
+  ["@prisma/client", { target: path.join(__dirname, "openapi-stubs/prisma-client.ts") }],
+  ["@prisma/client/index.js", { target: path.join(__dirname, "openapi-stubs/prisma-client.ts") }],
+  [".prisma/client/default", { target: path.join(__dirname, "openapi-stubs/prisma-client.ts") }],
+  [".prisma/client/index.js", { target: path.join(__dirname, "openapi-stubs/prisma-client.ts") }],
+]);
+
 Module._resolveFilename = function resolve(request, parent, isMain, options) {
-  if (request === "zod") {
-    return originalResolveFilename("zod/v4", parent, isMain, options);
-  }
-  Module._resolveFilename = function resolve(request, parent, isMain, options) {
-    if (request === "zod") {
-      return originalResolveFilename("zod/v4", parent, isMain, options);
-    }
-    if (request === "~/env") {
+  const overrideTarget = stubOverrides.get(request);
+  if (overrideTarget) {
+    if (overrideTarget.passthrough) {
       return originalResolveFilename(
-        "scripts/openapi-stubs/env",
+        overrideTarget.target,
         parent,
         isMain,
         options,
       );
     }
-    return originalResolveFilename(request, parent, isMain, options);
-  };
+    return originalResolveFilename(
+      overrideTarget.target,
+      parent,
+      isMain,
+      options,
+    );
+  }
   return originalResolveFilename(request, parent, isMain, options);
 };
 

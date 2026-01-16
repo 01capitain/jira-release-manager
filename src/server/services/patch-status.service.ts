@@ -1,13 +1,13 @@
 import type { PrismaClient } from "@prisma/client";
 import { RestError } from "~/server/rest/errors";
 import type {
-  PatchAction as ApiAction,
-  PatchStatus,
-} from "~/shared/types/patch-status";
-import type {
   ActionLogger,
   SubactionInput,
 } from "~/server/services/action-history.service";
+import type {
+  PatchAction as ApiAction,
+  PatchStatus,
+} from "~/shared/types/patch-status";
 
 // Local copies of DB enum shapes to avoid Prisma type dependency during lint/type analysis
 type DbPatchAction =
@@ -18,11 +18,10 @@ type DbPatchAction =
   | "deprecate"
   | "reactivate";
 
-type DbPatchStatus =
-  | "in_development"
-  | "in_deployment"
-  | "active"
-  | "deprecated";
+type TransitionRule = {
+  from: PatchStatus;
+  to: PatchStatus;
+};
 
 // Map API action (camelCase) to DB enum (snake_case)
 const ActionToPrisma: Record<ApiAction, DbPatchAction> = {
@@ -32,11 +31,6 @@ const ActionToPrisma: Record<ApiAction, DbPatchAction> = {
   revertToDeployment: "revert_to_deployment",
   deprecate: "deprecate",
   reactivate: "reactivate",
-};
-
-type TransitionRule = {
-  from: DbPatchStatus;
-  to: DbPatchStatus;
 };
 
 const Rules = {
@@ -53,11 +47,51 @@ type PatchSummary = {
   name: string;
   versionId: string;
   createdAt: Date;
-  currentStatus: DbPatchStatus;
+  currentStatus: PatchStatus;
 };
 
 export class PatchStatusService {
   constructor(private readonly db: PrismaClient) {}
+
+  getTransitionRule(action: ApiAction): TransitionRule {
+    const prismaAction = ActionToPrisma[action];
+    const rule = Rules[prismaAction];
+    if (!rule) {
+      throw new Error(`Unsupported action: ${action}`);
+    }
+    return {
+      from: rule.from,
+      to: rule.to,
+    };
+  }
+
+  validateTransition(
+    currentStatus: PatchStatus,
+    action: ApiAction,
+  ): {
+    allowed: boolean;
+    blockers: string[];
+    warnings: string[];
+    targetStatus: PatchStatus;
+  } {
+    const rule = this.getTransitionRule(action);
+    if (currentStatus !== rule.from) {
+      return {
+        allowed: false,
+        blockers: [
+          `Patch is currently ${currentStatus}; expected ${rule.from} for ${action}`,
+        ],
+        warnings: [],
+        targetStatus: rule.to,
+      };
+    }
+    return {
+      allowed: true,
+      blockers: [],
+      warnings: [],
+      targetStatus: rule.to,
+    };
+  }
 
   async getHistory(patchId: string) {
     return this.db.patchTransition.findMany({
@@ -65,6 +99,7 @@ export class PatchStatusService {
       orderBy: { createdAt: "asc" },
       select: {
         id: true,
+        patchId: true,
         fromStatus: true,
         toStatus: true,
         action: true,
@@ -118,12 +153,11 @@ export class PatchStatusService {
   ): Promise<{
     status: PatchStatus;
     patch: PatchSummary;
+    transitionId: string;
   }> {
     const prismaAction = ActionToPrisma[action];
     const rule = Rules[prismaAction];
-    if (!rule) {
-      throw new Error(`Unsupported action: ${action}`);
-    }
+    const targetRule = this.getTransitionRule(action);
 
     const auditTrail: SubactionInput[] = [];
 
@@ -145,9 +179,11 @@ export class PatchStatusService {
         metadata: { patchId, action: prismaAction },
       });
 
-      const currentStatus = patchRecord.currentStatus ?? "in_development";
+      const currentStatus = (patchRecord.currentStatus ??
+        "in_development") as PatchStatus;
+      const validation = this.validateTransition(currentStatus, action);
 
-      if (currentStatus !== rule.from) {
+      if (!validation.allowed) {
         // Provide a precise error for clients
         throw Object.assign(
           new Error(
@@ -155,12 +191,16 @@ export class PatchStatusService {
           ),
           {
             code: "INVALID_TRANSITION",
-            details: { from: currentStatus, expected: rule.from, action },
+            details: {
+              from: currentStatus,
+              expected: rule.from,
+              action,
+            },
           },
         );
       }
 
-      await tx.patchTransition.create({
+      const transitionRecord = await tx.patchTransition.create({
         data: {
           patchId,
           fromStatus: rule.from,
@@ -175,70 +215,15 @@ export class PatchStatusService {
         metadata: { from: rule.from, to: rule.to, patchId },
       });
 
-      // Hook: onEnter. Intentionally placed after write.
-      // When entering a new status, perform side effects.
-      const onEnter = async (s: DbPatchStatus) => {
-        // When a patch moves to in_deployment, auto-create a successor
-        if (s !== "in_deployment") return;
-        // Fetch the patch to obtain its release version
-        const current = await tx.patch.findUnique({
-          where: { id: patchId },
-          select: { id: true, name: true, versionId: true, createdAt: true },
-        });
-        if (!current) return;
-        // Get release version for naming + increment tracking
-        const release = await tx.releaseVersion.findUnique({
-          where: { id: current.versionId },
-          select: { id: true, name: true, lastUsedIncrement: true },
-        });
-        if (!release) return;
-        // If there is already a newer patch for this release, do NOT create a successor
-        const newer = await tx.patch.findFirst({
-          where: {
-            versionId: current.versionId,
-            createdAt: { gt: current.createdAt },
-          },
-          select: { id: true },
-        });
-        if (newer) return;
-        const nextPatchIncrement = (release.lastUsedIncrement ?? -1) + 1;
-        const successorName = `${release.name}.${nextPatchIncrement}`;
-        // Create successor Patch with token snapshot
-        const successor = await tx.patch.create({
-          data: {
-            name: successorName,
-            version: { connect: { id: release.id } },
-            createdBy: { connect: { id: userId } },
-            // tokenValues: store tokens actually used for this patch name
-            tokenValues: {},
-          },
-          select: { id: true, name: true },
-        });
-        auditTrail.push({
-          subactionType: "patch.successor.create",
-          message: `Auto-created successor ${successor.name}`,
-          metadata: { successorId: successor.id, releaseId: release.id },
-        });
-        // Update last used increment on the release
-        await tx.releaseVersion.update({
-          where: { id: release.id },
-          data: { lastUsedIncrement: nextPatchIncrement },
-        });
-        // Persist token snapshot now that we have final values
-        await tx.patch.update({
-          where: { id: successor.id },
-          data: {
-            tokenValues: {
-              release_version: release.name,
-              increment: nextPatchIncrement,
-            },
-          },
-        });
-        // Do not pre-create ComponentVersions for the successor here.
-        // ComponentVersions will now be created/moved during deployment finalization
-        // based on user-selected components (see DeploymentService).
-      };
-      await onEnter(rule.to);
+      // Create work item for async/sync processing
+      await tx.patchTransitionWork.create({
+        data: {
+          patchId,
+          transitionId: transitionRecord.id,
+          action: prismaAction,
+          createdById: userId,
+        },
+      });
 
       await tx.patch.update({
         where: { id: patchId },
@@ -257,8 +242,9 @@ export class PatchStatusService {
       });
 
       return {
-        status: rule.to as PatchStatus,
+        status: targetRule.to,
         patch,
+        transitionId: transitionRecord.id,
       };
     });
 

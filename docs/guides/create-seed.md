@@ -50,3 +50,4 @@ Update `scripts/dev-db-reset.mjs` to call `pnpm run db:seed` only when invoked w
 
 - If Docker bootstrap (`./start-database.sh`) needs the same dataset, run `pnpm run db:seed` right after the container starts instead of duplicating logic in SQL.
 - Keep large fixture fragments (e.g. component matrices) in separate helper files imported by the seed script to simplify future edits.
+- The `scripts/entity-expose.mjs` scaffolder can emit a dry-run JSON report for fixtures/tests by setting `ENTITY_EXPOSE_OUTPUT=/path/inside/repo` and `ENTITY_EXPOSE_OUTPUT_ALLOW=true`. Set `NODE_ENV=test` when running inside CI to avoid warnings. See the script header for usage—the guard prevents accidental writes outside the workspace.

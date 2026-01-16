@@ -1,19 +1,26 @@
+import type { PrismaClient } from "@prisma/client";
 import { z } from "zod";
 
+import { ensureAuthenticated } from "~/server/rest/auth";
+import type { RestContext } from "~/server/rest/context";
+import { jsonErrorResponse } from "~/server/rest/openapi";
 import { ActionHistoryService } from "~/server/services/action-history.service";
 import { PatchStatusService } from "~/server/services/patch-status.service";
+import { PatchTransitionPreflightService } from "~/server/services/patch-transition-preflight.service";
+import { ActionWorkflowDispatcher } from "~/server/workflows/patch-transition.dispatcher";
+import { NoOpWorkflowService } from "~/server/workflows/services/noop.workflow";
+import { StartDeploymentWorkflowService } from "~/server/workflows/services/start-deployment.workflow";
+import { PatchTransitionPreflightDtoSchema } from "~/server/zod/dto/patch-transition-preflight.dto";
+import {
+  PatchTransitionDtoSchema,
+  mapToPatchTransitionDtos,
+} from "~/server/zod/dto/patch-transition.dto";
 import {
   PatchDtoSchema,
   PatchIdSchema,
   toPatchDto,
 } from "~/server/zod/dto/patch.dto";
-import {
-  PatchTransitionDtoSchema,
-  mapToPatchTransitionDtos,
-} from "~/server/zod/dto/patch-transition.dto";
-import type { RestContext } from "~/server/rest/context";
-import { ensureAuthenticated } from "~/server/rest/auth";
-import { jsonErrorResponse } from "~/server/rest/openapi";
+
 import { PatchStatusSchema } from "~/shared/types/patch-status";
 import type { PatchAction } from "~/shared/types/patch-status";
 import { ReleaseVersionIdSchema } from "~/server/zod/dto/release-version.dto";
@@ -75,6 +82,16 @@ const transitions = [
 
 type TransitionParams = z.infer<typeof PatchTransitionParamSchema>;
 
+const buildDispatcher = (db: PrismaClient) =>
+  new ActionWorkflowDispatcher({
+    startDeployment: new StartDeploymentWorkflowService(db),
+    cancelDeployment: new NoOpWorkflowService(),
+    markActive: new NoOpWorkflowService(),
+    revertToDeployment: new NoOpWorkflowService(),
+    deprecate: new NoOpWorkflowService(),
+    reactivate: new NoOpWorkflowService(),
+  });
+
 const performTransition = async (
   context: RestContext,
   params: TransitionParams,
@@ -100,6 +117,17 @@ const performTransition = async (
       {
         logger: actionLog,
       },
+    );
+    const dispatcher = buildDispatcher(context.db);
+
+    await dispatcher.dispatch(
+      {
+        patchId: params.patchId,
+        userId,
+        transitionId: result.transitionId,
+        action,
+      },
+      actionLog,
     );
     const history = await statusService.getHistory(params.patchId);
     const mappedHistory = mapToPatchTransitionDtos(history);
@@ -159,7 +187,67 @@ export const reactivatePatch = (
   params: TransitionParams,
 ) => performTransition(context, params, "reactivate");
 
+const performPreflight = async (
+  context: RestContext,
+  params: TransitionParams,
+  action: PatchAction,
+) => {
+  ensureAuthenticated(context);
+  const preflight = new PatchTransitionPreflightService(context.db);
+  return preflight.getPreflight(params.releaseId, params.patchId, action);
+};
+
+export const startDeploymentPreflight = (
+  context: RestContext,
+  params: TransitionParams,
+) => performPreflight(context, params, "startDeployment");
+
+export const cancelDeploymentPreflight = (
+  context: RestContext,
+  params: TransitionParams,
+) => performPreflight(context, params, "cancelDeployment");
+
+export const markActivePreflight = (
+  context: RestContext,
+  params: TransitionParams,
+) => performPreflight(context, params, "markActive");
+
+export const revertToDeploymentPreflight = (
+  context: RestContext,
+  params: TransitionParams,
+) => performPreflight(context, params, "revertToDeployment");
+
+export const deprecatePreflight = (
+  context: RestContext,
+  params: TransitionParams,
+) => performPreflight(context, params, "deprecate");
+
+export const reactivatePreflight = (
+  context: RestContext,
+  params: TransitionParams,
+) => performPreflight(context, params, "reactivate");
+
 const createPathItem = (action: PatchAction, summary: string) => ({
+  get: {
+    operationId: `${action}PatchPreflight`,
+    summary: `${summary} patch (preflight)`,
+    tags: ["Release Versions"],
+    requestParams: {
+      path: PatchTransitionParamSchema,
+    },
+    responses: {
+      200: {
+        description: "Preflight result",
+        content: {
+          "application/json": {
+            schema: PatchTransitionPreflightDtoSchema,
+          },
+        },
+      },
+      401: jsonErrorResponse("Authentication required"),
+      404: jsonErrorResponse("Patch not found"),
+    },
+  },
   post: {
     operationId: `${action}Patch`,
     summary: `${summary} patch`,

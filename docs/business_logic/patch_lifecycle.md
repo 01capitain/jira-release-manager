@@ -46,4 +46,9 @@ stateDiagram-v2
 - `PatchStatusService` enforces both the from/to states and any side effects (e.g., successor creation on *Start Deployment*).
 - The UI (e.g., `PatchCard`) surfaces the transition names shown in the table so operators see consistent wording.
 
+## Preflight & Workflow Visibility
+
+- Each transition endpoint exposes a GET preflight on the same path to surface `allowed`, `blockers`, `expectedSideEffects`, and action-specific context before POSTing.
+- Transition POST calls log workflow substeps to `ActionHistory` using `patch.workflow.<action>` entries so operators can see the expected follow-up work per action.
+
 Refer back to this document whenever a new status or transition is proposed; any addition must be reflected in both the table and the state diagram.
