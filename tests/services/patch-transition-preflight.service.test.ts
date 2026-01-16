@@ -67,15 +67,7 @@ const buildTransition = (input: {
 
 describe("PatchTransitionPreflightService", () => {
   test("returns allowed preflight with action context for startDeployment", async () => {
-    const transitions = [
-      buildTransition({
-        id: "018f1a50-0000-7000-8000-00000000ac01",
-        action: "start_deployment",
-        fromStatus: "in_development",
-        toStatus: "in_deployment",
-      }),
-    ];
-    const db = makeMockDb({ transitions });
+    const db = makeMockDb({ currentStatus: "in_development", transitions: [] });
     const service = new PatchTransitionPreflightService(db as any);
 
     const result = await service.getPreflight(
