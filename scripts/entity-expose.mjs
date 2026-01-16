@@ -64,9 +64,28 @@ const writeIfAllowed = async (filePath, content, options) => {
 
 const persistJsonOutput = async (result) => {
   const outputPath = process.env.ENTITY_EXPOSE_OUTPUT;
+  const allowFlag = process.env.ENTITY_EXPOSE_OUTPUT_ALLOW;
+  const nodeEnv = process.env.NODE_ENV ?? "development";
   if (!outputPath) return;
-  await ensureDir(path.dirname(outputPath));
-  await writeFile(outputPath, JSON.stringify(result, null, 2), "utf8");
+  if (allowFlag !== "true") {
+    console.warn(
+      "ENTITY_EXPOSE_OUTPUT is set but ENTITY_EXPOSE_OUTPUT_ALLOW!=true; skipping JSON write. See docs/guides/create-seed.md for usage.",
+    );
+    return;
+  }
+  if (nodeEnv !== "test") {
+    console.warn(
+      `ENTITY_EXPOSE_OUTPUT_ALLOW is enabled while NODE_ENV=${nodeEnv}; ensure this is intentional.`,
+    );
+  }
+  const resolved = path.resolve(outputPath);
+  if (!resolved.startsWith(ROOT)) {
+    throw new Error(
+      `ENTITY_EXPOSE_OUTPUT must reside within the repo. Received: ${resolved}`,
+    );
+  }
+  await ensureDir(path.dirname(resolved));
+  await writeFile(resolved, JSON.stringify(result, null, 2), "utf8");
 };
 
 const toWords = (value) =>

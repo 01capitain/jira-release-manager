@@ -1,9 +1,8 @@
 "use strict";
 
 import { execFile } from "node:child_process";
-import { mkdtempSync } from "node:fs";
+import { existsSync, mkdtempSync, mkdirSync } from "node:fs";
 import { readFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
 
@@ -13,7 +12,11 @@ const PROJECT_ROOT = process.cwd();
 const SCRIPT_PATH = path.join(PROJECT_ROOT, "scripts", "entity-expose.mjs");
 
 const createOutputPath = () => {
-  const dir = mkdtempSync(path.join(tmpdir(), "entity-expose-"));
+  const baseDir = path.join(PROJECT_ROOT, ".entity-expose-output");
+  if (!existsSync(baseDir)) {
+    mkdirSync(baseDir, { recursive: true });
+  }
+  const dir = mkdtempSync(path.join(baseDir, "run-"));
   return path.join(dir, "report.json");
 };
 
@@ -28,7 +31,9 @@ describe("entity-expose scaffolder", () => {
         cwd: PROJECT_ROOT,
         env: {
           ...process.env,
+          NODE_ENV: "test",
           ENTITY_EXPOSE_OUTPUT: outputPath,
+          ENTITY_EXPOSE_OUTPUT_ALLOW: "true",
         },
       },
     );
@@ -71,7 +76,9 @@ describe("entity-expose scaffolder", () => {
         cwd: PROJECT_ROOT,
         env: {
           ...process.env,
+          NODE_ENV: "test",
           ENTITY_EXPOSE_OUTPUT: outputPath,
+          ENTITY_EXPOSE_OUTPUT_ALLOW: "true",
         },
       }),
     ).rejects.toThrow();

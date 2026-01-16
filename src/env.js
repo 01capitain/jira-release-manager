@@ -26,6 +26,7 @@ const serverSchema = {
   OTEL_DEBUG: z.enum(["true", "false"]).optional(),
   GRAFANA_ADMIN_USER: z.string().optional(),
   GRAFANA_ADMIN_PASSWORD: z.string().optional(),
+  ENTITY_EXPOSE_OUTPUT_ALLOW: z.enum(["true", "false"]).optional(),
 };
 
 const clientSchema = {
@@ -80,6 +81,7 @@ const runtimeEnv = {
   OTEL_EXPORTER_OTLP_ENDPOINT: process.env.OTEL_EXPORTER_OTLP_ENDPOINT,
   OTEL_SERVICE_NAME: process.env.OTEL_SERVICE_NAME,
   OTEL_DEBUG: process.env.OTEL_DEBUG,
+  ENTITY_EXPOSE_OUTPUT_ALLOW: process.env.ENTITY_EXPOSE_OUTPUT_ALLOW,
   NEXT_PUBLIC_OTEL_EXPORTER_OTLP_TRACES_ENDPOINT:
     process.env.NEXT_PUBLIC_OTEL_EXPORTER_OTLP_TRACES_ENDPOINT,
   NEXT_PUBLIC_OTEL_EXPORTER_OTLP_METRICS_ENDPOINT:
