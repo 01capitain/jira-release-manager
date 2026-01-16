@@ -66,12 +66,23 @@ function makeMockDb() {
     patch: patchDelegate,
   };
 
-  db.$transaction = jest.fn(async (callback: any) =>
-    callback({
-      patch: patchDelegate,
-      releaseVersion,
-    }),
-  );
+  db.$transaction = jest.fn(async (callback: any) => {
+    const callsSnapshot = Object.fromEntries(
+      Object.entries(calls).map(([key, value]) => [key, [...value]]),
+    );
+    const patchAutoIncSnapshot = patchAutoInc;
+    try {
+      return await callback({
+        patch: patchDelegate,
+        releaseVersion,
+      });
+    } catch (error) {
+      Object.keys(calls).forEach((key) => delete calls[key]);
+      Object.assign(calls, callsSnapshot);
+      patchAutoInc = patchAutoIncSnapshot;
+      throw error;
+    }
+  });
 
   return { db, calls } as const;
 }
