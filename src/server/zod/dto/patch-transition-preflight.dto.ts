@@ -7,7 +7,6 @@ import {
   PatchActionSchema,
   PatchStatusSchema,
 } from "~/shared/types/patch-status";
-import type { PatchTransitionPreflightDto } from "~/shared/types/patch-transition";
 
 export const PatchTransitionActionContextSchema = z.discriminatedUnion(
   "action",
@@ -66,8 +65,12 @@ export const PatchTransitionPreflightDtoSchema = z
       "Preflight result describing whether a transition is allowed and why.",
   });
 
+type InferredPatchTransitionPreflightDto = z.infer<
+  typeof PatchTransitionPreflightDtoSchema
+>;
+
 export function toPatchTransitionPreflightDto(
   input: unknown,
-): PatchTransitionPreflightDto {
+): InferredPatchTransitionPreflightDto {
   return PatchTransitionPreflightDtoSchema.parse(input);
 }

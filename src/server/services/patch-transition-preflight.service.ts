@@ -1,4 +1,4 @@
-import type { PrismaClient } from "@prisma/client";
+import { Prisma, type PrismaClient } from "@prisma/client";
 
 import { RestError } from "~/server/rest/errors";
 import { PatchStatusService } from "~/server/services/patch-status.service";
@@ -121,10 +121,16 @@ export class PatchTransitionPreflightService {
             where: { id: patch.versionId },
             select: { name: true, lastUsedIncrement: true },
           })
-          .catch(() => {
-            throw new RestError(404, "NOT_FOUND", "Release not found", {
-              releaseId: patch.versionId,
-            });
+          .catch((error: unknown) => {
+            if (
+              error instanceof Prisma.PrismaClientKnownRequestError &&
+              error.code === "P2025"
+            ) {
+              throw new RestError(404, "NOT_FOUND", "Release not found", {
+                releaseId: patch.versionId,
+              });
+            }
+            throw error;
           });
         const nextIncrement = (release?.lastUsedIncrement ?? -1) + 1;
         const hasSuccessor =

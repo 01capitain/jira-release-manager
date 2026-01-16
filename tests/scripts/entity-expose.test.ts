@@ -2,7 +2,7 @@
 
 import { execFile } from "node:child_process";
 import { existsSync, mkdtempSync, mkdirSync } from "node:fs";
-import { readFile } from "node:fs/promises";
+import { readFile, rm } from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
 
@@ -10,17 +10,21 @@ const execFileAsync = promisify(execFile);
 
 const PROJECT_ROOT = process.cwd();
 const SCRIPT_PATH = path.join(PROJECT_ROOT, "scripts", "entity-expose.mjs");
+const OUTPUT_BASE_DIR = path.join(PROJECT_ROOT, ".entity-expose-output");
 
 const createOutputPath = () => {
-  const baseDir = path.join(PROJECT_ROOT, ".entity-expose-output");
-  if (!existsSync(baseDir)) {
-    mkdirSync(baseDir, { recursive: true });
+  if (!existsSync(OUTPUT_BASE_DIR)) {
+    mkdirSync(OUTPUT_BASE_DIR, { recursive: true });
   }
-  const dir = mkdtempSync(path.join(baseDir, "run-"));
+  const dir = mkdtempSync(path.join(OUTPUT_BASE_DIR, "run-"));
   return path.join(dir, "report.json");
 };
 
 describe("entity-expose scaffolder", () => {
+  afterAll(async () => {
+    await rm(OUTPUT_BASE_DIR, { recursive: true, force: true });
+  });
+
   it("produces a dry-run report with all expected files", async () => {
     const outputPath = createOutputPath();
     const entityName = "demo-widget";
