@@ -320,7 +320,6 @@ model PatchTransitionWork {
     transitionId String          @db.Uuid
     action       PatchAction
     payload      Json?
-    processingState ProcessingState @default(queued)
     processedAt  DateTime?
     error        String?
 
@@ -330,15 +329,5 @@ model PatchTransitionWork {
     createdById String   @db.Uuid
 
     @@index([patchId])
-    @@index([processingState])
-    @@schema("app")
-}
-
-enum ProcessingState {
-    queued
-    pending
-    successful
-    error
-
     @@schema("app")
 }
