@@ -23,45 +23,55 @@ function makeMockDb() {
     return `00000000-0000-7000-8000-${hex}`;
   };
 
-  const db: any = {
-    releaseVersion: {
-      update: jest.fn(async (args: any) => {
-        record("releaseVersion.update", args);
-        return { id: args.where.id };
-      }),
-      findUnique: jest.fn(async (args: any = {}) => ({
-        id: args?.where?.id ?? REL_ID,
-        name: "version 100.0",
-        versionId: REL_ID,
-        createdAt: new Date(),
-        lastUsedIncrement: 0,
-      })),
-    },
-    patch: {
-      create: jest.fn(async (args: any) => {
-        record("patch.create", args);
-        const id = makeUuid(++patchAutoInc);
-        return {
-          id,
-          name: args.data.name,
-          versionId: args.data.version?.connect?.id ?? REL_ID,
-          currentStatus: "in_development",
-          createdAt: new Date(),
-        };
-      }),
-      update: jest.fn(async (args: any) => {
-        record("patch.update", args);
-        return { id: args.where.id, ...args.data };
-      }),
-      findUnique: jest.fn(async (args: any) => ({
-        id: args.where.id,
-        name: "version 300.0",
-        versionId: REL_ID,
-        createdAt: new Date("2024-01-01T00:00:00Z"),
-      })),
-      findFirst: jest.fn(),
-    },
+  const releaseVersion = {
+    update: jest.fn(async (args: any) => {
+      record("releaseVersion.update", args);
+      return { id: args.where.id };
+    }),
+    findUnique: jest.fn(async (args: any = {}) => ({
+      id: args?.where?.id ?? REL_ID,
+      name: "version 100.0",
+      versionId: REL_ID,
+      createdAt: new Date(),
+      lastUsedIncrement: 0,
+    })),
   };
+  const patchDelegate = {
+    create: jest.fn(async (args: any) => {
+      record("patch.create", args);
+      const id = makeUuid(++patchAutoInc);
+      return {
+        id,
+        name: args.data.name,
+        versionId: args.data.version?.connect?.id ?? REL_ID,
+        currentStatus: "in_development",
+        createdAt: new Date(),
+      };
+    }),
+    update: jest.fn(async (args: any) => {
+      record("patch.update", args);
+      return { id: args.where.id, ...args.data };
+    }),
+    findUnique: jest.fn(async (args: any) => ({
+      id: args.where.id,
+      name: "version 300.0",
+      versionId: REL_ID,
+      createdAt: new Date("2024-01-01T00:00:00Z"),
+    })),
+    findFirst: jest.fn(),
+  };
+
+  const db: any = {
+    releaseVersion,
+    patch: patchDelegate,
+  };
+
+  db.$transaction = jest.fn(async (callback: any) =>
+    callback({
+      patch: patchDelegate,
+      releaseVersion,
+    }),
+  );
 
   return { db, calls } as const;
 }
@@ -214,5 +224,29 @@ describe("StartDeploymentWorkflowService", () => {
 
     expect(db.releaseVersion.update).not.toHaveBeenCalled();
     expect(db.patch.update).not.toHaveBeenCalled();
+  });
+
+  test("rolls back when release increment update fails", async () => {
+    const { db } = makeMockDb();
+    db.releaseVersion.update = jest.fn(async () => {
+      throw new Error("increment update failed");
+    });
+
+    const service = new StartDeploymentWorkflowService(db);
+    await expect(
+      service.execute({
+        patchId: PATCH_LIST_ID,
+        userId: USER_1_ID,
+        transitionId: "t1",
+        logger: mockLogger,
+      }),
+    ).rejects.toThrow("increment update failed");
+
+    expect(db.patch.update).not.toHaveBeenCalled();
+    expect(mockLogger.subaction).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        subactionType: "patch.successor.create",
+      }),
+    );
   });
 });

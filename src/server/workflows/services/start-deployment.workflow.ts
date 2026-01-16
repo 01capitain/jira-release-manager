@@ -75,16 +75,32 @@ export class StartDeploymentWorkflowService implements ActionWorkflowService {
     const nextPatchIncrement = (release.lastUsedIncrement ?? -1) + 1;
     const successorName = `${release.name}.${nextPatchIncrement}`;
 
-    const successor = await this.db.patch
-      .create({
-        data: {
-          name: successorName,
-          increment: nextPatchIncrement,
-          version: { connect: { id: release.id } },
-          createdBy: { connect: { id: userId } },
-          tokenValues: {},
-        },
-        select: { id: true, name: true },
+    const successor = await this.db
+      .$transaction(async (tx) => {
+        const created = await tx.patch.create({
+          data: {
+            name: successorName,
+            increment: nextPatchIncrement,
+            version: { connect: { id: release.id } },
+            createdBy: { connect: { id: userId } },
+            tokenValues: {},
+          },
+          select: { id: true, name: true },
+        });
+        await tx.releaseVersion.update({
+          where: { id: release.id },
+          data: { lastUsedIncrement: nextPatchIncrement },
+        });
+        await tx.patch.update({
+          where: { id: created.id },
+          data: {
+            tokenValues: {
+              release_version: release.name,
+              increment: nextPatchIncrement,
+            },
+          },
+        });
+        return created;
       })
       .catch(async (error: unknown) => {
         if (isUniqueConstraintError(error)) {
@@ -106,21 +122,6 @@ export class StartDeploymentWorkflowService implements ActionWorkflowService {
       subactionType: "patch.successor.create",
       message: `Auto-created successor ${successor.name}`,
       metadata: { successorId: successor.id, releaseId: release.id },
-    });
-
-    await this.db.releaseVersion.update({
-      where: { id: release.id },
-      data: { lastUsedIncrement: nextPatchIncrement },
-    });
-
-    await this.db.patch.update({
-      where: { id: successor.id },
-      data: {
-        tokenValues: {
-          release_version: release.name,
-          increment: nextPatchIncrement,
-        },
-      },
     });
   }
 }
