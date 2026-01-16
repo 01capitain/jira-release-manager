@@ -47,3 +47,6 @@ yarn-error.log*
 
 # obsidian
 docs/.obsidian
+
+# test output
+.entity-expose-output

@@ -62,6 +62,33 @@ const writeIfAllowed = async (filePath, content, options) => {
   return { filePath, skipped: false };
 };
 
+const persistJsonOutput = async (result) => {
+  const outputPath = process.env.ENTITY_EXPOSE_OUTPUT;
+  const allowFlag = process.env.ENTITY_EXPOSE_OUTPUT_ALLOW;
+  const nodeEnv = process.env.NODE_ENV ?? "development";
+  if (!outputPath) return;
+  if (allowFlag !== "true") {
+    console.warn(
+      "ENTITY_EXPOSE_OUTPUT is set but ENTITY_EXPOSE_OUTPUT_ALLOW!=true; skipping JSON write. See docs/guides/create-seed.md for usage.",
+    );
+    return;
+  }
+  if (nodeEnv !== "test") {
+    console.warn(
+      `ENTITY_EXPOSE_OUTPUT_ALLOW is enabled while NODE_ENV=${nodeEnv}; ensure this is intentional.`,
+    );
+  }
+  const resolved = path.resolve(outputPath);
+  const relative = path.relative(ROOT, resolved);
+  if (relative === ".." || relative.startsWith("..") || path.isAbsolute(relative)) {
+    throw new Error(
+      `ENTITY_EXPOSE_OUTPUT must reside within the repo. Received: ${resolved}`,
+    );
+  }
+  await ensureDir(path.dirname(resolved));
+  await writeFile(resolved, JSON.stringify(result, null, 2), "utf8");
+};
+
 const toWords = (value) =>
   value
     .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
@@ -454,9 +481,18 @@ const parseFlags = (argv) => {
   return { flags, names };
 };
 
-const invokedPath = process.argv[1] ? path.resolve(process.argv[1]) : undefined;
+const isCliInvocation = process.argv
+  .slice(1)
+  .some((arg) => {
+    if (!arg || arg.startsWith("-")) return false;
+    try {
+      return path.resolve(arg) === __filename;
+    } catch {
+      return false;
+    }
+  });
 
-if (invokedPath === __filename) {
+if (isCliInvocation) {
   const [, , ...rest] = process.argv;
   const { flags, names } = parseFlags(rest);
   const [entityName] = names;
@@ -470,6 +506,7 @@ if (invokedPath === __filename) {
   const run = async () => {
     const result = await generateEntity(entityName, flags);
     if (flags.json) {
+      await persistJsonOutput(result);
       console.log(JSON.stringify(result, null, 2));
       return;
     }

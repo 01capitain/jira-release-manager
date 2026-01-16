@@ -512,6 +512,43 @@ paths:
               schema:
                 $ref: "#/components/schemas/RestError"
   /release-versions/{releaseId}/patches/{patchId}/start-deployment:
+    get:
+      operationId: startDeploymentPatchPreflight
+      summary: Start deployment patch (preflight)
+      tags:
+        - Release Versions
+      parameters:
+        - in: path
+          name: releaseId
+          schema:
+            $ref: "#/components/schemas/uuidv7"
+          required: true
+          description: Universally unique identifier (version 7).
+        - in: path
+          name: patchId
+          schema:
+            $ref: "#/components/schemas/uuidv7"
+          required: true
+          description: Universally unique identifier (version 7).
+      responses:
+        "200":
+          description: Preflight result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PatchTransitionPreflight"
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestError"
+        "404":
+          description: Patch not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestError"
     post:
       operationId: startDeploymentPatch
       summary: Start deployment patch
@@ -556,6 +593,43 @@ paths:
               schema:
                 $ref: "#/components/schemas/RestError"
   /release-versions/{releaseId}/patches/{patchId}/cancel-deployment:
+    get:
+      operationId: cancelDeploymentPatchPreflight
+      summary: Cancel deployment patch (preflight)
+      tags:
+        - Release Versions
+      parameters:
+        - in: path
+          name: releaseId
+          schema:
+            $ref: "#/components/schemas/uuidv7"
+          required: true
+          description: Universally unique identifier (version 7).
+        - in: path
+          name: patchId
+          schema:
+            $ref: "#/components/schemas/uuidv7"
+          required: true
+          description: Universally unique identifier (version 7).
+      responses:
+        "200":
+          description: Preflight result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PatchTransitionPreflight"
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestError"
+        "404":
+          description: Patch not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestError"
     post:
       operationId: cancelDeploymentPatch
       summary: Cancel deployment patch
@@ -600,6 +674,43 @@ paths:
               schema:
                 $ref: "#/components/schemas/RestError"
   /release-versions/{releaseId}/patches/{patchId}/mark-active:
+    get:
+      operationId: markActivePatchPreflight
+      summary: Mark active patch (preflight)
+      tags:
+        - Release Versions
+      parameters:
+        - in: path
+          name: releaseId
+          schema:
+            $ref: "#/components/schemas/uuidv7"
+          required: true
+          description: Universally unique identifier (version 7).
+        - in: path
+          name: patchId
+          schema:
+            $ref: "#/components/schemas/uuidv7"
+          required: true
+          description: Universally unique identifier (version 7).
+      responses:
+        "200":
+          description: Preflight result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PatchTransitionPreflight"
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestError"
+        "404":
+          description: Patch not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestError"
     post:
       operationId: markActivePatch
       summary: Mark active patch
@@ -644,6 +755,43 @@ paths:
               schema:
                 $ref: "#/components/schemas/RestError"
   /release-versions/{releaseId}/patches/{patchId}/revert-to-deployment:
+    get:
+      operationId: revertToDeploymentPatchPreflight
+      summary: Revert to deployment patch (preflight)
+      tags:
+        - Release Versions
+      parameters:
+        - in: path
+          name: releaseId
+          schema:
+            $ref: "#/components/schemas/uuidv7"
+          required: true
+          description: Universally unique identifier (version 7).
+        - in: path
+          name: patchId
+          schema:
+            $ref: "#/components/schemas/uuidv7"
+          required: true
+          description: Universally unique identifier (version 7).
+      responses:
+        "200":
+          description: Preflight result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PatchTransitionPreflight"
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestError"
+        "404":
+          description: Patch not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestError"
     post:
       operationId: revertToDeploymentPatch
       summary: Revert to deployment patch
@@ -688,6 +836,43 @@ paths:
               schema:
                 $ref: "#/components/schemas/RestError"
   /release-versions/{releaseId}/patches/{patchId}/deprecate:
+    get:
+      operationId: deprecatePatchPreflight
+      summary: Deprecate patch (preflight)
+      tags:
+        - Release Versions
+      parameters:
+        - in: path
+          name: releaseId
+          schema:
+            $ref: "#/components/schemas/uuidv7"
+          required: true
+          description: Universally unique identifier (version 7).
+        - in: path
+          name: patchId
+          schema:
+            $ref: "#/components/schemas/uuidv7"
+          required: true
+          description: Universally unique identifier (version 7).
+      responses:
+        "200":
+          description: Preflight result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PatchTransitionPreflight"
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestError"
+        "404":
+          description: Patch not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestError"
     post:
       operationId: deprecatePatch
       summary: Deprecate patch
@@ -732,6 +917,43 @@ paths:
               schema:
                 $ref: "#/components/schemas/RestError"
   /release-versions/{releaseId}/patches/{patchId}/reactivate:
+    get:
+      operationId: reactivatePatchPreflight
+      summary: Reactivate patch (preflight)
+      tags:
+        - Release Versions
+      parameters:
+        - in: path
+          name: releaseId
+          schema:
+            $ref: "#/components/schemas/uuidv7"
+          required: true
+          description: Universally unique identifier (version 7).
+        - in: path
+          name: patchId
+          schema:
+            $ref: "#/components/schemas/uuidv7"
+          required: true
+          description: Universally unique identifier (version 7).
+      responses:
+        "200":
+          description: Preflight result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PatchTransitionPreflight"
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestError"
+        "404":
+          description: Patch not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestError"
     post:
       operationId: reactivatePatch
       summary: Reactivate patch
@@ -1423,6 +1645,164 @@ components:
       additionalProperties: false
       title: Release Component
       description: Release component metadata.
+    PatchTransitionPreflight:
+      type: object
+      properties:
+        action:
+          type: string
+          enum:
+            - startDeployment
+            - reactivate
+            - cancelDeployment
+            - revertToDeployment
+            - markActive
+            - deprecate
+        fromStatus:
+          type: string
+          enum:
+            - in_development
+            - in_deployment
+            - active
+            - deprecated
+        toStatus:
+          type: string
+          enum:
+            - in_development
+            - in_deployment
+            - active
+            - deprecated
+        allowed:
+          type: boolean
+        blockers:
+          type: array
+          items:
+            type: string
+        warnings:
+          type: array
+          items:
+            type: string
+        expectedSideEffects:
+          type: array
+          items:
+            type: string
+        patch:
+          type: object
+          properties:
+            id:
+              $ref: "#/components/schemas/uuidv7"
+            name:
+              type: string
+            currentStatus:
+              type: string
+              enum:
+                - in_development
+                - in_deployment
+                - active
+                - deprecated
+            versionId:
+              $ref: "#/components/schemas/uuidv7"
+          required:
+            - id
+            - name
+            - currentStatus
+            - versionId
+          additionalProperties: false
+        historyPreview:
+          type: array
+          items:
+            $ref: "#/components/schemas/PatchTransition"
+        actionContext:
+          oneOf:
+            - type: object
+              properties:
+                action:
+                  type: string
+                  const: startDeployment
+                nextPatchName:
+                  type: string
+                missingComponentSelections:
+                  type: integer
+                  minimum: 0
+                  maximum: 9007199254740991
+                hasSuccessor:
+                  type: boolean
+              required:
+                - action
+                - nextPatchName
+                - missingComponentSelections
+                - hasSuccessor
+              additionalProperties: false
+            - type: object
+              properties:
+                action:
+                  type: string
+                  const: cancelDeployment
+              required:
+                - action
+              additionalProperties: false
+            - type: object
+              properties:
+                action:
+                  type: string
+                  const: markActive
+                readyForProd:
+                  type: boolean
+                pendingApprovals:
+                  type: array
+                  items:
+                    type: string
+              required:
+                - action
+                - readyForProd
+                - pendingApprovals
+              additionalProperties: false
+            - type: object
+              properties:
+                action:
+                  type: string
+                  const: revertToDeployment
+                activeSince:
+                  $ref: "#/components/schemas/iso8601Timestamp"
+              required:
+                - action
+                - activeSince
+              additionalProperties: false
+            - type: object
+              properties:
+                action:
+                  type: string
+                  const: deprecate
+                consumersImpacted:
+                  type: boolean
+              required:
+                - action
+                - consumersImpacted
+              additionalProperties: false
+            - type: object
+              properties:
+                action:
+                  type: string
+                  const: reactivate
+                deprecatedSince:
+                  $ref: "#/components/schemas/iso8601Timestamp"
+              required:
+                - action
+                - deprecatedSince
+              additionalProperties: false
+          type: object
+      required:
+        - action
+        - fromStatus
+        - toStatus
+        - allowed
+        - blockers
+        - warnings
+        - expectedSideEffects
+        - patch
+        - historyPreview
+      additionalProperties: false
+      title: Patch Transition Preflight
+      description: Preflight result describing whether a transition is allowed and why.
     PatchTransitionResult:
       type: object
       properties:

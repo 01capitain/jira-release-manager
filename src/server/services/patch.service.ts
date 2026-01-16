@@ -84,6 +84,7 @@ export class PatchService {
     const patch = await tx.patch.create({
       data: {
         name: trimmedName,
+        increment: parsedIncrement,
         version: { connect: { id: versionId } },
         createdBy: { connect: { id: userId } },
         tokenValues: {

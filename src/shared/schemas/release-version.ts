@@ -11,12 +11,12 @@ export type ReleaseVersionCreateInput = z.infer<
   typeof ReleaseVersionCreateSchema
 >;
 
-const ReleaseVersionUpdateFields = z.object({
+const ReleaseVersionUpdateBaseSchema = z.object({
   name: z.string().trim().min(1, { error: "Please enter a name." }).optional(),
   releaseTrack: ReleaseTrackSchema.optional(),
 });
 
-export const ReleaseVersionUpdateSchema = ReleaseVersionUpdateFields.refine(
+export const ReleaseVersionUpdateSchema = ReleaseVersionUpdateBaseSchema.refine(
   (value) => value.name !== undefined || value.releaseTrack !== undefined,
   { message: "Provide a name or releaseTrack to update." },
 );
@@ -25,11 +25,12 @@ export type ReleaseVersionUpdateInput = z.infer<
   typeof ReleaseVersionUpdateSchema
 >;
 
-export const ReleaseVersionTrackUpdateSchema = ReleaseVersionUpdateFields.pick({
-  releaseTrack: true,
-}).refine((value) => value.releaseTrack !== undefined, {
-  message: "releaseTrack is required",
-});
+export const ReleaseVersionTrackUpdateSchema =
+  ReleaseVersionUpdateBaseSchema.pick({
+    releaseTrack: true,
+  }).refine((value) => value.releaseTrack !== undefined, {
+    message: "releaseTrack is required",
+  });
 
 export type ReleaseVersionTrackUpdateInput = z.infer<
   typeof ReleaseVersionTrackUpdateSchema
