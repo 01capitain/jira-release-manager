@@ -49,10 +49,15 @@ describe("entity-expose scaffolder", () => {
       "tests/e2e/demo-widget.rest.e2e.test.ts",
     ];
 
+    type ReportAction = {
+      relativePath: string;
+      skipped: boolean;
+      reason?: string;
+    };
+    const actions = report.actions as ReportAction[];
+
     for (const relative of expectedPaths) {
-      const match = report.actions.find(
-        (action) => action.relativePath === relative,
-      );
+      const match = actions.find((action) => action.relativePath === relative);
       expect(match).toBeDefined();
       expect(match?.skipped).toBe(true);
       expect(match?.reason).toBe("dry-run");
